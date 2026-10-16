@@ -615,7 +615,7 @@ function renderGame() {
         <div id="hostBar"></div>
         <section class="stage" id="stage"></section>
         <section>
-          <div class="row-between" style="margin-bottom:10px"><h3>Dân làng</h3><span class="muted small" id="aliveCount"></span></div>
+          <div class="row-between" style="margin-bottom:10px"><h3>Người chơi</h3><span class="muted small" id="aliveCount"></span></div>
           <div class="village" id="village"></div>
         </section>
         <details class="panel section" id="logBox">
