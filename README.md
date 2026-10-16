@@ -1,30 +1,75 @@
-# 🐺 Ma Sói Online — Project Deploy Vercel
+# 🌕 Ma Sói Online
 
-Ứng dụng chơi **Ma Sói (Werewolf)** đa thiết bị theo thời gian thực, hỗ trợ đầy đủ luồng Quản trò tự động bằng giọng đọc tiếng Việt và đồng bộ phòng chơi trực tiếp trên **Vercel**.
+Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của chủ phòng đặt giữa bàn làm **quản trò**: đọc lời dẫn bằng giọng tiếng Việt, gọi từng vai trò thức dậy và điều khiển nhịp ván chơi.
 
-## ✨ Tính năng chính
+- **Vercel làm máy chủ phòng**: toàn bộ luật chơi chạy trong Vercel Function `api/room.js`. Không dùng broker public, không cần WebRTC.
+- **Upstash Redis** lưu trạng thái phòng (tự xoá sau 6 giờ).
+- **Không lộ bài**: mỗi máy chỉ nhận đúng thông tin mình được biết. Máy chủ kiểm tra mọi hành động (đúng lượt, đúng vai trò, còn sống).
+- **Vào lại được**: tải lại trang, mất mạng hay khoá màn hình đều quay về đúng ván cũ.
 
-1. **Chủ phòng (Host) tạo phòng & cấu hình thông số**:
-   - Tùy chỉnh **Thời gian thảo luận**, **Thời gian vote nghi phạm**, **Thời gian biện hộ**, **Thời gian vote treo cổ**, và **Thời gian mỗi lượt gọi Role ban đêm**.
-   - Chia sẻ đường link vào phòng (`https://<ten-mien>.vercel.app/?room=SOIxxx`) cho người chơi khác.
-2. **Tự động đề xuất số lượng Role cân bằng hoặc Chủ phòng tự chỉnh**:
-   - **Chế độ Tự động cân bằng (Auto-Balance)**: Hệ thống tự tính toán số lượng *Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu Cupid, Dân Làng* tối ưu theo tổng số người tham gia.
-   - **Chế độ Thủ công**: Chủ phòng tăng/giảm (`+` / `-`) từng Role kèm thanh đo tỷ lệ cân bằng giữa Phe Dân Làng và Phe Ma Sói.
-3. **Hiển thị Lá Bài Role trên từng máy người chơi**:
-   - Khi bắt đầu và trong suốt ván đấu, điện thoại/máy tính của mỗi người chơi hiển thị lá bài 3D của đúng Role đó (kèm tính năng chạm để úp/lật lá bài tránh lộ bài).
-4. **Giọng nói Quản Trò ban đêm (Chỉ phát trên máy Chủ phòng)**:
-   - Khi về đêm, hệ thống gọi lần lượt từng Role theo đúng thứ tự chuẩn Ma Sói (*Cupid -> Bảo Vệ -> Ma Sói -> Tiên Tri -> Phù Thủy*) bằng **Web Speech API (`vi-VN`)** kết hợp hiệu ứng âm thanh đêm.
-   - Âm thanh **chỉ phát ra ở máy Chủ phòng**, không phát ở máy người chơi để tránh lộ vị trí người cầm Role.
-5. **Tự tổng kết sau đêm & Option giọng đọc kết quả buổi sáng**:
-   - Khi hết đêm, hệ thống tự động xử lý các tương tác (*Sói cắn, Bảo Vệ đỡ, Phù Thủy cứu/độc, Tình nhân chết theo*) và gửi thông báo kết quả tới **tất cả các máy**.
-   - Tích hợp sẵn checkbox **Option có giọng đọc kết quả buổi sáng qua máy Chủ phòng**.
-6. **Chu trình Ban Ngày chuẩn xác**:
-   - **Hết đêm** ➔ Tự động tính **Giờ Thảo Luận**.
-   - **Hết giờ thảo luận** ➔ Hiện danh sách tên các nhân vật còn sống để mọi người **Vote Nghi Phạm**.
-   - **Sau khi mọi người vote** ➔ Đưa người bị tình nghi cao nhất lên bục và bắt đầu tính **Giờ Biện Hộ**.
-   - **Sau khi hết giờ biện hộ** ➔ Mở vòng **Vote Phán Quyết (Treo Cổ / Tha Mạng)**, kiểm tra điều kiện thắng thua hoặc chuyển sang Đêm tiếp theo.
+## Vai trò
 
-## 🚀 Hướng dẫn Deploy lên Vercel
+Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người); chủ phòng có thể tự chỉnh.
 
-1. Đẩy thư mục project này lên GitHub Repository hoặc giải nén file zip.
-2. Truy cập [vercel.com/new](https://vercel.com/new) và chọn **Import** repository (hoặc chạy `npx vercel --prod` trong thư mục).
+Diễn biến mỗi vòng: đêm (Thần Tình Yêu ở đêm đầu, rồi Bảo Vệ, Ma Sói, Tiên Tri, Phù Thủy) → công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
+
+## Deploy lên Vercel
+
+1. Import repository vào Vercel ([vercel.com/new](https://vercel.com/new)). Framework Preset: **Other**. Không cần build command.
+2. Trong project trên Vercel, vào **Storage → Create Database → Upstash (Redis)** rồi kết nối với project. Vercel tự thêm biến môi trường `KV_REST_API_URL` / `KV_REST_API_TOKEN` (hoặc `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`). Code đọc được cả hai kiểu tên.
+3. Redeploy. Mở trang, tạo phòng, bấm **Mời bạn bè** để gửi link.
+
+> Nếu thiếu Upstash, API sẽ báo lỗi “Chưa cấu hình Upstash Redis” thay vì chạy sai. Function trên Vercel không chia sẻ bộ nhớ RAM, nên phòng sẽ biến mất ngẫu nhiên nếu không có Redis.
+
+**Chi phí**: mỗi máy hỏi trạng thái máy chủ khoảng mỗi 1–1,5 giây (khi ẩn tab thì 5 giây), mỗi lần hỏi là 1 lệnh Redis. Ván 10 người trong 1 giờ tốn khoảng 25–30 nghìn lệnh. Hãy xem hạn mức miễn phí hiện tại của Upstash và Vercel để ước lượng.
+
+## Giọng quản trò
+
+Máy chủ phòng phát giọng theo thứ tự ưu tiên:
+
+1. **File MP3 có sẵn** trong `public/audio/` (liệt kê trong `manifest.json`). Giọng tự nhiên, giống nhau trên mọi máy.
+2. Nếu thiếu file: dùng **giọng tiếng Việt của trình duyệt** (Chrome/Edge có giọng “Online/Natural” khá tốt), có ngắt nghỉ theo dấu câu.
+
+Lời dẫn nằm trong `public/shared/voice-lines.js`. Mỗi câu có 1–3 biến thể để không lặp nhàm chán. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
+
+### Tạo file giọng miễn phí, không cần API key
+
+Dùng [edge-tts](https://github.com/rany2/edge-tts) với giọng neural tiếng Việt của Microsoft: `vi-VN-NamMinhNeural` (nam, trầm) hoặc `vi-VN-HoaiMyNeural` (nữ).
+
+**Cách 1: GitHub Actions (không cần cài gì)**
+Vào tab **Actions → Tạo giọng quản trò → Run workflow**, chọn nhánh và giọng. Workflow tự tạo các file MP3 và commit vào nhánh đó.
+
+**Cách 2: chạy trên máy bạn**
+```bash
+pip install edge-tts
+npm run voice                              # giọng nam NamMinh
+VOICE=vi-VN-HoaiMyNeural FORCE=1 npm run voice   # đổi sang giọng nữ, tạo lại tất cả
+```
+
+Lưu ý: edge-tts dùng dịch vụ đọc văn bản của trình duyệt Edge, không phải API chính thức có cam kết. Phù hợp cho dự án cá nhân; nếu dùng thương mại, hãy chuyển sang dịch vụ TTS có giấy phép.
+
+**Cách 3: tự thu âm** (tự nhiên và có cảm xúc nhất)
+Thu các câu trong `voice-lines.js`, lưu thành `public/audio/<key>_<biến thể>.mp3` (ví dụ `werewolf_wake_0.mp3`, `seat_3_0.mp3`), rồi chạy `node scripts/generate-voice.mjs --manifest-only`. Có thể chỉ thu một phần: câu nào thiếu file sẽ dùng giọng trình duyệt.
+
+## Chạy ở máy cá nhân
+
+```bash
+npm run dev      # http://localhost:3000, lưu phòng trong RAM
+npm test         # test luật chơi (node:test, không cần cài thư viện)
+```
+
+Thêm `?debug=1` vào URL để chủ phòng có nút **Thêm bot thử nghiệm**. Bot tự hành động, giúp thử cả ván chơi chỉ với một máy. Nút này không hiện ở chế độ thường.
+
+## Cấu trúc
+
+```
+api/room.js              Vercel Function: tạo/vào phòng, nhận hành động, trả trạng thái
+lib/engine.js            Luật chơi (hàm thuần, có test)
+lib/store.js             Upstash Redis REST + compare-and-set (bộ nhớ RAM khi chạy local)
+public/index.html        Trang duy nhất
+public/js/app.js         Giao diện
+public/js/narrator.js    Giọng quản trò, hiệu ứng âm thanh, âm thanh nền
+public/shared/           Định nghĩa vai trò và lời dẫn (dùng chung server/client)
+scripts/                 Dev server, tạo file giọng
+test/engine.test.js      Test luật chơi
+```

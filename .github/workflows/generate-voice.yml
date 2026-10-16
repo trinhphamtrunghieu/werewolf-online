@@ -1,0 +1,49 @@
+name: Tạo giọng quản trò
+
+# Run from the Actions tab: generates the narrator MP3 clips with free Vietnamese
+# neural voices (edge-tts) and commits them to the branch you pick.
+on:
+  workflow_dispatch:
+    inputs:
+      voice:
+        description: 'Giọng đọc'
+        type: choice
+        default: vi-VN-NamMinhNeural
+        options:
+          - vi-VN-NamMinhNeural
+          - vi-VN-HoaiMyNeural
+      force:
+        description: 'Tạo lại tất cả file (khi đổi giọng hoặc sửa lời thoại)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install edge-tts
+      - run: npm run voice
+        env:
+          VOICE: ${{ inputs.voice }}
+          FORCE: ${{ inputs.force && '1' || '0' }}
+      - name: Commit audio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/audio
+          if git diff --cached --quiet; then
+            echo "Không có file mới."
+          else
+            git commit -m "Tạo giọng quản trò (${{ inputs.voice }})"
+            git push
+          fi
