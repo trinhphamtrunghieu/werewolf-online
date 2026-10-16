@@ -22,7 +22,7 @@ Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn 
 7. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
 8. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên.
 9. **Những người bị thôi miên**: mở mắt nhìn nhau.
-10. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn.
+10. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), Tiên Tri, Bảo Vệ, Phù Thủy và Thợ Săn mất chức năng đến hết ván.
 11. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
 
 Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
@@ -31,7 +31,7 @@ Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi ph
 
 ## Deploy lên Vercel + Supabase
 
-1. Tạo project trên [supabase.com](https://supabase.com) (gói Free là đủ). Vào **SQL Editor**, chạy nội dung file `supabase/schema.sql`.
+1. Tạo project trên [supabase.com](https://supabase.com) (gói Free là đủ), **chọn Region: Southeast Asia (Singapore)**. Vào **SQL Editor**, chạy nội dung file `supabase/schema.sql`.
 2. Import repository vào Vercel ([vercel.com/new](https://vercel.com/new)). Framework Preset: **Other**. Không cần build command.
 3. Thêm biến môi trường cho project trên Vercel. Cách nhanh nhất là cài tích hợp **Supabase** trong Vercel Marketplace (tự điền các biến). Hoặc lấy trong Supabase → Project Settings → API rồi điền tay:
    - `SUPABASE_URL`
@@ -40,6 +40,8 @@ Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi ph
 4. Redeploy. Mở trang, tạo phòng, bấm **Mời bạn bè** để gửi link.
 
 > Thiếu cấu hình Supabase thì API báo lỗi “Chưa cấu hình Supabase” thay vì chạy sai. Nếu tắt kênh public trong Supabase (Realtime → Settings → chỉ cho phép kênh private), các máy sẽ tự chuyển sang hỏi máy chủ mỗi 1–1,5 giây.
+
+**Độ trễ giữa các máy:** Function chạy ở Singapore (`"regions": ["sin1"]` trong `vercel.json`), gần Việt Nam. Mỗi lần đồng bộ, Function phải gọi Supabase vài lần, nên **Supabase cũng phải ở Singapore**; lệch vùng (ví dụ Supabase ở Mỹ) sẽ cộng thêm vài trăm mili giây cho mỗi lần gọi. Nếu project Supabase hiện tại ở vùng khác, hãy tạo project mới ở Singapore rồi chạy lại `schema.sql` (phòng chơi là dữ liệu tạm, không cần chuyển dữ liệu). Trên màn hình chơi, dòng trạng thái cho biết đang "đồng bộ tức thì" (Realtime chạy) hay "đồng bộ định kỳ" (Realtime chưa chạy). Mở trang với `?debug=1` để xem thêm thời gian mỗi lần gọi máy chủ. Trong DevTools, header `Server-Timing` của `/api/room` cho biết thời gian gọi Supabase.
 
 **Chi phí và giới hạn:**
 - Mỗi máy chỉ gọi API khi có thay đổi (ping Realtime), khi hết giờ một bước, và kiểm tra định kỳ mỗi 15 giây. Đo thực tế: khoảng 8 lần/phút với người chơi, 12 lần/phút với chủ phòng. Ván 10 người trong 1 giờ tốn khoảng 5–7 nghìn lượt gọi Vercel Function.

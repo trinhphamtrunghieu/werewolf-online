@@ -76,6 +76,9 @@ export const LINES = {
     'Già Làng, hãy thức dậy... và cho quản trò biết bạn là ai.'
   ],
   elder_sleep: ['Già Làng, hãy nhắm mắt lại.'],
+  elder_betrayed: [
+    'Già Làng đã ngã xuống... dưới tay chính dân làng. Từ giờ, mọi chức năng của dân làng đều biến mất.'
+  ],
   morning_peace: [
     'Trời đã sáng! Mọi người hãy mở mắt ra. Thật may mắn... đêm qua không có ai thiệt mạng.',
     'Gà đã gáy, trời sáng rồi! Một đêm bình yên... không ai bị hại cả.'

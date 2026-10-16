@@ -146,8 +146,8 @@ export const ROLES = {
     team: 'village',
     icon: '👴',
     color: '#e3c9a0',
-    short: 'Chịu được 1 lần bị Sói cắn.',
-    description: 'Đêm đầu mở mắt để quản trò biết bạn là Già Làng. Lần đầu bị Sói cắn bạn không chết; lần thứ hai thì chết như bình thường.',
+    short: 'Chịu được 1 lần Sói cắn. Dân giết nhầm thì cả làng mất chức năng.',
+    description: 'Đêm đầu mở mắt để quản trò biết bạn là Già Làng. Lần đầu bị Sói cắn bạn không chết. Nhưng nếu chính dân làng giết bạn (treo cổ, bình Độc của Phù Thủy, súng Thợ Săn), mọi vai trò phe Dân sẽ mất chức năng đến hết ván.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="46" cy="32" r="14" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M36 40C38 50 54 50 56 40" stroke="currentColor" stroke-width="3"/>

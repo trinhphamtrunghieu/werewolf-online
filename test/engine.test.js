@@ -437,3 +437,42 @@ test('bots finish games that use every role', () => {
     assert.equal(s.phase, 'GAME_OVER', `seed ${seed}`);
   }
 });
+
+test('lynching the elder strips every village power for the rest of the game', () => {
+  const { s, P, act, endPhase, untilNightRole, untilPhase } = setup(['elder', 'werewolf', 'seer', 'hunter', 'villager', 'villager', 'villager']);
+  untilNightRole('hunter');
+  act(P[3], 'night', { target: P[4].id });
+  untilPhase('VOTE');
+  const voters = P.filter(p => p.id !== P[0].id);
+  voters.forEach(v => act(v, 'vote', { target: P[0].id }));
+  untilPhase('JUDGE');
+  voters.forEach(v => act(v, 'judge', { choice: 'kill' }));
+  endPhase();
+  assert.equal(P[0].alive, false);
+  assert.equal(s.game.powersLost, true);
+  assert.ok(s.narration.clips.some(c => c.k === 'elder_betrayed'));
+  untilNightRole('seer');
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.task.powerless, true);
+  assert.throws(() => act(P[2], 'night', { target: P[1].id }), /mất chức năng/);
+  // The hunter's gun no longer fires either.
+  untilNightRole('hunter');
+  assert.throws(() => act(P[3], 'night', { target: P[5].id }), /mất chức năng/);
+  untilPhase('VOTE');
+  const voters2 = P.filter(p => p.alive && p.id !== P[3].id);
+  voters2.forEach(v => act(v, 'vote', { target: P[3].id }));
+  untilPhase('JUDGE');
+  voters2.forEach(v => act(v, 'judge', { choice: 'kill' }));
+  endPhase();
+  assert.equal(P[3].alive, false);
+  assert.equal(P[4].alive, true, 'powerless hunter takes nobody with them');
+});
+
+test('the elder dying to wolves does not cost the village its powers', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['elder', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
+  s.game.elderShield = false;
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
+  assert.equal(s.game.powersLost, false);
+});

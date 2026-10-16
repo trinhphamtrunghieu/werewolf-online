@@ -94,10 +94,33 @@ async function handlePoll(store, query) {
   return { view: viewFor(state, query.pid, now, version) };
 }
 
+// Wrap the store so each request reports how long it spent talking to the
+// database (visible in the browser's DevTools as a Server-Timing header).
+function timedStore(store, timing) {
+  const wrap = (name) => async (...args) => {
+    const t = performance.now();
+    try {
+      return await store[name](...args);
+    } finally {
+      timing.db += performance.now() - t;
+      timing.calls += 1;
+    }
+  };
+  return { ...store, load: wrap('load'), cas: wrap('cas'), notify: wrap('notify'), cleanup: wrap('cleanup') };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  const started = performance.now();
+  const timing = { db: 0, calls: 0 };
+  const json = res.json.bind(res);
+  res.json = (body) => {
+    res.setHeader('Server-Timing',
+      `db;desc="${timing.calls} database calls";dur=${timing.db.toFixed(1)}, total;dur=${(performance.now() - started).toFixed(1)}`);
+    return json(body);
+  };
   try {
-    const store = getStore();
+    const store = timedStore(getStore(), timing);
     let out;
     if (req.method === 'GET' && req.query?.config) {
       out = { realtime: realtimeClientConfig() };
