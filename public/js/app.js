@@ -19,6 +19,9 @@ const app = document.getElementById('app');
 let session = loadSession();
 let view = null;
 let clockOffset = 0;
+let clockRtt = Infinity;
+let clockSampledAt = 0;
+let lastRtt = null;
 let heartbeatTimer = null;
 let wakeTimer = null;
 let failures = 0;
@@ -84,6 +87,7 @@ const shareUrl = () => `${location.origin}/?room=${view?.code || ''}`;
 
 async function api(method, body, query) {
   const url = '/api/room' + (query ? '?' + new URLSearchParams(query) : '');
+  const sent = Date.now();
   const res = await fetch(url, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
@@ -91,12 +95,29 @@ async function api(method, body, query) {
     cache: 'no-store'
   });
   const data = await res.json().catch(() => ({}));
+  const received = Date.now();
+  lastRtt = received - sent;
+  const stamp = data.view?.serverNow ?? data.serverNow;
+  if (stamp) syncClock(stamp, sent, received);
   if (!res.ok) {
     const err = new Error(data.error || 'Không kết nối được máy chủ.');
     err.status = res.status;
     throw err;
   }
   return data;
+}
+
+// Estimate the server clock assuming the reply was stamped half-way through the
+// round trip. Keep the sample from the fastest recent request: a slow request
+// says little about when the server actually stamped it.
+function syncClock(serverStamp, sent, received) {
+  const rtt = received - sent;
+  const stale = received - clockSampledAt > 30000;
+  if (rtt <= clockRtt * 1.5 || stale) {
+    clockOffset = serverStamp - (sent + received) / 2;
+    clockRtt = rtt;
+    clockSampledAt = received;
+  }
 }
 
 async function act(type, payload = {}) {
@@ -138,7 +159,6 @@ async function sync() {
       const data = await api('GET', null, { code: session.code, pid: session.playerId, token: session.token, since: view?.version || 0 });
       failures = 0;
       if (data.view) applyView(data.view);
-      else if (data.serverNow) clockOffset = data.serverNow - Date.now();
       setConnection(true);
     } catch (e) {
       failures++;
@@ -170,14 +190,16 @@ function scheduleHeartbeat() {
   heartbeatTimer = setTimeout(sync, delay);
 }
 
-// Ask the server to advance the game when the phase ends. The host's phone
-// goes first; others follow a moment later in case the host is offline (if the
-// host already advanced it, their request just returns "unchanged").
+// Ask the server for the next phase the moment the current one ends. Every
+// phone does this itself (a little spread out) instead of waiting for the
+// host's phone to advance it and a Realtime ping to come back, which added a
+// whole extra round trip. Whichever request lands first advances the game;
+// the others just read the new state.
 function scheduleWake() {
   clearTimeout(wakeTimer);
   const at = view?.game?.wakeAt;
   if (!session || !at) return;
-  const grace = isHost() ? 250 : 1500 + Math.random() * 1500;
+  const grace = isHost() ? 60 : 120 + Math.random() * 250;
   const version = view.version;
   wakeTimer = setTimeout(() => {
     if (view?.version === version) sync();
@@ -200,7 +222,7 @@ async function startRealtime() {
       code,
       playerId: session.playerId,
       onUpdate: (v) => {
-        if (session?.code === code && (!view || !v || v > view.version)) setTimeout(sync, Math.random() * 200);
+        if (session?.code === code && (!view || !v || v > view.version)) setTimeout(sync, Math.random() * 60);
       },
       onPresence: (ids) => {
         presence = ids;
@@ -209,6 +231,7 @@ async function startRealtime() {
       onStatus: (ok) => {
         const was = live;
         live = ok;
+        setConnection(true);
         // Catch up on anything missed while disconnected.
         if (ok && !was) sync();
         else scheduleHeartbeat();
@@ -229,12 +252,20 @@ function stopRealtime() {
 // Online if Realtime presence says so; otherwise trust the server's last-seen.
 const isOnline = (p) => p.isBot || (presence?.size ? presence.has(p.id) : p.online);
 
+let connected = true;
+
+function connectionHtml() {
+  const timing = DEBUG && lastRtt != null ? ` (${lastRtt} ms)` : '';
+  if (!connected) return '<span class="status-dot off"></span>Mất kết nối, đang thử lại…';
+  return live
+    ? `<span class="status-dot"></span>Đã kết nối, đồng bộ tức thì${timing}`
+    : `<span class="status-dot"></span>Đã kết nối, đồng bộ định kỳ vì Realtime chưa chạy${timing}`;
+}
+
 function setConnection(ok) {
+  connected = ok;
   const el = document.getElementById('conn');
-  if (!el) return;
-  el.innerHTML = ok
-    ? '<span class="status-dot"></span>Đã kết nối'
-    : '<span class="status-dot off"></span>Mất kết nối, đang thử lại…';
+  if (el) el.innerHTML = connectionHtml();
 }
 
 // ---------------------------------------------------------------------------
@@ -287,7 +318,6 @@ function leaveLocal() {
 }
 
 function applyView(next) {
-  clockOffset = next.serverNow - Date.now();
   const prev = view;
   view = next;
   if (prev && prev.version === next.version && screen === screenFor(next)) return;
@@ -470,7 +500,7 @@ function renderLobby() {
       </div>
       <button class="btn btn-primary" data-act="share">Mời bạn bè</button>
     </div>
-    <p class="muted small" id="conn"><span class="status-dot"></span>Đã kết nối</p>`;
+    <p class="muted small" id="conn">${connectionHtml()}</p>`;
 
   document.getElementById('players').innerHTML = `
     <div class="row-between" style="margin-bottom:6px">
@@ -622,7 +652,7 @@ function renderGame() {
           <summary><h3>Nhật ký ván chơi</h3></summary>
           <ol class="log" id="log"></ol>
         </details>
-        <p class="muted small" id="conn"><span class="status-dot"></span>Đã kết nối</p>
+        <p class="muted small" id="conn">${connectionHtml()}</p>
       </div>
       <div class="bottom-bar"><div class="bottom-bar-inner" id="gameFooter"></div></div>`;
   }
@@ -853,6 +883,9 @@ function nightTask(task) {
     : `<button class="btn btn-primary btn-block" style="margin-top:14px" data-act="ack">${label}</button>`;
   const faces = (ids) => `<div class="village" style="margin-top:14px">${ids.map(id => player(id)).filter(Boolean).map(p => seat(p)).join('')}</div>`;
 
+  if (task.powerless) {
+    return `<div class="panel">${head(task.role, 'Bạn đã mất chức năng', 'Già Làng đã chết dưới tay dân làng, nên từ giờ bạn không còn dùng được chức năng nữa. Hãy giữ im lặng và nhắm mắt.')}</div>`;
+  }
   if (task.role === 'thief') {
     if (task.done) {
       return `<div class="panel">${head('thief', task.took ? `Bạn đã trở thành ${ROLES[task.took].name}` : 'Bạn giữ nguyên lá Ăn Trộm',
