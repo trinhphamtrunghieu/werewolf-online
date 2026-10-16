@@ -132,20 +132,22 @@ test('nobody voting or a tie sends nobody to the stand (host is not picked)', ()
   assert.equal(s.game.verdict.type, 'none');
 });
 
-test('lynching the hunter lets them shoot, and win is checked afterwards', () => {
-  const { s, P, act, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager']);
+test('hunter aims at night; when lynched, the aimed player dies too and win is checked', () => {
+  const { s, P, act, endPhase, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager']);
+  untilNightRole('hunter');
+  assert.ok(s.game.queue.indexOf('hunter') < s.game.queue.indexOf('werewolf'), 'hunter wakes before the wolves');
+  act(P[0], 'night', { target: P[1].id });
   untilPhase('VOTE');
   const voters = P.filter(p => p.alive && p.id !== P[0].id);
   voters.forEach(v => act(v, 'vote', { target: P[0].id }));
-  untilPhase('DEFENSE');
   untilPhase('JUDGE');
   voters.forEach(v => act(v, 'judge', { choice: 'kill' }));
-  untilPhase('HUNTER');
-  assert.equal(viewFor(s, P[2].id, 0, 1).players[0].role, 'hunter', 'hunter is revealed while shooting');
-  act(P[0], 'shoot', { target: P[1].id });
-  assert.equal(P[1].alive, false);
+  endPhase();
+  assert.equal(P[0].alive, false);
+  assert.equal(P[1].alive, false, 'the aimed wolf dies with the hunter');
   assert.equal(s.phase, 'GAME_OVER');
   assert.equal(s.game.winner, 'village');
+  assert.ok(s.narration.clips.some(c => c.k === 'hunter_fire'));
 });
 
 test('witch heal is blind: saves the bitten player, and is spent on a quiet night', () => {
@@ -165,14 +167,24 @@ test('witch heal is blind: saves the bitten player, and is spent on a quiet nigh
   assert.equal(quiet.s.game.potions.heal, false, 'potion is used even if nobody was bitten');
 });
 
-test('the hunter shoots whatever killed them, so the cause of death stays hidden', () => {
-  const { s, P, act, untilNightRole, untilPhase } = setup(['witch', 'werewolf', 'hunter', 'villager', 'villager', 'villager']);
-  untilNightRole('witch');
-  act(P[0], 'witch', { use: 'poison', target: P[2].id });
-  untilPhase('HUNTER');
-  assert.equal(s.game.hunter.id, P[2].id);
+test('hunter never learns the bite, keeps last aim, and fires even when bitten', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  untilNightRole('hunter');
+  act(P[0], 'night', { target: P[2].id });
+  assert.throws(() => act(P[0], 'night', { target: P[0].id }), /người khác/);
+  untilPhase('DISCUSSION');
+  // Night 2: the hunter does nothing, so the gun stays on P[2]; wolves bite the hunter.
+  untilNightRole('hunter');
+  const hunterView = viewFor(s, P[0].id, 0, 1);
+  assert.equal(hunterView.me.task.lastAim, P[2].id);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
+  assert.equal(P[2].alive, false, 'the gun fires even though the hunter was bitten at night');
+  assert.deepEqual(new Set(s.game.lastNightDeaths), new Set([P[0].id, P[2].id]));
   const villagerView = JSON.stringify(viewFor(s, P[3].id, 0, 1));
-  assert.ok(!villagerView.includes('poison'), 'cause of death is not sent to players');
+  assert.ok(!villagerView.includes('"wolf"') && !villagerView.includes('hunter_aim'), 'causes are not sent to players');
 });
 
 test('wakeAt tells clients when the phase ends', () => {

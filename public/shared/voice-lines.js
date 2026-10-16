@@ -95,13 +95,15 @@ export const LINES = {
     'đã được dân làng tha mạng. Hãy cảnh giác nhé.'
   ],
   hunter_wake: [
-    'Thợ Săn đã ngã xuống... nhưng vẫn kịp giương súng lên. Hãy chọn người sẽ đi cùng bạn.'
+    'Thợ Săn, hãy thức dậy. Đêm nay, bạn sẽ chĩa súng vào ai?',
+    'Thợ Săn ơi, mở mắt ra nào. Hãy chọn người mà bạn sẽ kéo theo... nếu bạn phải ngã xuống.'
   ],
-  hunter_shot: [
-    'đã trúng phát súng cuối cùng của Thợ Săn.'
+  hunter_sleep: ['Thợ Săn, hãy nhắm mắt lại.'],
+  hunter_fire: [
+    'Trước khi ngã xuống... Thợ Săn đã kịp bóp cò.'
   ],
-  hunter_miss: [
-    'Thợ Săn đã không bóp cò.'
+  also_died: [
+    'Cùng ra đi với họ là...'
   ],
   win_village: [
     'Ma Sói cuối cùng đã bị tiêu diệt! Ngôi làng đã trở lại bình yên. Phe Dân Làng, chiến thắng!'

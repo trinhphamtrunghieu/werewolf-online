@@ -597,7 +597,6 @@ function rolesPanel(count, host) {
 const PHASE_TITLE = {
   NIGHT: (g) => `Đêm ${g.day}`,
   MORNING: (g) => `Sáng ngày ${g.day}`,
-  HUNTER: () => 'Phát súng cuối',
   DISCUSSION: (g) => `Ngày ${g.day}: thảo luận`,
   VOTE: (g) => `Ngày ${g.day}: bỏ phiếu`,
   DEFENSE: (g) => `Ngày ${g.day}: biện hộ`,
@@ -673,7 +672,6 @@ function phaseSubtitle() {
       return r ? `Quản trò đang gọi ${r.name}.` : 'Cả làng đang ngủ.';
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
-    case 'HUNTER': return `${esc(player(g.hunterId)?.name || 'Thợ Săn')} đang ngắm bắn.`;
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
     case 'DEFENSE': return `${esc(player(g.defendant)?.name || '')} đang tự bào chữa.`;
@@ -753,19 +751,6 @@ function stage() {
         <h2>${deaths.length ? 'Đêm qua có người đã chết' : 'Đêm qua không ai chết'}</h2>
         ${deaths.length ? `<div class="village">${deaths.map(id => seat(player(id))).join('')}</div>` : '<p class="lead">Bảo Vệ hoặc Phù Thủy đã làm tốt việc của mình… hoặc bầy Sói đang toan tính điều gì đó.</p>'}
       </div>`;
-  }
-
-  if (view.phase === 'HUNTER') {
-    if (task?.role === 'hunter') {
-      return `
-        <div class="panel">
-          <h2>Bạn là Thợ Săn</h2>
-          <p class="lead">Chọn một người để bắn chết theo, hoặc bỏ qua.</p>
-          ${pickGrid('shoot', { exclude: [m.id] })}
-          <button class="btn btn-ghost btn-block" style="margin-top:14px" data-act="noShoot">Không bắn ai</button>
-        </div>`;
-    }
-    return `<div class="panel sleep"><div class="zz">🎯</div><h2>Thợ Săn đang ngắm bắn…</h2><p class="lead">${esc(seatName(g.hunterId))} được nổ phát súng cuối cùng.</p></div>`;
   }
 
   if (view.phase === 'DISCUSSION') {
@@ -872,6 +857,16 @@ function nightTask(task) {
         ? `<p class="result" style="margin-top:12px">Bạn đang bảo vệ ${esc(seatName(task.pick))}.</p>`
         : pickGrid('night', { disabled: task.lastGuarded ? [task.lastGuarded] : [], subs })}</div>`;
   }
+  if (task.role === 'hunter') {
+    const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
+    const subs = lastAim ? { [lastAim]: 'Đang chĩa súng' } : {};
+    return `<div class="panel">${head('hunter', 'Chĩa súng vào ai đêm nay?', lastAim
+      ? `Súng đang chĩa vào ${esc(seatName(lastAim))}. Chọn lại, hoặc để nguyên khi hết giờ.`
+      : 'Nếu bạn chết, người này sẽ chết theo. Bạn không biết ai bị Sói cắn.')}
+      ${task.complete
+        ? `<p class="result" style="margin-top:12px">Súng đang chĩa vào ${esc(seatName(task.aim))}.</p>`
+        : pickGrid('night', { exclude: [m.id], selected: lastAim ? [lastAim] : [], subs })}</div>`;
+  }
   if (task.role === 'werewolf') {
     const counts = {};
     Object.values(task.votes).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
@@ -918,6 +913,7 @@ function moderatorNight() {
       <p class="lead">${r ? `Đang gọi ${r.name}.` : ''} Chỉ bạn thấy được bảng này.</p>
       ${n.lovers.length ? `<p class="small">Tình Nhân: <strong>${esc(n.lovers.map(seatName).join(' và '))}</strong></p>` : ''}
       ${line('Bảo Vệ chọn', n.guard)}
+      ${line('Thợ Săn chĩa súng', n.hunterAim)}
       ${line('Sói cắn', n.wolfTarget)}
       ${line('Tiên Tri soi', n.seerTarget)}
       ${n.heal ? '<p class="small">Phù Thủy đã dùng bình Cứu.</p>' : ''}
@@ -961,7 +957,7 @@ function renderRules() {
   document.getElementById('rulesBody').innerHTML = `
     <div class="sheet-head"><h3 id="rulesTitle">Luật chơi</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
     <div class="stack small">
-      <p>Mỗi đêm, quản trò gọi từng vai trò thức dậy theo thứ tự: Thần Tình Yêu (đêm đầu), Bảo Vệ, Ma Sói, Tiên Tri, Phù Thủy. Người có vai trò đó thao tác trên điện thoại của mình.</p>
+      <p>Mỗi đêm, quản trò gọi từng vai trò thức dậy theo thứ tự: Thần Tình Yêu (đêm đầu), Bảo Vệ, Thợ Săn, Ma Sói, Tiên Tri, Phù Thủy. Người có vai trò đó thao tác trên điện thoại của mình.</p>
       <p>Ban ngày: công bố người chết, thảo luận, bỏ phiếu chọn nghi phạm, nghi phạm biện hộ, rồi cả làng chọn treo cổ hay tha.</p>
       <p>Phe Dân thắng khi hết Sói. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.</p>
       ${ROLE_IDS.map(id => `<p><strong>${ROLES[id].icon} ${ROLES[id].name}</strong>: ${ROLES[id].description}</p>`).join('')}
@@ -1063,12 +1059,6 @@ document.addEventListener('click', async (e) => {
     case 'witchDone': return act('witch', { use: 'done' });
     case 'vote': return act('vote', { target: id });
     case 'judge': return act('judge', { choice: el.dataset.choice });
-    case 'shoot': {
-      const p = player(id);
-      if (p && confirm(`Bắn ${p.name}?`)) act('shoot', { target: id });
-      return;
-    }
-    case 'noShoot': return act('shoot', { target: null });
   }
 });
 

@@ -11,9 +11,11 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 
 Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người); chủ phòng có thể tự chỉnh.
 
-Diễn biến mỗi vòng: đêm (Thần Tình Yêu ở đêm đầu, rồi Bảo Vệ, Ma Sói, Tiên Tri, Phù Thủy) → công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
+Diễn biến mỗi vòng: đêm (Thần Tình Yêu ở đêm đầu, rồi Bảo Vệ, Thợ Săn, Ma Sói, Tiên Tri, Phù Thủy) → công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
 
-Không ai ngoài Ma Sói biết ai bị cắn: Phù Thủy dùng bình Cứu "mù" (cứu người bị cắn đêm đó nếu có, bình vẫn mất nếu đêm đó Sói không cắn ai). Thợ Săn chết vì bất kỳ lý do gì cũng được bắn, nên cả làng không đoán được nguyên nhân cái chết.
+Không ai ngoài Ma Sói biết ai bị cắn:
+- **Phù Thủy** dùng bình Cứu "mù": cứu người bị cắn đêm đó nếu có, bình vẫn mất nếu đêm đó Sói không cắn ai.
+- **Thợ Săn** thức dậy mỗi đêm, trước Ma Sói, và chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
 
 ## Deploy lên Vercel + Supabase
 
