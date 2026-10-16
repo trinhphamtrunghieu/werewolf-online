@@ -37,6 +37,9 @@ let lastTaskKey = null;
 let lastPhaseKey = null;
 let wakeLock = null;
 let ambienceOn = false;
+let ticksOn = read('masoi_ticks') !== 'off';
+let lastTick = null;
+let settingsOpen = false;
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -342,9 +345,8 @@ function onTransitions(prev, next) {
       if (next.phase === 'NIGHT' && prev.phase !== 'NIGHT') narrator.sfx('night');
       if (next.phase === 'MORNING') narrator.sfx('morning');
       if (next.phase === 'VERDICT' || next.phase === 'JUDGE') narrator.sfx('gavel');
-      if (next.phase === 'NIGHT' && next.game.activeRole === 'werewolf') narrator.sfx('howl');
     }
-    narrator.handle(next.narration);
+    narrator.handle(next.narration, { serverNow: serverNow() });
     if (next.phase !== 'LOBBY') requestWakeLock();
   }
 
@@ -552,6 +554,7 @@ function voicePanel() {
       <div class="row" style="flex-wrap:wrap">
         <button class="btn ${narrator.unlocked ? 'btn-ghost' : 'btn-primary'}" data-act="testVoice">${narrator.unlocked ? 'Nghe thử lại' : 'Bật âm thanh và nghe thử'}</button>
         <label class="check" style="padding:0"><input type="checkbox" data-act="ambience" ${ambienceOn ? 'checked' : ''} /> <span>Âm thanh nền</span></label>
+        <label class="check" style="padding:0"><input type="checkbox" data-act="ticks" ${ticksOn ? 'checked' : ''} /> <span>Tích tắc 10 giây cuối</span></label>
       </div>
     </div>`;
 }
@@ -569,7 +572,7 @@ const fmtSeconds = (s) => s >= 60 ? `${Math.floor(s / 60)} phút${s % 60 ? ` ${s
 function settingsPanel() {
   const c = view.config;
   return `
-    <details class="panel section">
+    <details class="panel section" id="settingsBox" ${settingsOpen ? 'open' : ''}>
       <summary><h3>Cài đặt ván chơi</h3></summary>
       <label class="check">
         <input type="checkbox" data-config="hostPlays" ${c.hostPlays ? 'checked' : ''} />
@@ -1067,6 +1070,20 @@ function updateClock() {
   label.textContent = secs >= 60 ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : `${secs}`;
   moon.classList.toggle('urgent', secs <= 5);
   moon.setAttribute('aria-label', `Còn ${secs} giây`);
+  tickCountdown(secs);
+}
+
+// The host's phone ticks through the last 10 seconds of a timer, louder for
+// the final 3, so the whole table hears time running out. It stays quiet
+// while the narrator is talking.
+const TICK_PHASES = new Set(['NIGHT', 'DISCUSSION', 'VOTE', 'DEFENSE', 'JUDGE', 'VERDICT']);
+function tickCountdown(secs) {
+  if (!ticksOn || !isHost() || !narrator.unlocked || narrator.speaking) return;
+  if (!TICK_PHASES.has(view.phase) || secs < 1 || secs > 10) return;
+  const key = `${view.phase}:${view.game.phaseEndsAt}:${secs}`;
+  if (key === lastTick) return;
+  lastTick = key;
+  narrator.sfx(secs <= 3 ? 'tickFinal' : 'tick');
 }
 setInterval(updateClock, 250);
 
@@ -1108,6 +1125,10 @@ document.addEventListener('click', async (e) => {
         { k: 'werewolf_wake', v: 0, t: 'Ma Sói... hãy thức dậy. Hãy nhìn nhau, và chọn con mồi cho đêm nay.' }
       ]);
       return renderLobby();
+    case 'ticks':
+      ticksOn = el.checked;
+      store('masoi_ticks', ticksOn ? 'on' : 'off');
+      return;
     case 'ambience':
       narrator.unlock();
       ambienceOn = el.checked;
@@ -1170,6 +1191,11 @@ document.addEventListener('visibilitychange', () => {
     if (isHost() && view?.phase !== 'LOBBY') requestWakeLock();
   }
 });
+
+// Remember whether the host left the settings panel open across re-renders.
+document.addEventListener('toggle', (e) => {
+  if (e.target.id === 'settingsBox') settingsOpen = e.target.open;
+}, true);
 
 // Close dialogs by tapping the backdrop.
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e) => {

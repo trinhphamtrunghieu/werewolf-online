@@ -58,6 +58,8 @@ Máy chủ phòng phát giọng theo thứ tự ưu tiên:
 
 Lời dẫn nằm trong `public/shared/voice-lines.js`. Mỗi câu có 1–3 biến thể để không lặp nhàm chán. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
 
+**Nhịp đọc:** máy chủ biết độ dài từng câu (`public/shared/voice-durations.js`, do script tạo giọng ghi ra) và **không chuyển bước khi quản trò còn đang đọc**. Thời gian của mỗi bước (lượt ban đêm, thảo luận, bỏ phiếu…) chỉ bắt đầu tính sau khi đọc xong. Sau phán quyết ban ngày, quản trò báo “Màn đêm sẽ buông xuống sau mười giây nữa” rồi tự chuyển sang đêm. Trong 10 giây cuối của mỗi bước, máy chủ phòng phát tiếng tích tắc (tắt được trong phần Giọng quản trò). Script tạo giọng tự cắt khoảng lặng thừa ở đầu và cuối mỗi file (cần ffmpeg), để “người chơi số ba… và… người chơi số năm” đọc liền mạch.
+
 ### Tạo file giọng miễn phí, không cần API key
 
 Dùng [edge-tts](https://github.com/rany2/edge-tts) với giọng neural tiếng Việt của Microsoft: `vi-VN-NamMinhNeural` (nam, trầm) hoặc `vi-VN-HoaiMyNeural` (nữ).
