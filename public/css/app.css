@@ -475,6 +475,16 @@ dialog.sheet {
   background: var(--ink-2);
   color: var(--text);
 }
+dialog.sheet.sheet-wide { width: min(100% - 24px, 48rem); }
+
+.rules-steps { margin: 0; padding-left: 1.4em; }
+.rules-steps li + li { margin-top: 2px; }
+.rules-roles { display: grid; gap: 12px; }
+.rules-roles p { margin: 0; }
+@media (min-width: 720px) {
+  .rules-roles { grid-template-columns: 1fr 1fr; column-gap: 24px; }
+}
+
 dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .sheet-body { padding: 20px; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
