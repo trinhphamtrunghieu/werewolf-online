@@ -90,7 +90,7 @@ export const ROLES = {
     icon: '🎯',
     color: '#ffc861',
     short: 'Mỗi đêm chĩa súng vào 1 người; chết thì người đó chết theo.',
-    description: 'Mỗi đêm thức dậy (trước Ma Sói) và chĩa súng vào 1 người. Nếu bạn chết vì bất kỳ lý do gì, người đang bị chĩa súng chết theo. Bạn không được biết ai bị Sói cắn. Nếu đêm nào không chọn, súng vẫn chĩa vào người của đêm trước.',
+    description: 'Mỗi đêm thức dậy (lượt cuối cùng) và chĩa súng vào 1 người. Nếu bạn chết vì bất kỳ lý do gì, người đang bị chĩa súng chết theo. Bạn không được biết ai bị Sói cắn. Nếu đêm nào không chọn, súng vẫn chĩa vào người của đêm trước.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="50" r="32" stroke="currentColor" stroke-width="3"/>
       <circle cx="50" cy="50" r="16" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
