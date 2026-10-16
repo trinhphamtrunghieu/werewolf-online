@@ -2,7 +2,7 @@
   "name": "ma-soi-online",
   "version": "2.0.0",
   "private": true,
-  "description": "Ma Sói Online: nhiều thiết bị, Vercel Function làm máy chủ phòng, Upstash Redis lưu trạng thái, giọng quản trò tiếng Việt.",
+  "description": "Ma Sói Online: nhiều thiết bị, Vercel Function làm máy chủ phòng, Supabase lưu trạng thái + Realtime, giọng quản trò tiếng Việt.",
   "type": "module",
   "engines": {
     "node": ">=20"

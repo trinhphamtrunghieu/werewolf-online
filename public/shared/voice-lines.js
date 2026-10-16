@@ -48,7 +48,7 @@ export const LINES = {
   ],
   seer_sleep: ['Tiên Tri, hãy nhắm mắt lại.'],
   witch_wake: [
-    'Phù Thủy, hãy thức dậy. Đêm nay có người gặp nạn... Bạn có muốn dùng thuốc không?',
+    'Phù Thủy, hãy thức dậy. Đêm nay... bạn có muốn dùng thuốc không?',
     'Phù Thủy ơi, mở mắt ra nào. Bình cứu, hay bình độc... hãy quyết định đi.'
   ],
   witch_sleep: ['Phù Thủy, hãy nhắm mắt lại.'],

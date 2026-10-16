@@ -1,11 +1,13 @@
 // Local dev server: serves public/ and runs api/room.js with the same
-// (req, res) shape Vercel provides. Uses in-memory rooms unless Upstash env
-// vars are set. Usage: npm run dev  ->  http://localhost:3000
+// (req, res) shape Vercel provides. Uses in-memory rooms unless Supabase env
+// vars are set, and stands in for Supabase Realtime with Server-Sent Events
+// at /api/dev-events. Usage: npm run dev  ->  http://localhost:3000
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import handler from '../api/room.js';
+import { devEvents } from '../lib/store.js';
 
 const root = fileURLToPath(new URL('../public/', import.meta.url));
 const port = Number(process.env.PORT) || 3000;
@@ -32,6 +34,15 @@ function shimResponse(res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if (url.pathname === '/api/dev-events') {
+    const code = url.searchParams.get('code');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+    res.write(': connected\n\n');
+    const send = (e) => { if (e.code === code) res.write(`data: ${JSON.stringify({ v: e.v })}\n\n`); };
+    devEvents.on('update', send);
+    req.on('close', () => devEvents.off('update', send));
+    return;
+  }
   if (url.pathname === '/api/room') {
     let raw = '';
     for await (const chunk of req) raw += chunk;

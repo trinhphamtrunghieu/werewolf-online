@@ -1,6 +1,7 @@
 // Single Vercel Function that hosts every room (Hobby plan allows few functions).
 //
-//   GET  /api/room?code=ABCDE&pid=...&token=...&since=<version>   poll the room
+//   GET  /api/room?config=1                                       realtime settings for the browser
+//   GET  /api/room?code=ABCDE&pid=...&token=...&since=<version>   fetch my view (also advances timers)
 //   POST /api/room { action: 'create', name }                     create a room
 //   POST /api/room { action: 'join', code, name }                 join a room
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
@@ -8,10 +9,12 @@
 import {
   GameError, createRoom, joinRoom, authenticate, applyAction, tick, viewFor
 } from '../lib/engine.js';
-import { getStore, mutateRoom, createRoomRecord, StoreError } from '../lib/store.js';
+import {
+  getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
+} from '../lib/store.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const SEEN_REFRESH_MS = 10000;
+const SEEN_REFRESH_MS = 15000;
 
 const notFound = () => new GameError('Không tìm thấy phòng. Hãy kiểm tra lại mã phòng.');
 
@@ -39,6 +42,7 @@ async function handleCreate(store, body) {
     const code = newCode();
     const { state, player } = createRoom({ code, hostName: body.name, now, debug: !!body.debug });
     if (await createRoomRecord(store, code, state)) {
+      if (Math.random() < 0.2) await store.cleanup();
       return { code, playerId: player.id, token: player.token, view: viewFor(state, player.id, now, 1) };
     }
   }
@@ -52,6 +56,7 @@ async function handleJoin(store, body) {
     tick(s, now);
     return { result: joinRoom(s, body.name, now) };
   }, notFound);
+  await store.notify(code, version);
   return { code, playerId: result.id, token: result.token, view: viewFor(state, result.id, now, version) };
 }
 
@@ -66,6 +71,7 @@ async function handleAct(store, body) {
     tick(s, now);
     return { changed: true };
   }, notFound);
+  await store.notify(code, version);
   if (body.type === 'leave') return { left: true };
   return { view: viewFor(state, body.pid, now, version) };
 }
@@ -74,15 +80,16 @@ async function handlePoll(store, query) {
   const code = normalizeCode(query.code);
   const since = Number(query.since) || 0;
   const now = Date.now();
-  const { state, version } = await mutateRoom(store, code, (s) => {
+  let advanced = false;
+  const { state, version, saved } = await mutateRoom(store, code, (s) => {
     const p = authenticate(s, query.pid, query.token);
-    let changed = tick(s, now);
-    if (now - (p.lastSeen || 0) > SEEN_REFRESH_MS) {
-      p.lastSeen = now;
-      changed = true;
-    }
-    return { changed };
+    advanced = tick(s, now);
+    const seen = now - (p.lastSeen || 0) > SEEN_REFRESH_MS;
+    if (seen) p.lastSeen = now;
+    return { changed: advanced || seen };
   }, notFound);
+  // Only real game changes wake the other phones; a "last seen" refresh does not.
+  if (saved && advanced) await store.notify(code, version);
   if (version === since) return { same: true, version, serverNow: now };
   return { view: viewFor(state, query.pid, now, version) };
 }
@@ -92,7 +99,9 @@ export default async function handler(req, res) {
   try {
     const store = getStore();
     let out;
-    if (req.method === 'GET') {
+    if (req.method === 'GET' && req.query?.config) {
+      out = { realtime: realtimeClientConfig() };
+    } else if (req.method === 'GET') {
       out = await handlePoll(store, req.query || {});
     } else if (req.method === 'POST') {
       const body = readBody(req);

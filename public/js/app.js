@@ -2,6 +2,7 @@ import {
   ROLES, ROLE_IDS, TEAM_LABEL, MIN_PLAYERS, totalRoles, validateRoleCounts
 } from '/shared/roles.js';
 import { Narrator } from './narrator.js';
+import { connectRealtime } from './realtime.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -18,8 +19,15 @@ const app = document.getElementById('app');
 let session = loadSession();
 let view = null;
 let clockOffset = 0;
-let pollTimer = null;
-let pollFailures = 0;
+let heartbeatTimer = null;
+let wakeTimer = null;
+let failures = 0;
+let fetching = null;
+let refetch = false;
+let realtime = null;
+let realtimeConfig;
+let live = false;
+let presence = null;
 let screen = null;
 let homeTab = params.get('room') ? 'join' : 'create';
 let lastTaskKey = null;
@@ -112,32 +120,114 @@ function handleApiError(e) {
   toast(e.message, 'error');
 }
 
-function schedulePoll(delay) {
-  clearTimeout(pollTimer);
+// ---------------------------------------------------------------------------
+// Sync: the server is the source of truth. A phone asks for its view when
+//   1. a Realtime ping says the room changed (another player acted),
+//   2. the current phase is due to end (wakeAt), so the server can advance it,
+//   3. a slow heartbeat fires (safety net; fast polling if Realtime is down).
+// ---------------------------------------------------------------------------
+
+async function sync() {
   if (!session) return;
-  pollTimer = setTimeout(poll, delay);
+  if (fetching) {
+    refetch = true;
+    return fetching;
+  }
+  fetching = (async () => {
+    try {
+      const data = await api('GET', null, { code: session.code, pid: session.playerId, token: session.token, since: view?.version || 0 });
+      failures = 0;
+      if (data.view) applyView(data.view);
+      else if (data.serverNow) clockOffset = data.serverNow - Date.now();
+      setConnection(true);
+    } catch (e) {
+      failures++;
+      if (e.status === 400) {
+        handleApiError(e);
+        return;
+      }
+      setConnection(false);
+    } finally {
+      fetching = null;
+    }
+    scheduleHeartbeat();
+    if (refetch) {
+      refetch = false;
+      sync();
+    }
+  })();
+  return fetching;
 }
 
-async function poll() {
+function scheduleHeartbeat() {
+  clearTimeout(heartbeatTimer);
   if (!session) return;
-  try {
-    const data = await api('GET', null, { code: session.code, pid: session.playerId, token: session.token, since: view?.version || 0 });
-    pollFailures = 0;
-    if (data.view) applyView(data.view);
-    else if (data.serverNow) clockOffset = data.serverNow - Date.now();
-    setConnection(true);
-  } catch (e) {
-    pollFailures++;
-    if (e.status === 400) {
-      handleApiError(e);
-      return;
-    }
-    setConnection(false);
-  }
   const hidden = document.visibilityState === 'hidden';
-  const base = isHost() ? 1000 : 1500;
-  schedulePoll(hidden ? 5000 : Math.min(base * (1 + pollFailures), 8000));
+  let delay;
+  if (live) delay = 15000;
+  else if (hidden) delay = 5000;
+  else delay = Math.min((isHost() ? 1000 : 1500) * (1 + failures), 8000);
+  heartbeatTimer = setTimeout(sync, delay);
 }
+
+// Ask the server to advance the game when the phase ends. The host's phone
+// goes first; others follow a moment later in case the host is offline (if the
+// host already advanced it, their request just returns "unchanged").
+function scheduleWake() {
+  clearTimeout(wakeTimer);
+  const at = view?.game?.wakeAt;
+  if (!session || !at) return;
+  const grace = isHost() ? 250 : 1500 + Math.random() * 1500;
+  const version = view.version;
+  wakeTimer = setTimeout(() => {
+    if (view?.version === version) sync();
+  }, Math.max(0, at - serverNow()) + grace);
+}
+
+async function startRealtime() {
+  stopRealtime();
+  if (!session) return;
+  if (realtimeConfig === undefined) {
+    try {
+      realtimeConfig = (await api('GET', null, { config: 1 })).realtime;
+    } catch {
+      realtimeConfig = null;
+    }
+  }
+  const code = session.code;
+  try {
+    realtime = await connectRealtime(realtimeConfig, {
+      code,
+      playerId: session.playerId,
+      onUpdate: (v) => {
+        if (session?.code === code && (!view || !v || v > view.version)) setTimeout(sync, Math.random() * 200);
+      },
+      onPresence: (ids) => {
+        presence = ids;
+        if (view) render();
+      },
+      onStatus: (ok) => {
+        const was = live;
+        live = ok;
+        // Catch up on anything missed while disconnected.
+        if (ok && !was) sync();
+        else scheduleHeartbeat();
+      }
+    });
+  } catch (err) {
+    console.warn('Realtime unavailable, falling back to polling', err);
+  }
+}
+
+function stopRealtime() {
+  realtime?.close();
+  realtime = null;
+  live = false;
+  presence = null;
+}
+
+// Online if Realtime presence says so; otherwise trust the server's last-seen.
+const isOnline = (p) => p.isBot || (presence?.size ? presence.has(p.id) : p.online);
 
 function setConnection(ok) {
   const el = document.getElementById('conn');
@@ -173,7 +263,8 @@ function enterRoom(data) {
   saveSession({ code: data.code, playerId: data.playerId, token: data.token });
   history.replaceState(null, '', `/?room=${data.code}${DEBUG ? '&debug=1' : ''}`);
   applyView(data.view);
-  schedulePoll(800);
+  startRealtime();
+  scheduleHeartbeat();
 }
 
 async function leaveRoom() {
@@ -183,7 +274,9 @@ async function leaveRoom() {
 }
 
 function leaveLocal() {
-  clearTimeout(pollTimer);
+  clearTimeout(heartbeatTimer);
+  clearTimeout(wakeTimer);
+  stopRealtime();
   saveSession(null);
   view = null;
   narrator.stop();
@@ -198,6 +291,7 @@ function applyView(next) {
   const prev = view;
   view = next;
   if (prev && prev.version === next.version && screen === screenFor(next)) return;
+  scheduleWake();
   onTransitions(prev, next);
   render();
 }
@@ -390,7 +484,7 @@ function renderLobby() {
           ${esc(p.name)}
           ${p.isHost ? `<span class="tag tag-host">${view.config.hostPlays ? 'Chủ phòng' : 'Quản trò'}</span>` : ''}
           ${p.id === view.me.id ? '<span class="tag">Bạn</span>' : ''}
-          ${!p.online ? '<span class="tag tag-off">Mất kết nối</span>' : ''}
+          ${!isOnline(p) ? '<span class="tag tag-off">Mất kết nối</span>' : ''}
         </div>
         ${host && !p.isHost ? `<button class="btn btn-ghost btn-small" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">Mời ra</button>` : ''}
       </div>`).join('')}
@@ -614,7 +708,7 @@ function seat(p, opts = {}) {
     ${count ? `<span class="count">${count}</span>` : ''}
     <span class="disc">${p.seat ?? ''}${role ? `<span class="role-badge" title="${role.name}">${role.icon}</span>` : ''}</span>
     <span class="label">${esc(p.name)}</span>
-    <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', !p.alive ? 'Đã chết' : '', !p.online ? 'Mất kết nối' : ''].filter(Boolean).join(' ')}</span>`;
+    <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', !p.alive ? 'Đã chết' : '', p.alive && !isOnline(p) ? 'Mất kết nối' : ''].filter(Boolean).join(' ')}</span>`;
   const cls = `seat ${p.alive ? '' : 'dead'} ${isMe ? 'me' : ''}`;
   if (!selectable) return `<div class="${cls}">${inner}</div>`;
   return `<button class="${cls}" data-act="${act}" data-id="${esc(p.id)}" aria-pressed="${pressed}" ${disabled ? 'disabled' : ''}>${inner}</button>`;
@@ -801,11 +895,10 @@ function nightTask(task) {
   }
   if (task.role === 'witch') {
     if (task.complete) return `<div class="panel">${head('witch', 'Xong lượt', 'Nhắm mắt lại nhé.')}</div>`;
-    const victim = task.victim ? seatName(task.victim) : null;
-    return `<div class="panel stack">${head('witch', 'Bình cứu hay bình độc?', victim ? `Đêm nay Sói cắn ${esc(victim)}.` : 'Đêm nay Sói không cắn ai.')}
+    return `<div class="panel stack">${head('witch', 'Bình cứu hay bình độc?', 'Bạn không biết ai bị Sói cắn. Bình Cứu sẽ cứu người bị cắn đêm nay, nếu có.')}
       ${task.healed ? '<p class="result result-village">Bạn đã dùng bình Cứu đêm nay.</p>'
-        : task.healAvailable && task.victim ? `<button class="btn btn-good btn-block" data-act="heal">Dùng bình Cứu cho ${esc(victim)}</button>`
-        : `<p class="muted small">${task.healAvailable ? '' : 'Bình Cứu đã dùng hết.'}</p>`}
+        : task.healAvailable ? '<button class="btn btn-good btn-block" data-act="heal">Dùng bình Cứu</button>'
+        : '<p class="muted small">Bình Cứu đã dùng hết.</p>'}
       ${task.poisoned ? `<p class="result result-wolf">Bạn đã đầu độc ${esc(seatName(task.poisoned))}.</p>`
         : task.poisonAvailable ? `<div><p class="field-label">Hoặc chọn người để dùng bình Độc</p>${pickGrid('poison', { exclude: [m.id] })}</div>`
         : '<p class="muted small">Bình Độc đã dùng hết.</p>'}
@@ -959,7 +1052,9 @@ document.addEventListener('click', async (e) => {
     case 'flip': return el.classList.toggle('revealed');
     case 'night': return act('night', { target: id });
     case 'seerDone': return act('seerDone');
-    case 'heal': return act('witch', { use: 'heal' });
+    case 'heal':
+      if (confirm('Dùng bình Cứu đêm nay? Bình chỉ dùng được 1 lần, kể cả khi đêm nay không ai bị cắn.')) act('witch', { use: 'heal' });
+      return;
     case 'poison': {
       const p = player(id);
       if (p && confirm(`Dùng bình Độc lên ${p.name}? Bình này chỉ dùng được 1 lần.`)) act('witch', { use: 'poison', target: id });
@@ -993,7 +1088,7 @@ document.addEventListener('change', (e) => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && session) {
-    schedulePoll(0);
+    sync();
     if (isHost() && view?.phase !== 'LOBBY') requestWakeLock();
   }
 });
@@ -1038,7 +1133,8 @@ narrator.onState = () => {
   const roomParam = (params.get('room') || '').toUpperCase();
   if (session && (!roomParam || roomParam === session.code)) {
     render();
-    poll();
+    startRealtime();
+    sync();
   } else {
     if (session && roomParam && roomParam !== session.code) saveSession(null);
     render();

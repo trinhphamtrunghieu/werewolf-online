@@ -4,7 +4,7 @@ import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError
 } from '../lib/engine.js';
 import { computeBalancedRoles, validateRoleCounts, totalRoles } from '../public/shared/roles.js';
-import { mutateRoom, createRoomRecord, setStoreForTests } from '../lib/store.js';
+import { mutateRoom, createRoomRecord, setStoreForTests, _supabaseStoreForTests } from '../lib/store.js';
 
 function seeded(seed = 42) {
   return () => {
@@ -94,7 +94,7 @@ test('wolf kill, guard save and witch potions resolve correctly', () => {
   assert.equal(s.game.night.wolfTarget, P[3].id);
   untilNightRole('witch');
   const witchView = viewFor(s, P[2].id, g.clock.now, 1);
-  assert.equal(witchView.me.task.victim, P[3].id, 'witch learns who was bitten');
+  assert.ok(!JSON.stringify(witchView.me.task).includes(P[3].id), 'witch does not learn who was bitten');
   act(P[2], 'witch', { use: 'poison', target: P[4].id });
   act(P[2], 'witch', { use: 'done' });
   untilPhase('MORNING');
@@ -148,13 +148,37 @@ test('lynching the hunter lets them shoot, and win is checked afterwards', () =>
   assert.equal(s.game.winner, 'village');
 });
 
-test('a poisoned hunter cannot shoot', () => {
+test('witch heal is blind: saves the bitten player, and is spent on a quiet night', () => {
+  const g = setup(['witch', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  const { s, P, act, untilNightRole, untilPhase } = g;
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[3].id });
+  untilNightRole('witch');
+  act(P[0], 'witch', { use: 'heal' });
+  untilPhase('MORNING');
+  assert.equal(P[3].alive, true);
+  assert.equal(s.game.potions.heal, false);
+
+  const quiet = setup(['witch', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  quiet.untilNightRole('witch');
+  quiet.act(quiet.P[0], 'witch', { use: 'heal' });
+  assert.equal(quiet.s.game.potions.heal, false, 'potion is used even if nobody was bitten');
+});
+
+test('the hunter shoots whatever killed them, so the cause of death stays hidden', () => {
   const { s, P, act, untilNightRole, untilPhase } = setup(['witch', 'werewolf', 'hunter', 'villager', 'villager', 'villager']);
   untilNightRole('witch');
   act(P[0], 'witch', { use: 'poison', target: P[2].id });
-  untilPhase('MORNING');
-  assert.equal(P[2].alive, false);
-  assert.deepEqual(s.game.pendingHunters, []);
+  untilPhase('HUNTER');
+  assert.equal(s.game.hunter.id, P[2].id);
+  const villagerView = JSON.stringify(viewFor(s, P[3].id, 0, 1));
+  assert.ok(!villagerView.includes('poison'), 'cause of death is not sent to players');
+});
+
+test('wakeAt tells clients when the phase ends', () => {
+  const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  const v = viewFor(s, s.players[0].id, clock.now, 1);
+  assert.equal(v.game.wakeAt, s.game.phaseEndsAt);
 });
 
 test('lovers die together and a cross-team couple can win', () => {
@@ -239,4 +263,67 @@ test('store compare-and-set retries instead of losing concurrent writes', async 
   const saved = await store.load('CAS01');
   assert.equal(saved.state.players.length, 7);
   assert.equal(saved.version, 7);
+});
+
+// Minimal stand-in for Supabase's PostgREST + Realtime REST endpoints, enough to
+// check the requests the store sends and the compare-and-set behaviour.
+function fakeSupabase() {
+  const rows = new Map();
+  const broadcasts = [];
+  const fetch = async (url, init) => {
+    const u = new URL(url);
+    assert.equal(init.headers.apikey, 'service-key');
+    const reply = (status, body) => new Response(body === undefined ? '' : JSON.stringify(body), { status });
+    if (u.pathname === '/realtime/v1/api/broadcast') {
+      broadcasts.push(JSON.parse(init.body));
+      return reply(202);
+    }
+    assert.equal(u.pathname, '/rest/v1/rooms');
+    const code = u.searchParams.get('code')?.replace('eq.', '');
+    if (init.method === 'GET') {
+      const row = rows.get(code);
+      return reply(200, row ? [{ state: row.state, version: row.version }] : []);
+    }
+    if (init.method === 'POST') {
+      const body = JSON.parse(init.body);
+      if (rows.has(body.code)) return reply(409, { code: '23505', message: 'duplicate key' });
+      rows.set(body.code, body);
+      return reply(201);
+    }
+    if (init.method === 'PATCH') {
+      const expected = Number(u.searchParams.get('version').replace('eq.', ''));
+      const row = rows.get(code);
+      if (!row || row.version !== expected) return reply(200, []);
+      Object.assign(row, JSON.parse(init.body));
+      return reply(200, [{ version: row.version }]);
+    }
+    if (init.method === 'DELETE') return reply(204);
+    throw new Error('unexpected ' + init.method);
+  };
+  return { rows, broadcasts, fetch };
+}
+
+test('supabase store: create, compare-and-set, and version-only broadcast', async () => {
+  const fake = fakeSupabase();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = fake.fetch;
+  try {
+    const store = _supabaseStoreForTests('https://demo.supabase.co/', 'service-key');
+    const { state } = createRoom({ code: 'SUPA1', hostName: 'Host', now: 0 });
+    assert.ok(await createRoomRecord(store, 'SUPA1', state));
+    assert.ok(!(await createRoomRecord(store, 'SUPA1', state)), 'duplicate code is rejected');
+    assert.ok(!(await store.cas('SUPA1', 5, state, 6)), 'stale version is rejected');
+    const notFound = () => new Error('missing');
+    await Promise.all(Array.from({ length: 4 }, (_, i) =>
+      mutateRoom(store, 'SUPA1', (s) => { joinRoom(s, `Người ${i}`, 0); return {}; }, notFound)
+    ));
+    const saved = await store.load('SUPA1');
+    assert.equal(saved.state.players.length, 5);
+    assert.equal(saved.version, 5);
+    await store.notify('SUPA1', 5);
+    assert.deepEqual(fake.broadcasts[0].messages[0], { topic: 'room:SUPA1', event: 'update', payload: { v: 5 }, private: false });
+    assert.equal(await store.load('NOPE1'), null);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

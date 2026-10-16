@@ -58,7 +58,7 @@ export const ROLES = {
     icon: '🧪',
     color: '#4fe0a6',
     short: 'Có 1 bình cứu và 1 bình độc cho cả ván.',
-    description: 'Được biết ai bị Sói cắn trong đêm. Có 1 bình Cứu (cứu nạn nhân) và 1 bình Độc (giết 1 người bất kỳ), mỗi bình dùng 1 lần trong cả ván.',
+    description: 'Có 1 bình Cứu và 1 bình Độc, mỗi bình dùng 1 lần trong cả ván. Bạn không biết ai bị Sói cắn: bình Cứu sẽ cứu người bị cắn đêm đó (nếu có). Bình Độc giết 1 người bạn chọn.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M42 20H58M46 20V34L26 68C23 74 27 82 34 82H66C73 82 77 74 74 68L54 34V20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M31 62H69" stroke="#6ee7b7" stroke-width="2.5"/>
@@ -73,7 +73,7 @@ export const ROLES = {
     icon: '🎯',
     color: '#ffc861',
     short: 'Khi chết được bắn chết theo 1 người.',
-    description: 'Khi bị Sói cắn hoặc bị treo cổ, bạn được nổ phát súng cuối cùng để kéo 1 người chết theo. Nếu chết vì bình Độc thì không được bắn.',
+    description: 'Khi chết (vì bất kỳ lý do gì), bạn được nổ phát súng cuối cùng để kéo 1 người chết theo. Bạn không được biết mình chết vì đâu.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="50" r="32" stroke="currentColor" stroke-width="3"/>
       <circle cx="50" cy="50" r="16" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
