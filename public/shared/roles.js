@@ -3,9 +3,25 @@
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 18;
 
-// Night wake-up order. The hunter aims before the wolves strike, so they never
-// learn who was bitten. Villagers never wake up.
-export const NIGHT_ORDER = ['cupid', 'guard', 'hunter', 'werewolf', 'seer', 'witch'];
+// Night wake-up order. `role` is the card that makes the step happen; steps are
+// called even when that card's holder is dead so nothing leaks. "lovers" and
+// "charmed" are group steps: the couple / the hypnotised open their eyes.
+export const NIGHT_STEPS = [
+  { id: 'thief', role: 'thief', firstNightOnly: true },
+  { id: 'cupid', role: 'cupid', firstNightOnly: true },
+  { id: 'lovers', role: 'cupid', firstNightOnly: true },
+  { id: 'guard', role: 'guard' },
+  { id: 'werewolf', role: 'werewolf' },
+  { id: 'seer', role: 'seer' },
+  { id: 'witch', role: 'witch' },
+  { id: 'piper', role: 'piper' },
+  { id: 'charmed', role: 'piper' },
+  { id: 'elder', role: 'elder', firstNightOnly: true },
+  { id: 'hunter', role: 'hunter' }
+];
+
+// Cards dealt beyond the player count when the Thief is in the game.
+export const THIEF_EXTRA_CARDS = 2;
 
 export const ROLES = {
   werewolf: {
@@ -30,8 +46,8 @@ export const ROLES = {
     team: 'village',
     icon: '🔮',
     color: '#c39bff',
-    short: 'Mỗi đêm soi 1 người xem có phải Sói không.',
-    description: 'Mỗi đêm chọn 1 người để soi. Bạn sẽ biết người đó thuộc Phe Sói hay Phe Dân (không biết chức năng cụ thể).',
+    short: 'Mỗi đêm soi 1 người để xem thuộc phe nào.',
+    description: 'Mỗi đêm chọn 1 người để soi. Bạn sẽ biết người đó thuộc phe nào (Phe Sói, Phe Dân hoặc phe riêng của Người Thổi Sáo), không biết chức năng cụ thể.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="46" r="28" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M26 50C34 38 66 38 74 50C66 62 34 62 26 50Z" stroke="#fde047" stroke-width="2.5"/>
@@ -82,6 +98,21 @@ export const ROLES = {
       <path d="M50 10V26M50 74V90M10 50H26M74 50H90" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
     </svg>`
   },
+  thief: {
+    id: 'thief',
+    name: 'Ăn Trộm',
+    team: 'village',
+    icon: '🦝',
+    color: '#d7b48a',
+    short: 'Đêm đầu được đổi lấy 1 trong 2 lá bài dư.',
+    description: 'Có Ăn Trộm thì chia dư 2 lá. Đêm đầu bạn xem 2 lá dư và có thể đổi lấy 1 lá, rồi chơi theo vai trò mới ngay đêm đó. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy 1 lá. Giữ nguyên thì bạn là Dân Làng.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <path d="M22 44C22 30 34 22 50 22C66 22 78 30 78 44V48H22V44Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
+      <rect x="18" y="46" width="64" height="14" rx="7" fill="currentColor" fill-opacity="0.85"/>
+      <circle cx="38" cy="53" r="4" fill="#161b36"/><circle cx="62" cy="53" r="4" fill="#161b36"/>
+      <path d="M34 74C40 80 60 80 66 74" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </svg>`
+  },
   cupid: {
     id: 'cupid',
     name: 'Thần Tình Yêu',
@@ -93,6 +124,36 @@ export const ROLES = {
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M50 78C50 78 22 58 22 38C22 27 31 20 40 20C46 20 50 25 50 28C50 25 54 20 60 20C69 20 78 27 78 38C78 58 50 78 50 78Z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/>
       <path d="M22 76L78 24M78 24H64M78 24V38" stroke="#fbcfe8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`
+  },
+  piper: {
+    id: 'piper',
+    name: 'Người Thổi Sáo',
+    team: 'piper',
+    icon: '🪈',
+    color: '#9fd3ff',
+    short: 'Mỗi đêm thôi miên 2 người. Phe riêng.',
+    description: 'Bạn chơi một mình. Mỗi đêm thôi miên 2 người chưa bị thôi miên. Bạn thắng khi tất cả những người còn sống (trừ bạn) đều đã bị thôi miên.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <path d="M18 70L74 22" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="38" cy="53" r="2.5" fill="#161b36"/><circle cx="48" cy="44" r="2.5" fill="#161b36"/><circle cx="58" cy="36" r="2.5" fill="#161b36"/>
+      <path d="M70 58C76 52 82 56 80 62M74 70C80 64 88 68 86 74" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    </svg>`
+  },
+  elder: {
+    id: 'elder',
+    name: 'Già Làng',
+    team: 'village',
+    icon: '👴',
+    color: '#e3c9a0',
+    short: 'Chịu được 1 lần bị Sói cắn.',
+    description: 'Đêm đầu mở mắt để quản trò biết bạn là Già Làng. Lần đầu bị Sói cắn bạn không chết; lần thứ hai thì chết như bình thường.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle cx="46" cy="32" r="14" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
+      <path d="M36 40C38 50 54 50 56 40" stroke="currentColor" stroke-width="3"/>
+      <path d="M24 84C24 66 34 56 46 56C58 56 66 64 68 74" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M74 30V86" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M68 30C68 24 80 24 80 30" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
     </svg>`
   },
   villager: {
@@ -114,8 +175,21 @@ export const ROLE_IDS = Object.keys(ROLES);
 
 export const TEAM_LABEL = {
   werewolf: 'Phe Ma Sói',
-  village: 'Phe Dân Làng'
+  village: 'Phe Dân Làng',
+  piper: 'Phe riêng của Người Thổi Sáo'
 };
+
+const GROUP_STEPS = {
+  lovers: { id: 'lovers', name: 'Cặp Đôi', icon: '💞', color: '#ff8cc6' },
+  charmed: { id: 'charmed', name: 'Người bị thôi miên', icon: '🎶', color: '#9fd3ff' }
+};
+
+// Display info for a night step (a role, or one of the group steps).
+export function stepInfo(stepId) {
+  return GROUP_STEPS[stepId] || ROLES[stepId] || null;
+}
+
+const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter'];
 
 export function emptyRoleCounts() {
   return Object.fromEntries(ROLE_IDS.map(id => [id, 0]));
@@ -134,6 +208,7 @@ export function computeBalancedRoles(playerCount) {
   if (n >= 13) c.werewolf = 4;
   if (n >= 16) c.werewolf = 5;
   const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
+  // New roles (Thief, Piper, Elder) are opt-in: the host adds them by hand.
   c.villager = Math.max(0, n - special);
   return c;
 }
@@ -142,11 +217,22 @@ export function totalRoles(counts) {
   return ROLE_IDS.reduce((sum, id) => sum + (counts[id] || 0), 0);
 }
 
+export function cardsNeeded(counts, playerCount) {
+  return playerCount + (counts.thief ? THIEF_EXTRA_CARDS : 0);
+}
+
 // Returns a Vietnamese error message, or null when the role setup is playable.
 export function validateRoleCounts(counts, playerCount) {
   const total = totalRoles(counts);
   const wolves = counts.werewolf || 0;
-  if (total !== playerCount) return `Số lá bài (${total}) phải bằng số người chơi (${playerCount}).`;
+  const needed = cardsNeeded(counts, playerCount);
+  const dup = UNIQUE_ROLES.find(id => (counts[id] || 0) > 1);
+  if (dup) return `Chỉ được có 1 lá ${ROLES[dup].name}.`;
+  if (total !== needed) {
+    return counts.thief
+      ? `Có Ăn Trộm nên cần ${needed} lá bài (${playerCount} người + 2 lá dư), hiện có ${total}.`
+      : `Số lá bài (${total}) phải bằng số người chơi (${playerCount}).`;
+  }
   if (wolves < 1) return 'Cần ít nhất 1 Ma Sói.';
   if (wolves >= total - wolves) return 'Phe Sói đang đông bằng hoặc hơn phe Dân, hãy giảm bớt Sói.';
   return null;

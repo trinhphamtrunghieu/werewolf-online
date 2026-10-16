@@ -9,13 +9,25 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 
 ## Vai trò
 
-Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người); chủ phòng có thể tự chỉnh.
+Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người) với các vai trò cơ bản. Ăn Trộm, Người Thổi Sáo và Già Làng do chủ phòng tự thêm.
 
-Diễn biến mỗi vòng: đêm (Thần Tình Yêu ở đêm đầu, rồi Bảo Vệ, Thợ Săn, Ma Sói, Tiên Tri, Phù Thủy) → công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
+**Thứ tự thức dậy mỗi đêm** (vai trò nào không có trong ván thì bỏ qua; vai trò có trong ván mà người giữ đã chết thì vẫn được gọi, để không lộ ai còn sống):
 
-Không ai ngoài Ma Sói biết ai bị cắn:
-- **Phù Thủy** dùng bình Cứu "mù": cứu người bị cắn đêm đó nếu có, bình vẫn mất nếu đêm đó Sói không cắn ai.
-- **Thợ Săn** thức dậy mỗi đêm, trước Ma Sói, và chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
+1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy.
+2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi.
+3. **Cặp đôi** (đêm đầu): mở mắt nhìn mặt nhau.
+4. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
+5. **Ma Sói**: nhận diện đồng đội và thống nhất chọn nạn nhân.
+6. **Tiên Tri**: chọn 1 người để xem phe.
+7. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
+8. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên.
+9. **Những người bị thôi miên**: mở mắt nhìn nhau.
+10. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn.
+11. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
+
+Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
+
+**Điều kiện thắng:** Phe Dân thắng khi hết Sói và Người Thổi Sáo (nếu có) đã chết. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên. Cặp đôi khác phe thắng khi họ là 2 người cuối cùng còn sống.
 
 ## Deploy lên Vercel + Supabase
 

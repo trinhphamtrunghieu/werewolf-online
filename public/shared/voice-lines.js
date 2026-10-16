@@ -24,11 +24,21 @@ export const LINES = {
     'Trời đã tối rồi. Mọi người hãy nhắm mắt lại... Ngôi làng chìm vào im lặng.',
     'Đêm nay trăng tròn, gió rít qua từng mái nhà... Cả làng, hãy nhắm mắt lại.'
   ],
+  thief_wake: [
+    'Ăn Trộm, hãy thức dậy. Có hai lá bài đang nằm úp trên bàn... Bạn có muốn đổi không?',
+    'Ăn Trộm ơi, mở mắt ra nào. Hãy xem hai lá bài dư, và quyết định số phận của mình.'
+  ],
+  thief_sleep: ['Ăn Trộm, hãy nhắm mắt lại.'],
   cupid_wake: [
     'Thần Tình Yêu ơi, hãy thức dậy. Hãy chọn hai người, để se duyên cho họ.',
     'Thần Tình Yêu, mở mắt ra nào... Đêm nay, mũi tên của bạn sẽ gắn kết hai trái tim nào?'
   ],
   cupid_sleep: ['Thần Tình Yêu, hãy nhắm mắt lại.'],
+  lovers_wake: [
+    'Hai người vừa trúng mũi tên tình yêu... hãy mở mắt ra, và nhìn nhau thật lâu.',
+    'Cặp đôi của đêm nay, hãy mở mắt. Từ giờ, sống chết có nhau.'
+  ],
+  lovers_sleep: ['Cặp đôi, hãy nhắm mắt lại.'],
   guard_wake: [
     'Bảo Vệ, hãy thức dậy. Đêm nay, bạn muốn che chở cho ai?',
     'Bảo Vệ ơi, mở mắt ra nào. Hãy chọn một người, để bảo vệ trong đêm nay.'
@@ -52,6 +62,20 @@ export const LINES = {
     'Phù Thủy ơi, mở mắt ra nào. Bình cứu, hay bình độc... hãy quyết định đi.'
   ],
   witch_sleep: ['Phù Thủy, hãy nhắm mắt lại.'],
+  piper_wake: [
+    'Người Thổi Sáo, hãy thức dậy. Tiếng sáo đêm nay... sẽ mê hoặc hai người nào?',
+    'Người Thổi Sáo ơi, mở mắt ra nào. Hãy chọn hai người để thôi miên.'
+  ],
+  piper_sleep: ['Người Thổi Sáo, hãy nhắm mắt lại.'],
+  charmed_wake: [
+    'Những người đã bị thôi miên... hãy mở mắt ra, và nhìn nhau.',
+    'Ai đã nghe thấy tiếng sáo, hãy mở mắt. Hãy nhận ra những người cùng cảnh ngộ.'
+  ],
+  charmed_sleep: ['Những người bị thôi miên, hãy nhắm mắt lại.'],
+  elder_wake: [
+    'Già Làng, hãy thức dậy... và cho quản trò biết bạn là ai.'
+  ],
+  elder_sleep: ['Già Làng, hãy nhắm mắt lại.'],
   morning_peace: [
     'Trời đã sáng! Mọi người hãy mở mắt ra. Thật may mắn... đêm qua không có ai thiệt mạng.',
     'Gà đã gáy, trời sáng rồi! Một đêm bình yên... không ai bị hại cả.'
@@ -110,6 +134,9 @@ export const LINES = {
   ],
   win_werewolf: [
     'Bóng tối đã bao trùm ngôi làng... Không còn ai ngăn được bầy sói nữa. Phe Ma Sói, chiến thắng!'
+  ],
+  win_piper: [
+    'Tiếng sáo vang lên khắp ngôi làng... Tất cả đã bị thôi miên. Người Thổi Sáo, chiến thắng!'
   ],
   win_lovers: [
     'Tình yêu đã vượt qua tất cả! Cặp Tình Nhân là những người cuối cùng còn sống, và họ đã chiến thắng!'

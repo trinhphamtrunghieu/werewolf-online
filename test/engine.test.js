@@ -16,13 +16,13 @@ function seeded(seed = 42) {
 }
 
 // Build a started game whose roles are assigned in seat order.
-function setup(roles, { config = {}, rng = seeded() } = {}) {
+function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
   let now = 1_000_000;
   const { state: s, player: host } = createRoom({ code: 'TEST1', hostName: 'Chủ', now, rng });
   for (let i = 1; i < roles.length; i++) joinRoom(s, `P${i + 1}`, now, rng);
   applyAction(s, host.id, 'config', config, now, rng);
   const counts = {};
-  roles.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
+  [...roles, ...extras].forEach(r => { counts[r] = (counts[r] || 0) + 1; });
   for (const [roleId, n] of Object.entries(counts)) {
     const cur = s.roleCounts[roleId] || 0;
     for (let i = cur; i < n; i++) applyAction(s, host.id, 'role', { roleId, delta: 1 }, now, rng);
@@ -33,6 +33,8 @@ function setup(roles, { config = {}, rng = seeded() } = {}) {
   }
   applyAction(s, host.id, 'start', {}, now, rng);
   s.players.forEach((p, i) => { p.role = roles[i]; });
+  s.game.thiefExtras = [...extras];
+  s.game.thiefId = s.players.find(p => p.role === 'thief')?.id || null;
   const P = s.players;
   const clock = {
     get now() { return now; },
@@ -135,7 +137,6 @@ test('nobody voting or a tie sends nobody to the stand (host is not picked)', ()
 test('hunter aims at night; when lynched, the aimed player dies too and win is checked', () => {
   const { s, P, act, endPhase, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager']);
   untilNightRole('hunter');
-  assert.ok(s.game.queue.indexOf('hunter') < s.game.queue.indexOf('werewolf'), 'hunter wakes before the wolves');
   act(P[0], 'night', { target: P[1].id });
   untilPhase('VOTE');
   const voters = P.filter(p => p.alive && p.id !== P[0].id);
@@ -199,7 +200,10 @@ test('lovers die together and a cross-team couple can win', () => {
   act(P[0], 'night', { target: P[1].id });
   act(P[0], 'night', { target: P[2].id });
   assert.deepEqual(s.game.lovers, [P[1].id, P[2].id]);
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.lover, null, 'lovers only learn each other when they open their eyes');
+  untilNightRole('lovers');
   assert.equal(viewFor(s, P[2].id, 0, 1).me.lover, P[1].id);
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.task.partner, P[1].id);
   untilNightRole('werewolf');
   act(P[1], 'night', { target: P[3].id });
   untilPhase('MORNING');
@@ -223,6 +227,79 @@ test('lynching one lover takes the other one too', () => {
   assert.equal(P[3].alive, false);
   assert.equal(P[4].deathCause, 'heartbreak');
   assert.ok(s.narration.clips.some(c => c.k === 'lover_death'));
+});
+
+test('night wake-up order follows the house rules', () => {
+  const { s } = setup(['thief', 'cupid', 'guard', 'werewolf', 'werewolf', 'seer', 'witch', 'piper', 'elder', 'hunter', 'villager', 'villager', 'villager'], { extras: ['villager', 'villager'] });
+  assert.deepEqual(s.game.queue, [
+    'thief', 'cupid', 'lovers', 'guard', 'werewolf', 'seer', 'witch', 'piper', 'charmed', 'elder', 'hunter'
+  ]);
+});
+
+test('thief can swap for a spare card and must take one when both are wolves', () => {
+  const { s, P, act } = setup(['thief', 'werewolf', 'villager', 'villager', 'villager', 'seer', 'villager', 'villager'], { extras: ['werewolf', 'werewolf'] });
+  assert.equal(s.game.queue[s.game.step], 'thief');
+  assert.throws(() => act(P[0], 'thief', { pick: null }), /bắt buộc/);
+  act(P[0], 'thief', { pick: 1 });
+  assert.equal(P[0].role, 'werewolf');
+  assert.deepEqual(s.game.thiefExtras, ['werewolf', 'thief']);
+  assert.ok(viewFor(s, P[1].id, 0, 1).me.wolves.includes(P[0].id), 'the old wolf sees the new one');
+});
+
+test('thief deck has two extra cards', () => {
+  let now = 0;
+  const rng = seeded(3);
+  const { state: s, player: host } = createRoom({ code: 'THF01', hostName: 'Host', now, rng, debug: true });
+  for (let i = 0; i < 4; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
+  applyAction(s, host.id, 'role', { roleId: 'thief', delta: 1 }, now, rng);
+  assert.throws(() => applyAction(s, host.id, 'start', {}, now, rng), /2 lá dư/);
+  applyAction(s, host.id, 'role', { roleId: 'villager', delta: 1 }, now, rng);
+  applyAction(s, host.id, 'start', {}, now, rng);
+  assert.equal(s.game.thiefExtras.length, 2);
+  assert.equal(s.players.filter(p => p.inGame).length + 2, 7);
+});
+
+test('piper charms two per night, the charmed see each other, and the piper can win', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['piper', 'werewolf', 'villager', 'villager', 'villager']);
+  untilNightRole('piper');
+  assert.throws(() => act(P[0], 'night', { target: P[0].id }));
+  act(P[0], 'night', { target: P[2].id });
+  act(P[0], 'night', { target: P[3].id });
+  untilNightRole('charmed');
+  const v = viewFor(s, P[2].id, 0, 1);
+  assert.deepEqual(new Set(v.me.task.group), new Set([P[2].id, P[3].id]));
+  assert.equal(v.me.charmed, true);
+  assert.equal(viewFor(s, P[4].id, 0, 1).me.task, null, 'others keep sleeping');
+  // Charm the rest and kill nobody: the piper wins at dawn.
+  s.game.charmed.push(P[1].id, P[4].id);
+  untilPhase('GAME_OVER');
+  assert.equal(s.game.winner, 'piper');
+});
+
+test('village needs the piper dead too', () => {
+  const { s, P } = setup(['piper', 'werewolf', 'villager', 'villager', 'villager']);
+  P[1].alive = false;
+  assert.equal(checkWin(s), null);
+  P[0].alive = false;
+  assert.equal(checkWin(s).winner, 'village');
+});
+
+test('elder survives the first bite only', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['elder', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilNightRole('elder');
+  act(P[0], 'ack', {});
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, true);
+  assert.deepEqual(s.game.lastNightDeaths, []);
+  assert.ok(!s.game.queue.includes('elder') || s.game.day === 1);
+  untilPhase('DISCUSSION');
+  untilNightRole('werewolf');
+  assert.ok(!s.game.queue.includes('elder'), 'elder only wakes on the first night');
+  act(P[1], 'night', { target: P[0].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
 });
 
 test('dead roles are still called at night so nothing leaks', () => {
@@ -337,5 +414,26 @@ test('supabase store: create, compare-and-set, and version-only broadcast', asyn
     assert.equal(await store.load('NOPE1'), null);
   } finally {
     globalThis.fetch = realFetch;
+  }
+});
+
+test('bots finish games that use every role', () => {
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const rng = seeded(seed);
+    let now = 9_000_000;
+    const { state: s, player: host } = createRoom({ code: 'ALL01', hostName: 'Host', now, rng, debug: true });
+    applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
+    for (let i = 0; i < 12; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
+    const want = { werewolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, thief: 1, piper: 1, elder: 1, villager: 3 };
+    for (const [roleId, n] of Object.entries(want)) {
+      while ((s.roleCounts[roleId] || 0) < n) applyAction(s, host.id, 'role', { roleId, delta: 1 }, now, rng);
+      while ((s.roleCounts[roleId] || 0) > n) applyAction(s, host.id, 'role', { roleId, delta: -1 }, now, rng);
+    }
+    applyAction(s, host.id, 'start', {}, now, rng);
+    for (let i = 0; i < 4000 && s.phase !== 'GAME_OVER'; i++) {
+      now += 1000;
+      tick(s, now, rng);
+    }
+    assert.equal(s.phase, 'GAME_OVER', `seed ${seed}`);
   }
 });
