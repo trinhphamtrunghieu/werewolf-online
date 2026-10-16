@@ -1,0 +1,13 @@
+{
+  "name": "ma-soi-online-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Project Ma Soi Online da thiet bi (Host Config, Auto-balance Roles, Narrator Voice TTS, P2P WebRTC Sync) deploy tren Vercel",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static WebRTC bundle ready for Vercel'",
+    "start": "npx serve ."
+  },
+  "keywords": ["werewolf", "ma-soi", "vercel", "webrtc", "peerjs"],
+  "license": "MIT"
+}
