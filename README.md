@@ -1,30 +1,101 @@
-# 🐺 Ma Sói Online — Project Deploy Vercel
+# 🌕 Ma Sói Online
 
-Ứng dụng chơi **Ma Sói (Werewolf)** đa thiết bị theo thời gian thực, hỗ trợ đầy đủ luồng Quản trò tự động bằng giọng đọc tiếng Việt và đồng bộ phòng chơi trực tiếp trên **Vercel**.
+Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của chủ phòng đặt giữa bàn làm **quản trò**: đọc lời dẫn bằng giọng tiếng Việt, gọi từng vai trò thức dậy và điều khiển nhịp ván chơi.
 
-## ✨ Tính năng chính
+- **Vercel làm máy chủ phòng**: toàn bộ luật chơi chạy trong Vercel Function `api/room.js`. Không dùng broker public, không cần WebRTC.
+- **Supabase** lưu trạng thái phòng (Postgres) và báo cho các máy biết khi phòng có thay đổi (Realtime). Kênh Realtime chỉ chở số phiên bản, không chở dữ liệu ván chơi.
+- **Không lộ bài**: mỗi máy chỉ nhận đúng thông tin mình được biết. Máy chủ kiểm tra mọi hành động (đúng lượt, đúng vai trò, còn sống).
+- **Vào lại được**: tải lại trang, mất mạng hay khoá màn hình đều quay về đúng ván cũ.
 
-1. **Chủ phòng (Host) tạo phòng & cấu hình thông số**:
-   - Tùy chỉnh **Thời gian thảo luận**, **Thời gian vote nghi phạm**, **Thời gian biện hộ**, **Thời gian vote treo cổ**, và **Thời gian mỗi lượt gọi Role ban đêm**.
-   - Chia sẻ đường link vào phòng (`https://<ten-mien>.vercel.app/?room=SOIxxx`) cho người chơi khác.
-2. **Tự động đề xuất số lượng Role cân bằng hoặc Chủ phòng tự chỉnh**:
-   - **Chế độ Tự động cân bằng (Auto-Balance)**: Hệ thống tự tính toán số lượng *Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu Cupid, Dân Làng* tối ưu theo tổng số người tham gia.
-   - **Chế độ Thủ công**: Chủ phòng tăng/giảm (`+` / `-`) từng Role kèm thanh đo tỷ lệ cân bằng giữa Phe Dân Làng và Phe Ma Sói.
-3. **Hiển thị Lá Bài Role trên từng máy người chơi**:
-   - Khi bắt đầu và trong suốt ván đấu, điện thoại/máy tính của mỗi người chơi hiển thị lá bài 3D của đúng Role đó (kèm tính năng chạm để úp/lật lá bài tránh lộ bài).
-4. **Giọng nói Quản Trò ban đêm (Chỉ phát trên máy Chủ phòng)**:
-   - Khi về đêm, hệ thống gọi lần lượt từng Role theo đúng thứ tự chuẩn Ma Sói (*Cupid -> Bảo Vệ -> Ma Sói -> Tiên Tri -> Phù Thủy*) bằng **Web Speech API (`vi-VN`)** kết hợp hiệu ứng âm thanh đêm.
-   - Âm thanh **chỉ phát ra ở máy Chủ phòng**, không phát ở máy người chơi để tránh lộ vị trí người cầm Role.
-5. **Tự tổng kết sau đêm & Option giọng đọc kết quả buổi sáng**:
-   - Khi hết đêm, hệ thống tự động xử lý các tương tác (*Sói cắn, Bảo Vệ đỡ, Phù Thủy cứu/độc, Tình nhân chết theo*) và gửi thông báo kết quả tới **tất cả các máy**.
-   - Tích hợp sẵn checkbox **Option có giọng đọc kết quả buổi sáng qua máy Chủ phòng**.
-6. **Chu trình Ban Ngày chuẩn xác**:
-   - **Hết đêm** ➔ Tự động tính **Giờ Thảo Luận**.
-   - **Hết giờ thảo luận** ➔ Hiện danh sách tên các nhân vật còn sống để mọi người **Vote Nghi Phạm**.
-   - **Sau khi mọi người vote** ➔ Đưa người bị tình nghi cao nhất lên bục và bắt đầu tính **Giờ Biện Hộ**.
-   - **Sau khi hết giờ biện hộ** ➔ Mở vòng **Vote Phán Quyết (Treo Cổ / Tha Mạng)**, kiểm tra điều kiện thắng thua hoặc chuyển sang Đêm tiếp theo.
+## Vai trò
 
-## 🚀 Hướng dẫn Deploy lên Vercel
+Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người) với các vai trò cơ bản. Ăn Trộm, Người Thổi Sáo và Già Làng do chủ phòng tự thêm.
 
-1. Đẩy thư mục project này lên GitHub Repository hoặc giải nén file zip.
-2. Truy cập [vercel.com/new](https://vercel.com/new) và chọn **Import** repository (hoặc chạy `npx vercel --prod` trong thư mục).
+**Thứ tự thức dậy mỗi đêm** (vai trò nào không có trong ván thì bỏ qua; vai trò có trong ván mà người giữ đã chết thì vẫn được gọi, để không lộ ai còn sống):
+
+1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy.
+2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi.
+3. **Cặp đôi** (đêm đầu): mở mắt nhìn mặt nhau.
+4. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
+5. **Ma Sói**: nhận diện đồng đội và thống nhất chọn nạn nhân.
+6. **Tiên Tri**: chọn 1 người để xem phe.
+7. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
+8. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên.
+9. **Những người bị thôi miên**: mở mắt nhìn nhau.
+10. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn.
+11. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
+
+Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
+
+**Điều kiện thắng:** Phe Dân thắng khi hết Sói và Người Thổi Sáo (nếu có) đã chết. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên. Cặp đôi khác phe thắng khi họ là 2 người cuối cùng còn sống.
+
+## Deploy lên Vercel + Supabase
+
+1. Tạo project trên [supabase.com](https://supabase.com) (gói Free là đủ). Vào **SQL Editor**, chạy nội dung file `supabase/schema.sql`.
+2. Import repository vào Vercel ([vercel.com/new](https://vercel.com/new)). Framework Preset: **Other**. Không cần build command.
+3. Thêm biến môi trường cho project trên Vercel. Cách nhanh nhất là cài tích hợp **Supabase** trong Vercel Marketplace (tự điền các biến). Hoặc lấy trong Supabase → Project Settings → API rồi điền tay:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY` (hoặc secret key `sb_secret_…`, đặt tên `SUPABASE_SECRET_KEY`). Chỉ dùng ở server, **không bao giờ** đưa ra trình duyệt.
+   - `SUPABASE_ANON_KEY` (hoặc publishable key `sb_publishable_…`, đặt tên `SUPABASE_PUBLISHABLE_KEY`). Trình duyệt dùng key này chỉ để nghe kênh Realtime.
+4. Redeploy. Mở trang, tạo phòng, bấm **Mời bạn bè** để gửi link.
+
+> Thiếu cấu hình Supabase thì API báo lỗi “Chưa cấu hình Supabase” thay vì chạy sai. Nếu tắt kênh public trong Supabase (Realtime → Settings → chỉ cho phép kênh private), các máy sẽ tự chuyển sang hỏi máy chủ mỗi 1–1,5 giây.
+
+**Chi phí và giới hạn:**
+- Mỗi máy chỉ gọi API khi có thay đổi (ping Realtime), khi hết giờ một bước, và kiểm tra định kỳ mỗi 15 giây. Đo thực tế: khoảng 8 lần/phút với người chơi, 12 lần/phút với chủ phòng. Ván 10 người trong 1 giờ tốn khoảng 5–7 nghìn lượt gọi Vercel Function.
+- Supabase không tính phí theo số truy vấn. Gói Free giới hạn số kết nối Realtime đồng thời và số tin nhắn mỗi tháng (mỗi thay đổi trong phòng là 1 tin nhắn gửi tới mỗi máy), dư sức cho chơi giữa bạn bè.
+- Project Supabase gói Free sẽ **tạm dừng nếu 7 ngày không có hoạt động**. Khi đó vào Supabase Dashboard bấm Restore.
+- Phòng không hoạt động quá 12 giờ sẽ tự bị xoá.
+
+## Giọng quản trò
+
+Máy chủ phòng phát giọng theo thứ tự ưu tiên:
+
+1. **File MP3 có sẵn** trong `public/audio/` (liệt kê trong `manifest.json`). Giọng tự nhiên, giống nhau trên mọi máy.
+2. Nếu thiếu file: dùng **giọng tiếng Việt của trình duyệt** (Chrome/Edge có giọng “Online/Natural” khá tốt), có ngắt nghỉ theo dấu câu.
+
+Lời dẫn nằm trong `public/shared/voice-lines.js`. Mỗi câu có 1–3 biến thể để không lặp nhàm chán. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
+
+### Tạo file giọng miễn phí, không cần API key
+
+Dùng [edge-tts](https://github.com/rany2/edge-tts) với giọng neural tiếng Việt của Microsoft: `vi-VN-NamMinhNeural` (nam, trầm) hoặc `vi-VN-HoaiMyNeural` (nữ).
+
+**Cách 1: GitHub Actions (không cần cài gì)**
+Vào tab **Actions → Tạo giọng quản trò → Run workflow**, chọn nhánh và giọng. Workflow tự tạo các file MP3 và commit vào nhánh đó.
+
+**Cách 2: chạy trên máy bạn**
+```bash
+pip install edge-tts
+npm run voice                              # giọng nam NamMinh
+VOICE=vi-VN-HoaiMyNeural FORCE=1 npm run voice   # đổi sang giọng nữ, tạo lại tất cả
+```
+
+Lưu ý: edge-tts dùng dịch vụ đọc văn bản của trình duyệt Edge, không phải API chính thức có cam kết. Phù hợp cho dự án cá nhân; nếu dùng thương mại, hãy chuyển sang dịch vụ TTS có giấy phép.
+
+**Cách 3: tự thu âm** (tự nhiên và có cảm xúc nhất)
+Thu các câu trong `voice-lines.js`, lưu thành `public/audio/<key>_<biến thể>.mp3` (ví dụ `werewolf_wake_0.mp3`, `seat_3_0.mp3`), rồi chạy `node scripts/generate-voice.mjs --manifest-only`. Có thể chỉ thu một phần: câu nào thiếu file sẽ dùng giọng trình duyệt.
+
+## Chạy ở máy cá nhân
+
+```bash
+npm run dev      # http://localhost:3000, lưu phòng trong RAM, giả lập Realtime
+npm test         # test luật chơi (node:test, không cần cài thư viện)
+```
+
+Thêm `?debug=1` vào URL để chủ phòng có nút **Thêm bot thử nghiệm**. Bot tự hành động, giúp thử cả ván chơi chỉ với một máy. Nút này không hiện ở chế độ thường.
+
+## Cấu trúc
+
+```
+api/room.js              Vercel Function: tạo/vào phòng, nhận hành động, trả trạng thái
+lib/engine.js            Luật chơi (hàm thuần, có test)
+lib/store.js             Supabase (PostgREST + Realtime broadcast), compare-and-set; RAM khi chạy local
+public/js/realtime.js    Nghe kênh Realtime của phòng (SSE giả lập khi chạy local)
+supabase/schema.sql      Bảng rooms + RLS
+public/index.html        Trang duy nhất
+public/js/app.js         Giao diện
+public/js/narrator.js    Giọng quản trò, hiệu ứng âm thanh, âm thanh nền
+public/shared/           Định nghĩa vai trò và lời dẫn (dùng chung server/client)
+scripts/                 Dev server, tạo file giọng
+test/engine.test.js      Test luật chơi
+```

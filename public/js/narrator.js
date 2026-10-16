@@ -1,0 +1,271 @@
+// Narrator voice for the host device.
+//
+// 1. Prefer pre-recorded MP3 clips listed in /audio/manifest.json (generated with
+//    `npm run voice`, or your own recordings). These sound natural and identical
+//    on every phone.
+// 2. Fall back to the browser's speech engine with the best Vietnamese voice
+//    available, paced with real pauses at "...", commas and sentence ends.
+
+import { audioFileName } from '/shared/voice-lines.js';
+
+const PREFERRED_VOICE = /(natural|online|neural|hoaimy|namminh|google|linh|an\b)/i;
+
+export class Narrator {
+  constructor() {
+    this.files = new Set();
+    this.voice = null;
+    this.unlocked = false;
+    this.lastSeq = null;
+    this.runId = 0;
+    this.audio = new Audio();
+    this.audio.preload = 'auto';
+    this.ctx = null;
+    this.ambience = null;
+    this.onState = () => {};
+    this.speaking = false;
+  }
+
+  async init() {
+    try {
+      const res = await fetch('/audio/manifest.json', { cache: 'no-cache' });
+      if (res.ok) {
+        const manifest = await res.json();
+        (manifest.files || []).forEach(f => this.files.add(f));
+      }
+    } catch {
+      // No generated audio yet: speech synthesis fallback only.
+    }
+    if ('speechSynthesis' in window) {
+      this.pickVoice();
+      speechSynthesis.addEventListener?.('voiceschanged', () => this.pickVoice());
+    }
+  }
+
+  pickVoice() {
+    const voices = speechSynthesis.getVoices() || [];
+    const vi = voices.filter(v => /^vi/i.test(v.lang));
+    this.voice = vi.find(v => PREFERRED_VOICE.test(v.name)) || vi[0] || null;
+    this.onState();
+  }
+
+  get hasRecordedVoice() { return this.files.size > 0; }
+  get hasVietnameseVoice() { return this.hasRecordedVoice || !!this.voice; }
+
+  // Must run inside a user gesture (tap) so mobile browsers allow audio later.
+  unlock() {
+    if (this.unlocked) return;
+    this.unlocked = true;
+    try {
+      this.audio.src = silentWavUrl();
+      this.audio.play().catch(() => {});
+    } catch {}
+    if ('speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    }
+    this.audioContext();
+    this.onState();
+  }
+
+  audioContext() {
+    if (!this.ctx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) this.ctx = new Ctx();
+    }
+    if (this.ctx?.state === 'suspended') this.ctx.resume().catch(() => {});
+    return this.ctx;
+  }
+
+  // Play a narration from the room state once (by sequence number).
+  handle(narration, { replay = false } = {}) {
+    if (!narration) return;
+    if (this.lastSeq === null && !replay) {
+      // First state after (re)loading the page: don't replay old lines.
+      this.lastSeq = narration.seq;
+      return;
+    }
+    if (!replay && narration.seq <= this.lastSeq) return;
+    this.lastSeq = narration.seq;
+    if (!this.unlocked) return;
+    this.play(narration.clips);
+  }
+
+  stop() {
+    this.runId++;
+    try { this.audio.pause(); } catch {}
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    this.setSpeaking(false);
+  }
+
+  setSpeaking(on) {
+    this.speaking = on;
+    this.duckAmbience(on);
+    this.onState();
+  }
+
+  async play(clips) {
+    this.stop();
+    const run = this.runId;
+    this.setSpeaking(true);
+    for (let i = 0; i < clips.length; i++) {
+      if (run !== this.runId) return;
+      const clip = clips[i];
+      const file = audioFileName(clip.k, clip.v);
+      if (this.files.has(file)) {
+        await this.playFile(`/audio/${file}`, run).catch(() => this.speak(clip.t, run));
+      } else {
+        await this.speak(clip.t, run);
+      }
+      // Breathe between clips; seat numbers flow straight into their sentence.
+      const next = clips[i + 1];
+      const tight = clip.k.startsWith('seat_') || next?.k === 'and' || clip.k === 'and' || next?.k?.startsWith('seat_');
+      await wait(tight ? 120 : 380);
+    }
+    if (run === this.runId) this.setSpeaking(false);
+  }
+
+  playFile(src, run) {
+    return new Promise((resolve, reject) => {
+      if (run !== this.runId) return resolve();
+      const a = this.audio;
+      const done = () => { cleanup(); resolve(); };
+      const failed = () => { cleanup(); reject(new Error('audio')); };
+      const cleanup = () => {
+        a.removeEventListener('ended', done);
+        a.removeEventListener('error', failed);
+      };
+      a.addEventListener('ended', done);
+      a.addEventListener('error', failed);
+      a.src = src;
+      a.play().catch(failed);
+    });
+  }
+
+  // Speech synthesis with storyteller pacing: split on "...", sentence ends and
+  // commas so the engine pauses where a human narrator would.
+  async speak(text, run) {
+    if (!('speechSynthesis' in window) || !text) return;
+    const parts = text
+      .split(/(\.\.\.|…|[.!?](?=\s)|[.!?]$|,)/)
+      .reduce((acc, piece) => {
+        if (/^(\.\.\.|…|[.!?,])$/.test(piece) && acc.length) acc[acc.length - 1].mark = piece;
+        else if (piece.trim()) acc.push({ text: piece.trim(), mark: '' });
+        return acc;
+      }, []);
+    for (const part of parts) {
+      if (run !== this.runId) return;
+      const ending = part.mark === '!' ? '!' : part.mark === '?' ? '?' : '';
+      await this.utter(part.text + ending, ending);
+      const pause = part.mark === '...' || part.mark === '…' ? 520
+        : part.mark === ',' ? 140
+        : part.mark ? 300 : 80;
+      await wait(pause);
+    }
+  }
+
+  utter(text, ending) {
+    return new Promise(resolve => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'vi-VN';
+      if (this.voice) u.voice = this.voice;
+      // Slightly slow and low for suspense; lift on calls and questions.
+      u.rate = ending === '!' ? 0.98 : 0.9;
+      u.pitch = ending === '?' ? 1.05 : ending === '!' ? 1.08 : 0.95;
+      let settled = false;
+      const finish = () => { if (!settled) { settled = true; clearTimeout(guard); resolve(); } };
+      // Some browsers never fire onend; never block the narration forever.
+      const guard = setTimeout(finish, 1500 + text.length * 120);
+      u.onend = finish;
+      u.onerror = finish;
+      speechSynthesis.speak(u);
+    });
+  }
+
+  // ---------- Sound effects & ambience (Web Audio, no files needed) ----------
+
+  sfx(type) {
+    const ctx = this.unlocked && this.audioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const tone = (freq, start, dur, wave = 'sine', vol = 0.15, endFreq) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = wave;
+      o.frequency.setValueAtTime(freq, now + start);
+      if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, now + start + dur);
+      g.gain.setValueAtTime(0.0001, now + start);
+      g.gain.exponentialRampToValueAtTime(vol, now + start + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + start + dur);
+      o.connect(g).connect(ctx.destination);
+      o.start(now + start);
+      o.stop(now + start + dur + 0.05);
+    };
+    if (type === 'night') {
+      tone(293.66, 0, 1.6, 'sine', 0.12, 196);
+      tone(220, 0.25, 1.8, 'triangle', 0.06, 146.8);
+    } else if (type === 'morning') {
+      [523.25, 659.25, 783.99].forEach((f, i) => tone(f, i * 0.18, 1.2, 'triangle', 0.09));
+    } else if (type === 'gavel') {
+      tone(150, 0, 0.3, 'square', 0.08, 60);
+      tone(150, 0.35, 0.3, 'square', 0.08, 60);
+    } else if (type === 'howl') {
+      tone(360, 0, 1.8, 'sawtooth', 0.035, 620);
+      tone(620, 1.8, 1.2, 'sawtooth', 0.03, 300);
+    }
+  }
+
+  setAmbience(on) {
+    const ctx = this.audioContext();
+    if (!ctx) return;
+    if (on && !this.ambience) {
+      const master = ctx.createGain();
+      master.gain.value = 0.0001;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 380;
+      filter.connect(master).connect(ctx.destination);
+      const oscs = [73.42, 110, 174.61].map((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = i ? 'triangle' : 'sine';
+        o.frequency.value = f;
+        o.detune.value = (i - 1) * 6;
+        g.gain.value = i ? 0.2 : 0.4;
+        o.connect(g).connect(filter);
+        o.start();
+        return o;
+      });
+      this.ambience = { master, oscs };
+      this.duckAmbience(this.speaking);
+    } else if (!on && this.ambience) {
+      const { master, oscs } = this.ambience;
+      master.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.3);
+      setTimeout(() => oscs.forEach(o => { try { o.stop(); } catch {} }), 1200);
+      this.ambience = null;
+    }
+  }
+
+  duckAmbience(speaking) {
+    if (!this.ambience || !this.ctx) return;
+    this.ambience.master.gain.setTargetAtTime(speaking ? 0.025 : 0.08, this.ctx.currentTime, 0.4);
+  }
+}
+
+// 50 ms of silence, played inside the unlock tap so iOS lets this element play later.
+function silentWavUrl() {
+  const samples = 400;
+  const buf = new ArrayBuffer(44 + samples);
+  const v = new DataView(buf);
+  const str = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  str(0, 'RIFF'); v.setUint32(4, 36 + samples, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true);
+  v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, samples, true);
+  for (let i = 0; i < samples; i++) v.setUint8(44 + i, 128);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
+function wait(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
