@@ -1036,10 +1036,12 @@ function renderRules() {
   document.getElementById('rulesBody').innerHTML = `
     <div class="sheet-head"><h3 id="rulesTitle">Luật chơi</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
     <div class="stack small">
-      <p>Mỗi đêm, quản trò gọi dậy theo thứ tự: ${NIGHT_STEPS.map(st => `${stepInfo(st.id).name}${st.firstNightOnly ? ' (đêm đầu)' : ''}`).join(', ')}. Người được gọi thao tác trên điện thoại của mình.</p>
+      <p>Mỗi đêm, quản trò gọi dậy theo thứ tự dưới đây. Người được gọi thao tác trên điện thoại của mình.</p>
+      <ol class="rules-steps">${NIGHT_STEPS.map(st => `<li>${stepInfo(st.id).icon} ${stepInfo(st.id).name}${st.firstNightOnly ? ' (đêm đầu)' : ''}</li>`).join('')}</ol>
       <p>Ban ngày: công bố người chết, thảo luận, bỏ phiếu chọn nghi phạm, nghi phạm biện hộ, rồi cả làng chọn treo cổ hay tha.</p>
       <p>Phe Dân thắng khi hết Sói (và Người Thổi Sáo, nếu có, đã chết). Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên.</p>
-      ${ROLE_IDS.map(id => `<p><strong>${ROLES[id].icon} ${ROLES[id].name}</strong>: ${ROLES[id].description}</p>`).join('')}
+      <h3 style="margin-top:8px">Vai trò</h3>
+      <div class="rules-roles">${ROLE_IDS.map(id => `<p><strong>${ROLES[id].icon} ${ROLES[id].name}</strong>: ${ROLES[id].description}</p>`).join('')}</div>
     </div>`;
 }
 
