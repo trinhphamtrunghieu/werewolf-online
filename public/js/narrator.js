@@ -6,7 +6,7 @@
 // 2. Fall back to the browser's speech engine with the best Vietnamese voice
 //    available, paced with real pauses at "...", commas and sentence ends.
 
-import { audioFileName } from '/shared/voice-lines.js';
+import { audioFileName, gapAfter } from '/shared/voice-lines.js';
 
 const PREFERRED_VOICE = /(natural|online|neural|hoaimy|namminh|google|linh|an\b)/i;
 
@@ -15,7 +15,10 @@ export class Narrator {
     this.files = new Set();
     this.voice = null;
     this.unlocked = false;
-    this.lastSeq = null;
+    // Narrations are identified by their server timestamp (`at`), which keeps
+    // increasing across games (a sequence number restarts with each new game).
+    this.initialized = false;
+    this.lastAt = 0;
     this.runId = 0;
     this.audio = new Audio();
     this.audio.preload = 'auto';
@@ -65,7 +68,16 @@ export class Narrator {
       speechSynthesis.speak(u);
     }
     this.audioContext();
+    this.prefetch();
     this.onState();
+  }
+
+  // Warm the HTTP cache so each clip starts instantly instead of waiting on
+  // the network mid-sentence.
+  async prefetch() {
+    for (const file of this.files) {
+      try { await fetch(`/audio/${file}`); } catch { return; }
+    }
   }
 
   audioContext() {
@@ -77,16 +89,22 @@ export class Narrator {
     return this.ctx;
   }
 
-  // Play a narration from the room state once (by sequence number).
-  handle(narration, { replay = false } = {}) {
-    if (!narration) return;
-    if (this.lastSeq === null && !replay) {
+  // Play each narration from the room state once. `serverNow` lets us skip a
+  // narration that is already over (e.g. the phone was asleep), so a stale
+  // line never talks over the current one.
+  handle(narration, { replay = false, serverNow = Date.now() } = {}) {
+    if (!this.initialized && !replay) {
       // First state after (re)loading the page: don't replay old lines.
-      this.lastSeq = narration.seq;
+      this.initialized = true;
+      this.lastAt = narration?.at ?? 0;
       return;
     }
-    if (!replay && narration.seq <= this.lastSeq) return;
-    this.lastSeq = narration.seq;
+    if (!narration) return;
+    if (!replay) {
+      if (narration.at <= this.lastAt) return;
+      this.lastAt = narration.at;
+      if (narration.endsAt && serverNow > narration.endsAt - 1000) return;
+    }
     if (!this.unlocked) return;
     this.play(narration.clips);
   }
@@ -117,10 +135,8 @@ export class Narrator {
       } else {
         await this.speak(clip.t, run);
       }
-      // Breathe between clips; seat numbers flow straight into their sentence.
-      const next = clips[i + 1];
-      const tight = clip.k.startsWith('seat_') || next?.k === 'and' || clip.k === 'and' || next?.k?.startsWith('seat_');
-      await wait(tight ? 120 : 380);
+      // Same pauses the server assumes when timing the phase.
+      await wait(gapAfter(clip, clips[i + 1]));
     }
     if (run === this.runId) this.setSpeaking(false);
   }
@@ -209,9 +225,11 @@ export class Narrator {
     } else if (type === 'gavel') {
       tone(150, 0, 0.3, 'square', 0.08, 60);
       tone(150, 0.35, 0.3, 'square', 0.08, 60);
-    } else if (type === 'howl') {
-      tone(360, 0, 1.8, 'sawtooth', 0.035, 620);
-      tone(620, 1.8, 1.2, 'sawtooth', 0.03, 300);
+    } else if (type === 'tick') {
+      // Wood-block style click for the last seconds of a timer.
+      tone(1250, 0, 0.07, 'square', 0.05, 900);
+    } else if (type === 'tickFinal') {
+      tone(1700, 0, 0.1, 'square', 0.07, 1300);
     }
   }
 

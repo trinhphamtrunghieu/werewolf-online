@@ -32,6 +32,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install edge-tts
+      - name: ffmpeg (cắt khoảng lặng, đo độ dài câu)
+        run: which ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       - run: npm run voice
         env:
           VOICE: ${{ inputs.voice }}
@@ -40,7 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/audio
+          git add public/audio public/shared/voice-durations.js
           if git diff --cached --quiet; then
             echo "Không có file mới."
           else

@@ -476,3 +476,49 @@ test('the elder dying to wolves does not cost the village its powers', () => {
   assert.equal(P[0].alive, false);
   assert.equal(s.game.powersLost, false);
 });
+
+test('the narrator is never cut off: each narration starts after the previous one ends', () => {
+  for (const seed of [11, 12, 13, 14, 15, 16]) {
+    const rng = seeded(seed);
+    let now = 20_000_000;
+    const { state: s, player: host } = createRoom({ code: 'TALK1', hostName: 'Host', now, rng, debug: true });
+    applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
+    for (let i = 0; i < 12; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
+    const want = { werewolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, thief: 1, piper: 1, elder: 1, villager: 3 };
+    for (const [roleId, n] of Object.entries(want)) {
+      while ((s.roleCounts[roleId] || 0) < n) applyAction(s, host.id, 'role', { roleId, delta: 1 }, now, rng);
+      while ((s.roleCounts[roleId] || 0) > n) applyAction(s, host.id, 'role', { roleId, delta: -1 }, now, rng);
+    }
+    applyAction(s, host.id, 'start', {}, now, rng);
+    let prev = s.narration;
+    let checked = 0;
+    for (let i = 0; i < 20000 && s.phase !== 'GAME_OVER'; i++) {
+      now += 250;
+      tick(s, now, rng);
+      const cur = s.narration;
+      if (cur.seq !== prev.seq) {
+        assert.ok(cur.at >= prev.endsAt, `seed ${seed}: "${cur.clips[0].k}" started ${prev.endsAt - cur.at} ms before "${prev.clips.at(-1).k}" finished`);
+        checked++;
+        prev = cur;
+      }
+    }
+    assert.equal(s.phase, 'GAME_OVER');
+    assert.ok(checked > 10);
+  }
+});
+
+test('timed phases give players their full time after the narrator finishes', () => {
+  const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  const n = s.narration;
+  assert.ok(n.endsAt > clock.now, 'first night call is still being read');
+  assert.ok(s.game.phaseEndsAt >= n.endsAt + s.config.nightStepTime * 1000);
+});
+
+test('after the verdict the narrator announces the night and counts down 10 s', () => {
+  const { s, untilPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
+  untilPhase('VERDICT');
+  assert.ok(s.narration.clips.some(c => c.k === 'night_soon'));
+  assert.ok(s.game.phaseEndsAt >= s.narration.endsAt + 10000);
+  untilPhase('NIGHT');
+  assert.equal(s.game.day, 2);
+});

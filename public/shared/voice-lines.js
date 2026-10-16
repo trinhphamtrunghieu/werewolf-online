@@ -9,6 +9,8 @@
 // Writing tips for a natural, emotional read: short clauses, commas for breath,
 // "..." for a dramatic pause, and "!" only where the narrator should lift.
 
+import { CLIP_MS } from './voice-durations.js';
+
 const NUMBERS = [
   '', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín', 'mười',
   'mười một', 'mười hai', 'mười ba', 'mười bốn', 'mười lăm', 'mười sáu', 'mười bảy', 'mười tám'
@@ -111,6 +113,10 @@ export const LINES = {
     'Dân làng chưa thể thống nhất. Hôm nay, không ai phải lên bục.',
     'Phiếu bầu bị chia đều... Hôm nay, làng tạm tha cho tất cả.'
   ],
+  night_soon: [
+    'Màn đêm sẽ buông xuống sau mười giây nữa. Mọi người, hãy chuẩn bị.',
+    'Mặt trời sắp lặn... Mười giây nữa, cả làng sẽ chìm vào bóng đêm.'
+  ],
   judge_start: [
     'Lời biện hộ đã kết thúc. Cả làng hãy quyết định: treo cổ... hay tha mạng?'
   ],
@@ -158,4 +164,38 @@ export function lineText(key, variant = 0) {
 
 export function audioFileName(key, variant = 0) {
   return `${key}_${variant}.mp3`;
+}
+
+// ---------------------------------------------------------------------------
+// Timing, shared by the server (to wait for the narrator) and the host phone
+// (to pace playback), so both agree on how long a narration lasts.
+// ---------------------------------------------------------------------------
+
+export const CLIP_GAP_MS = 350;
+export const TIGHT_GAP_MS = 100;
+
+const flowsOn = (key) => key.startsWith('seat_') || key === 'and';
+
+// Pause after a clip. Seat numbers run straight into their sentence.
+export function gapAfter(clip, next) {
+  if (!next) return 0;
+  return flowsOn(clip.k) || flowsOn(next.k) ? TIGHT_GAP_MS : CLIP_GAP_MS;
+}
+
+// Browser speech fallback: roughly 13 characters a second at the narrator's
+// slow rate, plus the pauses the narrator inserts at punctuation.
+export function estimateSpeechMs(text) {
+  const t = String(text || '');
+  const ellipses = (t.match(/\.\.\.|…/g) || []).length;
+  const commas = (t.match(/,/g) || []).length;
+  const stops = (t.match(/[.!?](\s|$)/g) || []).length;
+  return Math.round(300 + t.length * 75 + ellipses * 520 + commas * 140 + stops * 300);
+}
+
+export function clipMs(clip) {
+  return CLIP_MS[`${clip.k}_${clip.v}`] ?? estimateSpeechMs(clip.t);
+}
+
+export function narrationMs(clips) {
+  return clips.reduce((sum, clip, i) => sum + clipMs(clip) + gapAfter(clip, clips[i + 1]), 0);
 }
