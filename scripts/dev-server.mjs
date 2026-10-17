@@ -58,7 +58,20 @@ const server = http.createServer(async (req, res) => {
   if (path.endsWith('/')) path += 'index.html';
   try {
     const file = await readFile(join(root, path));
-    res.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream' });
+    const type = types[extname(path)] || 'application/octet-stream';
+    // Byte ranges, like Vercel's static hosting, so audio can seek.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (range) {
+      const start = range[1] ? Number(range[1]) : Math.max(0, file.length - Number(range[2]));
+      const end = range[1] && range[2] ? Math.min(Number(range[2]), file.length - 1) : file.length - 1;
+      res.writeHead(206, {
+        'Content-Type': type,
+        'Accept-Ranges': 'bytes',
+        'Content-Range': `bytes ${start}-${end}/${file.length}`
+      });
+      return res.end(file.subarray(start, end + 1));
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes' });
     res.end(file);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
