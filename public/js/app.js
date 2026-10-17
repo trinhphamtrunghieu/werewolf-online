@@ -506,7 +506,6 @@ function renderHome() {
           <button class="btn btn-primary btn-block" type="submit">Tạo phòng</button>
         `}
       </form>
-      ${DEBUG ? '<p class="hint">Chế độ thử nghiệm đang bật: chủ phòng có thể thêm bot.</p>' : ''}
     </div>`;
 
   document.getElementById('homeForm').addEventListener('submit', (e) => {
@@ -571,7 +570,10 @@ function renderLobby() {
         </div>
         ${host && !p.isHost ? `<button class="btn btn-ghost btn-small" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">Mời ra</button>` : ''}
       </div>`).join('')}
-    ${host && view.debug ? '<button class="btn btn-ghost btn-small" style="margin-top:10px" data-act="addBot">Thêm bot thử nghiệm</button>' : ''}
+    ${host ? `<div class="row" style="margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-small" data-act="addBot">🤖 Thêm người chơi máy</button>
+      <span class="muted small">Máy tự chọn và bỏ phiếu ngẫu nhiên. Bấm “Mời ra” để bớt.</span>
+    </div>` : ''}
     ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
 
   renderVoicePanel(host);

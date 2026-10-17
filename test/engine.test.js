@@ -648,3 +648,13 @@ test('a host vote closes after 20 s even if some players never vote', () => {
   assert.equal(resolveHostVote(s, later + 20000), true);
   assert.equal(s.hostId, P[3].id);
 });
+
+test('the host can add computer players in a normal (non-debug) room', () => {
+  const { state: s, player: host } = createRoom({ code: 'BOTS2', hostName: 'Host', now: 0 });
+  for (let i = 0; i < 4; i++) applyAction(s, host.id, 'addBot', {}, 0);
+  assert.equal(s.players.filter(p => p.isBot).length, 4);
+  applyAction(s, host.id, 'start', {}, 0);
+  assert.equal(s.phase, 'NIGHT');
+  const bot = s.players.find(p => p.isBot);
+  assert.throws(() => applyAction(s, bot.id, 'addBot', {}, 0), /Chủ phòng/);
+});
