@@ -7,7 +7,7 @@
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
 
 import {
-  GameError, createRoom, joinRoom, authenticate, applyAction, tick, viewFor
+  GameError, createRoom, joinRoom, authenticate, applyAction, tick, viewFor, resolveHostVote
 } from '../lib/engine.js';
 import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
@@ -15,6 +15,8 @@ import {
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SEEN_REFRESH_MS = 15000;
+// The host checks in more often so the room notices quickly if it drops out.
+const HOST_SEEN_REFRESH_MS = 3000;
 
 const notFound = () => new GameError('Không tìm thấy phòng. Hãy kiểm tra lại mã phòng.');
 
@@ -81,15 +83,25 @@ async function handlePoll(store, query) {
   const since = Number(query.since) || 0;
   const now = Date.now();
   let advanced = false;
+  let newHostPicked = false;
   const { state, version, saved } = await mutateRoom(store, code, (s) => {
     const p = authenticate(s, query.pid, query.token);
     advanced = tick(s, now);
-    const seen = now - (p.lastSeen || 0) > SEEN_REFRESH_MS;
+    const refresh = p.id === s.hostId ? HOST_SEEN_REFRESH_MS : SEEN_REFRESH_MS;
+    const seen = now - (p.lastSeen || 0) > refresh;
     if (seen) p.lastSeen = now;
-    return { changed: advanced || seen };
+    // The host is back: forget any half-finished vote to replace it.
+    const staleVotes = p.id === s.hostId && Object.keys(s.hostVotes || {}).length > 0;
+    if (staleVotes) {
+      s.hostVotes = {};
+      s.hostVoteStartedAt = null;
+    }
+    // Close a host vote whose time is up.
+    newHostPicked = resolveHostVote(s, now);
+    return { changed: advanced || seen || staleVotes || newHostPicked };
   }, notFound);
   // Only real game changes wake the other phones; a "last seen" refresh does not.
-  if (saved && advanced) await store.notify(code, version);
+  if (saved && (advanced || newHostPicked)) await store.notify(code, version);
   if (version === since) return { same: true, version, serverNow: now };
   return { view: viewFor(state, query.pid, now, version) };
 }

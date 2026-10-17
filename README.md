@@ -51,6 +51,16 @@ Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi ph
 - Project Supabase gói Free sẽ **tạm dừng nếu 7 ngày không có hoạt động**. Khi đó vào Supabase Dashboard bấm Restore.
 - Phòng không hoạt động quá 12 giờ sẽ tự bị xoá.
 
+## Máy chủ phòng
+
+Máy chủ phòng chỉ có 3 việc: **phát âm thanh** (lời quản trò, nhạc nền, tích tắc), **bắt đầu ván** và **mở ván mới** (kèm chỉnh cài đặt ở phòng chờ). Nhịp ván do server điều khiển, nên nếu máy chủ phòng rớt mạng thì ván vẫn chạy, chỉ tạm thời không có tiếng.
+
+**Khi máy chủ phòng mất kết nối** (không có tín hiệu quá 12 giây), mọi máy hiện khung **chọn máy làm loa mới**. Phiếu được chốt khi có người đạt quá nửa số người đang online, hoặc khi mọi người đã bầu xong, hoặc sau 20 giây kể từ phiếu đầu tiên. Nếu hoà phiếu thì bốc thăm ngẫu nhiên giữa những người hoà. Máy chủ phòng mới không thấy thêm bài của ai; bảng quản trò chỉ dành cho chủ phòng không tham gia chơi.
+
+**Tuỳ chọn trên từng máy** (lưu trên máy đó, mặc định tắt):
+- *Phát âm thanh trên máy này*: máy người chơi cũng đọc lời quản trò.
+- *Rung khi đến lượt*: chỉ hiện trên điện thoại hỗ trợ rung (trình duyệt trên iPhone không cho trang web rung).
+
 ## Giọng quản trò
 
 Máy chủ phòng phát giọng theo thứ tự ưu tiên:
@@ -58,7 +68,7 @@ Máy chủ phòng phát giọng theo thứ tự ưu tiên:
 1. **File MP3 có sẵn** trong `public/audio/` (liệt kê trong `manifest.json`). Giọng tự nhiên, giống nhau trên mọi máy.
 2. Nếu thiếu file: dùng **giọng tiếng Việt của trình duyệt** (Chrome/Edge có giọng “Online/Natural” khá tốt), có ngắt nghỉ theo dấu câu.
 
-Lời dẫn nằm trong `public/shared/voice-lines.js`. Mỗi câu có 1–3 biến thể để không lặp nhàm chán. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
+Lời dẫn nằm trong `public/shared/voice-lines.js`. Mỗi đoạn có 5–6 phiên bản, mỗi lần đọc chọn ngẫu nhiên để không lặp nhàm chán. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
 
 **Nhịp đọc:** máy chủ biết độ dài từng câu (`public/shared/voice-durations.js`, do script tạo giọng ghi ra) và **không chuyển bước khi quản trò còn đang đọc**. Thời gian của mỗi bước (lượt ban đêm, thảo luận, bỏ phiếu…) chỉ bắt đầu tính sau khi đọc xong. Sau phán quyết ban ngày, quản trò báo “Màn đêm sẽ buông xuống sau mười giây nữa” rồi tự chuyển sang đêm. Trong 10 giây cuối của mỗi bước, máy chủ phòng phát tiếng tích tắc (tắt được trong phần Giọng quản trò). Script tạo giọng tự cắt khoảng lặng thừa ở đầu và cuối mỗi file (cần ffmpeg), để “người chơi số ba… và… người chơi số năm” đọc liền mạch.
 

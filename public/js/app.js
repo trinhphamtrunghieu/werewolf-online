@@ -43,6 +43,13 @@ let ambienceVolume = Number(read('masoi_ambience_volume') || 60);
 let ticksOn = read('masoi_ticks') !== 'off';
 let lastTick = null;
 let settingsOpen = false;
+// Players can also hear the narrator on their own phone (off by default).
+let localAudio = read('masoi_local_audio') === 'on';
+let hostMissingTimer = null;
+const audioOn = () => isHost() || localAudio;
+// Vibration only exists on (Android) phones; iPhones' browsers don't allow it.
+const canVibrate = 'vibrate' in navigator && matchMedia('(pointer: coarse)').matches;
+let vibrateOn = read('masoi_vibrate') === 'on';
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -191,7 +198,9 @@ function scheduleHeartbeat() {
   if (!session) return;
   const hidden = document.visibilityState === 'hidden';
   let delay;
-  if (live) delay = 15000;
+  if (isHost() && view?.phase !== undefined) delay = 4000; // let the room know the speaker is still here
+  else if (view?.hostOffline) delay = 3000;               // follow the vote for a new host closely
+  else if (live) delay = 15000;
   else if (hidden) delay = 5000;
   else delay = Math.min((isHost() ? 1000 : 1500) * (1 + failures), 8000);
   heartbeatTimer = setTimeout(sync, delay);
@@ -239,6 +248,7 @@ async function startRealtime() {
       },
       onPresence: (ids) => {
         presence = ids;
+        watchHostPresence();
         if (view) render();
       },
       onStatus: (ok) => {
@@ -252,6 +262,18 @@ async function startRealtime() {
     });
   } catch (err) {
     console.warn('Realtime unavailable, falling back to polling', err);
+  }
+}
+
+// Realtime presence notices a vanished host phone within seconds; ask the
+// server (which decides) once its timeout has passed.
+function watchHostPresence() {
+  const gone = presence?.size && view?.hostId && !presence.has(view.hostId);
+  if (!gone) {
+    clearTimeout(hostMissingTimer);
+    hostMissingTimer = null;
+  } else if (!hostMissingTimer) {
+    hostMissingTimer = setTimeout(() => { hostMissingTimer = null; sync(); }, 12500);
   }
 }
 
@@ -350,13 +372,28 @@ function onTransitions(prev, next) {
   const phaseChanged = phaseKey !== lastPhaseKey;
   lastPhaseKey = phaseKey;
 
-  if (next.me?.isHost) {
+  const wasHost = prev?.me?.isHost;
+  if (prev && !wasHost && next.me?.isHost) {
+    toast(narrator.unlocked
+      ? 'Máy bạn giờ là máy chủ phòng: quản trò sẽ đọc từ máy này.'
+      : 'Máy bạn giờ là máy chủ phòng. Bấm “Bật giọng quản trò” để phát âm thanh.');
+  }
+  if (wasHost && !next.me?.isHost) {
+    narrator.setAmbience(false);
+    toast('Một máy khác đã trở thành máy chủ phòng.');
+  }
+
+  if (next.me?.isHost || localAudio) {
     if (phaseChanged && prev && narrator.unlocked) {
       if (next.phase === 'NIGHT' && prev.phase !== 'NIGHT') narrator.sfx('night');
       if (next.phase === 'MORNING') narrator.sfx('morning');
       if (next.phase === 'VERDICT' || next.phase === 'JUDGE') narrator.sfx('gavel');
     }
     narrator.handle(next.narration, { serverNow: serverNow() });
+  }
+  watchHostPresence();
+
+  if (next.me?.isHost) {
     narrator.setAmbienceVolume(ambienceVolume / 100);
     narrator.setAmbience(ambienceOn, moodForPhase(next.phase));
     if (next.phase !== 'LOBBY') requestWakeLock();
@@ -364,7 +401,7 @@ function onTransitions(prev, next) {
 
   const task = next.me?.task;
   const taskKey = task ? `${phaseKey}:${task.role}` : null;
-  if (taskKey && taskKey !== lastTaskKey && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+  if (taskKey && taskKey !== lastTaskKey && canVibrate && vibrateOn) navigator.vibrate([120, 80, 120]);
   lastTaskKey = taskKey;
 
   if (prev && prev.phase === 'LOBBY' && next.phase === 'NIGHT' && next.me?.inGame) {
@@ -496,6 +533,7 @@ function renderLobby() {
     app.innerHTML = `
       ${topbar('<button class="btn btn-ghost btn-small" data-act="leave">Rời phòng</button>')}
       <div id="lobbyRoot" class="stack-lg">
+        <div id="hostAlert"></div>
         <section class="panel stack" id="roomInfo"></section>
         <section class="panel" id="players"></section>
         <section id="hostVoice"></section>
@@ -505,6 +543,7 @@ function renderLobby() {
       <div class="bottom-bar"><div class="bottom-bar-inner" id="lobbyFooter"></div></div>`;
   }
 
+  renderHostAlert();
   const participants = view.players.filter(p => !(p.isHost && !view.config.hostPlays));
   document.getElementById('roomInfo').innerHTML = `
     <div class="row-between">
@@ -556,7 +595,56 @@ function renderLobby() {
 function renderVoicePanel(host) {
   const el = document.getElementById('hostVoice');
   if (!el || document.activeElement?.matches?.('#hostVoice input[type=range]')) return;
-  el.innerHTML = host ? voicePanel() : '';
+  el.innerHTML = host ? voicePanel() + deviceOptions() : deviceOptions(true);
+}
+
+// Per-phone options, stored on this phone only.
+function deviceOptions(panel = false) {
+  const items = [];
+  if (!isHost()) {
+    items.push(`<label class="check" style="padding:0"><input type="checkbox" data-act="localAudio" ${localAudio ? 'checked' : ''} /> <span>Phát âm thanh trên máy này</span></label>`);
+  }
+  if (canVibrate) {
+    items.push(`<label class="check" style="padding:0"><input type="checkbox" data-act="vibrate" ${vibrateOn ? 'checked' : ''} /> <span>Rung khi đến lượt</span></label>`);
+  }
+  if (!items.length) return '';
+  const row = `<div class="row" style="flex-wrap:wrap;gap:16px">${items.join('')}</div>`;
+  return panel
+    ? `<div class="panel stack"><h3>Trên máy này</h3><p class="muted small">Chỉ áp dụng cho điện thoại của bạn.</p>${row}</div>`
+    : `<div class="panel stack" style="margin-top:12px"><h3>Trên máy này</h3>${row}</div>`;
+}
+
+// In game: the same per-phone options under the narration, for players.
+function playerAudioBar() {
+  const opts = deviceOptions();
+  return opts ? `<details class="section"><summary class="muted small">Tuỳ chọn trên máy này</summary>${opts}</details>` : '';
+}
+
+// Shown to everyone while the host phone is unreachable.
+function renderHostAlert() {
+  const box = document.getElementById('hostAlert');
+  if (!box) return;
+  const h = view.hostOffline;
+  if (!h) {
+    box.innerHTML = '';
+    return;
+  }
+  const oldHost = player(view.hostId);
+  const counts = {};
+  Object.values(h.votes).forEach(c => { counts[c] = (counts[c] || 0) + 1; });
+  const mine = h.votes[view.me.id];
+  const isOldHost = view.me.id === view.hostId;
+  box.innerHTML = `
+    <section class="panel stack" style="border-color:rgba(233,162,59,.6)">
+      <h3>Máy chủ phòng mất kết nối</h3>
+      <p class="small">${esc(oldHost?.name || 'Máy chủ phòng')} không còn kết nối, nên tạm thời không có tiếng quản trò. Ván vẫn tiếp tục. Hãy chọn máy sẽ làm loa mới (nên đặt giữa bàn).</p>
+      ${isOldHost ? '<p class="small muted">Đang kết nối lại máy của bạn…</p>' : `
+      <div class="village">${h.candidates.map(id => player(id)).filter(Boolean).map(p => seat(p, {
+        selectable: true, act: 'hostVote', pressed: mine === p.id, count: counts[p.id] || 0,
+        sub: p.id === view.me.id ? 'Máy của tôi' : ''
+      })).join('')}</div>`}
+      <p class="muted small">Cần ${h.needed} phiếu, hoặc chờ mọi người bầu xong. Hoà phiếu thì bốc thăm. ${h.endsAt ? 'Tự chốt sau 20 giây kể từ phiếu đầu tiên.' : ''}</p>
+    </section>`;
 }
 
 function voicePanel() {
@@ -668,6 +756,7 @@ function renderGame() {
       ${topbar('<button class="btn btn-ghost btn-small" data-act="leave">Rời</button>')}
       <div id="gameRoot" class="stack-lg">
         <section class="sky" id="sky"></section>
+        <div id="hostAlert"></div>
         <div id="narration"></div>
         <div id="hostBar"></div>
         <section class="stage" id="stage"></section>
@@ -693,7 +782,8 @@ function renderGame() {
   updateClock();
 
   renderNarration();
-  document.getElementById('hostBar').innerHTML = isHost() ? hostBar() : '';
+  document.getElementById('hostBar').innerHTML = (isHost() ? hostBar() : '') + playerAudioBar();
+  renderHostAlert();
   document.getElementById('stage').innerHTML = stage();
 
   const alive = view.players.filter(p => p.inGame && p.alive).length;
@@ -852,7 +942,7 @@ function stage() {
       <div class="panel sleep">
         <div class="zz" aria-hidden="true">🌙</div>
         <h2>${m.inGame && m.alive ? 'Nhắm mắt lại nhé' : 'Màn đêm đang trôi qua'}</h2>
-        <p class="lead">${r ? `${r.name} đang thức dậy.` : ''} Điện thoại sẽ rung khi đến lượt bạn.</p>
+        <p class="lead">${r ? `${r.name} đang thức dậy.` : ''}${canVibrate && vibrateOn ? ' Điện thoại sẽ rung khi đến lượt bạn.' : ''}</p>
       </div>`;
   }
 
@@ -1158,7 +1248,7 @@ function updateClock() {
 // while the narrator is talking.
 const TICK_PHASES = new Set(['NIGHT', 'DISCUSSION', 'VOTE', 'DEFENSE', 'JUDGE', 'VERDICT']);
 function tickCountdown(secs) {
-  if (!ticksOn || !isHost() || !narrator.unlocked || narrator.speaking) return;
+  if (!ticksOn || !audioOn() || !narrator.unlocked || narrator.speaking) return;
   if (!TICK_PHASES.has(view.phase) || secs < 1 || secs > 10) return;
   // At night only the action slot is timed; the call/sleep slots are speech.
   if (view.phase === 'NIGHT' && view.game.nightStage !== 'act') return;
@@ -1207,6 +1297,25 @@ document.addEventListener('click', async (e) => {
         { k: 'werewolf_wake', v: 0, t: 'Ma Sói... hãy thức dậy. Hãy nhìn nhau, và chọn con mồi cho đêm nay.' }
       ]);
       return renderLobby();
+    case 'hostVote':
+      // The chosen phone will play sound: unlock audio on this tap in case it's us.
+      if (id === view?.me?.id) narrator.unlock();
+      return act('hostVote', { candidate: id });
+    case 'localAudio':
+      localAudio = el.checked;
+      store('masoi_local_audio', localAudio ? 'on' : 'off');
+      if (localAudio) {
+        narrator.unlock();
+        toast('Máy này sẽ phát lời quản trò từ câu tiếp theo.');
+      } else {
+        narrator.stop();
+      }
+      return;
+    case 'vibrate':
+      vibrateOn = el.checked;
+      store('masoi_vibrate', vibrateOn ? 'on' : 'off');
+      if (vibrateOn) navigator.vibrate?.(80);
+      return;
     case 'ticks':
       ticksOn = el.checked;
       store('masoi_ticks', ticksOn ? 'on' : 'off');
