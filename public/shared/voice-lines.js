@@ -383,6 +383,11 @@ export function audioFileName(key, variant = 0) {
 // (to pace playback), so both agree on how long a narration lasts.
 // ---------------------------------------------------------------------------
 
+// Every phone that speaks starts a narration this long after the server
+// created it (on the server clock), so all phones read together. It covers the
+// time a phone needs to hear about the update and fetch it.
+export const PLAYBACK_LEAD_MS = 800;
+
 export const CLIP_GAP_MS = 350;
 export const TIGHT_GAP_MS = 100;
 
