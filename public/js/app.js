@@ -564,7 +564,9 @@ const SLIDERS = [
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
   ['judgeTime', 'Phán quyết treo cổ', 10, 90, 5],
-  ['nightStepTime', 'Mỗi lượt ban đêm', 10, 60, 5]
+  ['nightCallTime', 'Ban đêm: gọi dậy', 5, 20, 1],
+  ['nightStepTime', 'Ban đêm: thời gian thao tác', 10, 90, 5],
+  ['nightSleepTime', 'Ban đêm: kêu đi ngủ', 3, 15, 1]
 ];
 
 const fmtSeconds = (s) => s >= 60 ? `${Math.floor(s / 60)} phút${s % 60 ? ` ${s % 60} giây` : ''}` : `${s} giây`;
@@ -702,7 +704,10 @@ function phaseSubtitle() {
   switch (view.phase) {
     case 'NIGHT': {
       const r = stepInfo(g.activeRole);
-      return r ? `Quản trò đang gọi ${r.name}.` : 'Cả làng đang ngủ.';
+      if (!r) return 'Cả làng đang ngủ.';
+      if (g.nightStage === 'act') return `${r.name} đang thao tác.`;
+      if (g.nightStage === 'sleep') return `${r.name} đang nhắm mắt lại.`;
+      return `Quản trò đang gọi ${r.name} thức dậy.`;
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
@@ -1080,6 +1085,8 @@ const TICK_PHASES = new Set(['NIGHT', 'DISCUSSION', 'VOTE', 'DEFENSE', 'JUDGE', 
 function tickCountdown(secs) {
   if (!ticksOn || !isHost() || !narrator.unlocked || narrator.speaking) return;
   if (!TICK_PHASES.has(view.phase) || secs < 1 || secs > 10) return;
+  // At night only the action slot is timed; the call/sleep slots are speech.
+  if (view.phase === 'NIGHT' && view.game.nightStage !== 'act') return;
   const key = `${view.phase}:${view.game.phaseEndsAt}:${secs}`;
   if (key === lastTick) return;
   lastTick = key;
