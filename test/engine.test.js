@@ -325,7 +325,7 @@ test('a room full of bots plays to the end', () => {
   applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
   for (let i = 0; i < 9; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
   applyAction(s, host.id, 'start', {}, now, rng);
-  for (let i = 0; i < 2000 && s.phase !== 'GAME_OVER'; i++) {
+  for (let i = 0; i < 20000 && s.phase !== 'GAME_OVER'; i++) {
     now += 1000;
     tick(s, now, rng);
   }
@@ -507,11 +507,42 @@ test('the narrator is never cut off: each narration starts after the previous on
   }
 });
 
-test('timed phases give players their full time after the narrator finishes', () => {
-  const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
-  const n = s.narration;
-  assert.ok(n.endsAt > clock.now, 'first night call is still being read');
-  assert.ok(s.game.phaseEndsAt >= n.endsAt + s.config.nightStepTime * 1000);
+test('each night step is call, then act, then sleep, with fixed lengths', () => {
+  const { s, P, act, clock, endPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  const cfg = s.config;
+  // First step: the call slot stretches to fit the opening narration.
+  assert.equal(s.game.nightStage, 'call');
+  assert.ok(s.game.phaseEndsAt >= s.narration.endsAt);
+  assert.ok(s.game.phaseEndsAt >= clock.now + cfg.nightCallTime * 1000);
+  endPhase();
+  assert.equal(s.game.nightStage, 'act');
+  assert.equal(s.game.phaseEndsAt - clock.now, cfg.nightStepTime * 1000);
+  // Acting early does not shorten the slot (timing gives nothing away).
+  const before = s.game.phaseEndsAt;
+  act(P[1], 'night', { target: P[3].id });
+  assert.equal(s.game.phaseEndsAt, before);
+  endPhase();
+  assert.equal(s.game.nightStage, 'sleep');
+  assert.equal(s.narration.clips[0].k, 'werewolf_sleep');
+  assert.ok(s.game.phaseEndsAt - clock.now >= cfg.nightSleepTime * 1000);
+  assert.throws(() => act(P[1], 'night', { target: P[4].id }), /hết lượt/);
+  endPhase();
+  assert.equal(s.game.queue[s.game.step], 'seer');
+  assert.equal(s.game.nightStage, 'call');
+  assert.equal(s.narration.clips[0].k, 'seer_wake');
+});
+
+test('a dead role\'s step takes exactly as long as a live one', () => {
+  const run = (killSeer) => {
+    const g = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+    if (killSeer) g.P[2].alive = false;
+    g.untilNightRole('seer');
+    const start = g.clock.now;
+    if (!killSeer) g.act(g.P[2], 'night', { target: g.P[1].id });
+    for (let i = 0; i < 5 && g.s.game.queue[g.s.game.step] === 'seer'; i++) g.endPhase();
+    return g.clock.now - start;
+  };
+  assert.equal(run(true), run(false));
 });
 
 test('after the verdict the narrator announces the night and counts down 10 s', () => {
@@ -521,4 +552,14 @@ test('after the verdict the narrator announces the night and counts down 10 s', 
   assert.ok(s.game.phaseEndsAt >= s.narration.endsAt + 10000);
   untilPhase('NIGHT');
   assert.equal(s.game.day, 2);
+});
+
+test('rooms saved before the night slot settings existed still work', () => {
+  const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  delete s.config.nightCallTime;
+  delete s.config.nightSleepTime;
+  for (let i = 0; i < 10; i++) {
+    clock.advance(Math.max(0, s.game.phaseEndsAt - clock.now));
+    assert.ok(Number.isFinite(s.game.phaseEndsAt), 'phase end stays a number');
+  }
 });

@@ -11,6 +11,8 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 
 Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người) với các vai trò cơ bản. Ăn Trộm, Người Thổi Sáo và Già Làng do chủ phòng tự thêm.
 
+**Mỗi lượt đêm gồm 3 khoảng cố định** (chủ phòng chỉnh được trong Cài đặt ván chơi): **gọi dậy 10 giây** (quản trò đọc câu gọi; tự kéo dài nếu câu dài hơn), **thao tác 30 giây** (người được gọi chọn trên điện thoại), **kêu đi ngủ 5 giây**. Lượt luôn chạy đủ thời gian, kể cả khi đã chọn xong hoặc người giữ vai đã chết, nên không ai đoán được gì từ độ dài của lượt.
+
 **Thứ tự thức dậy mỗi đêm** (vai trò nào không có trong ván thì bỏ qua; vai trò có trong ván mà người giữ đã chết thì vẫn được gọi, để không lộ ai còn sống):
 
 1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy.
