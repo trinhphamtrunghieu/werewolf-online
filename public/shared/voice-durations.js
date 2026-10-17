@@ -20,7 +20,7 @@ export const CLIP_MS = {
   "charmed_wake_3": 4392,
   "charmed_wake_4": 5040,
   "charmed_wake_5": 5280,
-  "cupid_sleep_0": 216,
+  "cupid_sleep_0": 2280,
   "cupid_sleep_1": 2352,
   "cupid_sleep_2": 4368,
   "cupid_sleep_3": 2448,
