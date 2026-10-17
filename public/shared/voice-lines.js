@@ -178,7 +178,7 @@ const flowsOn = (key) => key.startsWith('seat_') || key === 'and';
 
 // Pause after a clip. Seat numbers run straight into their sentence.
 export function gapAfter(clip, next) {
-  if (!next) return 0;
+  if (!next || clip.k === 'pause' || next.k === 'pause') return 0; // a pause is its own gap
   return flowsOn(clip.k) || flowsOn(next.k) ? TIGHT_GAP_MS : CLIP_GAP_MS;
 }
 
@@ -192,7 +192,11 @@ export function estimateSpeechMs(text) {
   return Math.round(300 + t.length * 75 + ellipses * 520 + commas * 140 + stops * 300);
 }
 
+// A silent beat inside a narration: { k: 'pause', ms }.
+export const pauseClip = (ms) => ({ k: 'pause', v: 0, t: '', ms });
+
 export function clipMs(clip) {
+  if (clip.ms != null) return clip.ms;
   return CLIP_MS[`${clip.k}_${clip.v}`] ?? estimateSpeechMs(clip.t);
 }
 

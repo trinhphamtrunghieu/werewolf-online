@@ -176,6 +176,7 @@ async function sync() {
       fetching = null;
     }
     scheduleHeartbeat();
+    scheduleWake();
     if (refetch) {
       refetch = false;
       sync();
@@ -204,11 +205,17 @@ function scheduleWake() {
   clearTimeout(wakeTimer);
   const at = view?.game?.wakeAt;
   if (!session || !at) return;
+  const overdue = serverNow() - at;
+  // If we already asked and the server said "not yet" (our clock runs a little
+  // ahead of the server's), ask again shortly instead of waiting for the slow
+  // heartbeat. Stop after a while: by then someone else has moved the game on.
+  if (overdue > 10000) return;
   const grace = isHost() ? 60 : 120 + Math.random() * 250;
+  const delay = overdue >= 0 ? 250 : -overdue + grace;
   const version = view.version;
   wakeTimer = setTimeout(() => {
     if (view?.version === version) sync();
-  }, Math.max(0, at - serverNow()) + grace);
+  }, delay);
 }
 
 async function startRealtime() {
@@ -580,7 +587,7 @@ const SLIDERS = [
   ['defenseTime', 'Biện hộ', 10, 180, 5],
   ['judgeTime', 'Phán quyết treo cổ', 10, 90, 5],
   ['nightStepTime', 'Ban đêm: thời gian thao tác', 10, 90, 5],
-  ['nightSleepTime', 'Ban đêm: kêu đi ngủ', 3, 15, 1]
+  ['nightPauseTime', 'Ban đêm: nghỉ giữa hai lượt', 0, 5, 1]
 ];
 
 const fmtSeconds = (s) => s >= 60 ? `${Math.floor(s / 60)} phút${s % 60 ? ` ${s % 60} giây` : ''}` : `${s} giây`;
@@ -705,6 +712,7 @@ function renderGame() {
 // Seat clips ("Người chơi số ba") have no punctuation of their own; end the
 // sentence when the next clip starts a new one.
 function narrationText(clips) {
+  clips = clips.filter(c => c.t);
   return clips.map((c, i) => {
     const first = clips[i + 1]?.t?.[0] || '';
     const startsSentence = !first || (first === first.toUpperCase() && first !== first.toLowerCase());
