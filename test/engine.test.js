@@ -658,3 +658,21 @@ test('the host can add computer players in a normal (non-debug) room', () => {
   const bot = s.players.find(p => p.isBot);
   assert.throws(() => applyAction(s, bot.id, 'addBot', {}, 0), /Chủ phòng/);
 });
+
+test('a player who lost their session can take their seat back by name once offline', () => {
+  const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  const lan = P[1];
+  const oldToken = lan.token;
+  // Still online: the name is taken.
+  assert.throws(() => joinRoom(s, 'p2', clock.now), /đang có người dùng/);
+  // Gone quiet for a while: same name (any case) gets the same seat and card back.
+  clock.advance(60_000);
+  const back = joinRoom(s, ' P2 ', clock.now);
+  assert.equal(back.id, lan.id);
+  assert.equal(back.role, 'werewolf');
+  assert.equal(s.players.length, 5);
+  assert.notEqual(back.token, oldToken);
+  assert.throws(() => authenticate(s, lan.id, oldToken), GameError); // the old phone is signed out
+  // A new name still can't join a game in progress.
+  assert.throws(() => joinRoom(s, 'Người mới', clock.now), /Ván chơi đang diễn ra/);
+});
