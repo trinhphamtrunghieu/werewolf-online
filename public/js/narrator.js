@@ -132,7 +132,9 @@ export class Narrator {
       if (run !== this.runId) return;
       const clip = clips[i];
       const file = audioFileName(clip.k, clip.v);
-      if (this.files.has(file)) {
+      if (clip.ms != null) {
+        await wait(clip.ms); // a deliberate silent beat
+      } else if (this.files.has(file)) {
         await this.playFile(`/audio/${file}`, run).catch(() => this.speak(clip.t, run));
       } else {
         await this.speak(clip.t, run);

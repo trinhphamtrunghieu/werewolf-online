@@ -523,13 +523,17 @@ test('each night step is call, then act, then sleep, with fixed lengths', () => 
   assert.equal(s.game.phaseEndsAt, before);
   endPhase();
   assert.equal(s.game.nightStage, 'sleep');
-  assert.equal(s.narration.clips[0].k, 'werewolf_sleep');
-  assert.ok(s.game.phaseEndsAt - clock.now >= cfg.nightSleepTime * 1000);
+  const chained = s.narration;
+  assert.deepEqual(chained.clips.map(c => c.k), ['werewolf_sleep', 'pause', 'seer_wake'],
+    'go-to-sleep, a short pause and the next wake call are one narration');
+  assert.equal(chained.clips[1].ms, cfg.nightPauseTime * 1000);
   assert.throws(() => act(P[1], 'night', { target: P[4].id }), /hết lượt/);
   endPhase();
   assert.equal(s.game.queue[s.game.step], 'seer');
   assert.equal(s.game.nightStage, 'call');
-  assert.equal(s.narration.clips[0].k, 'seer_wake');
+  assert.equal(s.narration.seq, chained.seq, 'no new narration: the host is already reading the call');
+  // The action timer starts right after the queued call has been read.
+  assert.ok(s.game.phaseEndsAt - chained.endsAt < 1000);
 });
 
 test('a dead role\'s step takes exactly as long as a live one', () => {
@@ -557,7 +561,7 @@ test('after the verdict the narrator announces the night and counts down 10 s', 
 test('rooms saved before the night slot settings existed still work', () => {
   const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
   delete s.config.nightStepTime;
-  delete s.config.nightSleepTime;
+  delete s.config.nightPauseTime;
   for (let i = 0; i < 10; i++) {
     clock.advance(Math.max(0, s.game.phaseEndsAt - clock.now));
     assert.ok(Number.isFinite(s.game.phaseEndsAt), 'phase end stays a number');
