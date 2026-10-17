@@ -19,6 +19,9 @@ const narrator = new Narrator();
 const app = document.getElementById('app');
 
 let session = loadSession();
+// A saved room the player hasn't gone back into yet (opened the plain home
+// page rather than reloading the room's link): offered, not entered.
+let savedRoom = null;
 let view = null;
 let clockOffset = 0;
 let clockRtt = Infinity;
@@ -325,7 +328,17 @@ async function joinRoom(code, name) {
   }
 }
 
+function resumeRoom() {
+  session = savedRoom;
+  savedRoom = null;
+  history.replaceState(null, '', `/?room=${session.code}${DEBUG ? '&debug=1' : ''}`);
+  render();
+  startRealtime();
+  sync();
+}
+
 function enterRoom(data) {
+  savedRoom = null;
   saveSession({ code: data.code, playerId: data.playerId, token: data.token });
   history.replaceState(null, '', `/?room=${data.code}${DEBUG ? '&debug=1' : ''}`);
   applyView(data.view);
@@ -474,6 +487,14 @@ function renderHome() {
   const code = (params.get('room') || '').toUpperCase();
   app.innerHTML = `
     ${topbar()}
+    ${savedRoom ? `
+      <section class="panel stack" style="margin-top:16px">
+        <p>Bạn đang ở trong phòng <strong>${esc(savedRoom.code)}</strong>.</p>
+        <div class="row">
+          <button class="btn btn-primary" data-act="resumeRoom">Quay lại phòng</button>
+          <button class="btn btn-ghost" data-act="forgetRoom">Bỏ qua</button>
+        </div>
+      </section>` : ''}
     <section class="hero">
       <svg class="hero-moon" viewBox="0 0 100 100" aria-hidden="true">
         <circle cx="50" cy="50" r="46" fill="var(--moon)"/>
@@ -1276,6 +1297,11 @@ document.addEventListener('click', async (e) => {
       if (session) { e.preventDefault(); }
       return;
     case 'tab': homeTab = el.dataset.tab; return renderHome();
+    case 'resumeRoom': return resumeRoom();
+    case 'forgetRoom':
+      savedRoom = null;
+      saveSession(null);
+      return renderHome();
     case 'rules': renderRules(); return document.getElementById('rulesSheet').showModal();
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
@@ -1445,12 +1471,17 @@ narrator.onState = () => {
 (async function boot() {
   await narrator.init();
   const roomParam = (params.get('room') || '').toUpperCase();
-  if (session && (!roomParam || roomParam === session.code)) {
+  if (session && roomParam === session.code) {
+    // Reloading the room's own link: go straight back in.
     render();
     startRealtime();
     sync();
   } else {
-    if (session && roomParam && roomParam !== session.code) saveSession(null);
+    if (session && roomParam) saveSession(null); // a link to another room
+    else if (session) {
+      savedRoom = session; // plain home page: offer the room, don't enter it
+      session = null;
+    }
     render();
   }
 })();
