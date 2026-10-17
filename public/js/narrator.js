@@ -6,8 +6,13 @@
 // 2. Fall back to the browser's speech engine with the best Vietnamese voice
 //    available, paced with real pauses at "...", commas and sentence ends.
 
-import { audioFileName, gapAfter } from '/shared/voice-lines.js';
+import { audioFileName, gapAfter, clipMs } from '/shared/voice-lines.js';
 import { Ambience } from './ambience.js';
+
+// Every phone that speaks starts a narration exactly this long after the
+// server created it (on the server clock), so several phones read in unison
+// instead of echoing each other. It must stay under the server's speech slack.
+export const PLAYBACK_LEAD_MS = 450;
 
 const PREFERRED_VOICE = /(natural|online|neural|hoaimy|namminh|google|linh|an\b)/i;
 
@@ -18,7 +23,6 @@ export class Narrator {
     this.unlocked = false;
     // Narrations are identified by their server timestamp (`at`), which keeps
     // increasing across games (a sequence number restarts with each new game).
-    this.initialized = false;
     this.lastAt = 0;
     this.runId = 0;
     this.audio = new Audio();
@@ -94,21 +98,23 @@ export class Narrator {
   // Play each narration from the room state once. `serverNow` lets us skip a
   // narration that is already over (e.g. the phone was asleep), so a stale
   // line never talks over the current one.
+  //
+  // Playback is pinned to the server clock: it starts at `at + PLAYBACK_LEAD_MS`,
+  // and a phone that gets the update late (or opens mid-narration) jumps to
+  // the part being read right now, so all speaking phones stay together.
   handle(narration, { replay = false, serverNow = Date.now() } = {}) {
-    if (!this.initialized && !replay) {
-      // First state after (re)loading the page: don't replay old lines.
-      this.initialized = true;
-      this.lastAt = narration?.at ?? 0;
-      return;
-    }
     if (!narration) return;
     if (!replay) {
       if (narration.at <= this.lastAt) return;
-      this.lastAt = narration.at;
-      if (narration.endsAt && serverNow > narration.endsAt - 1000) return;
+      if (narration.endsAt && serverNow > narration.endsAt - 1000) {
+        this.lastAt = narration.at; // already over: stay quiet
+        return;
+      }
     }
     if (!this.unlocked) return;
-    this.play(narration.clips);
+    this.lastAt = Math.max(this.lastAt, narration.at);
+    const offset = replay ? 0 : serverNow - (narration.at + PLAYBACK_LEAD_MS);
+    this.play(narration.clips, offset);
   }
 
   stop() {
@@ -124,28 +130,39 @@ export class Narrator {
     this.onState();
   }
 
-  async play(clips) {
+  // `offsetMs` < 0: start that much later. > 0: start that far in.
+  // Every clip has a fixed start time on this timeline (the same lengths and
+  // pauses the server uses), so a phone whose voice runs a little long or
+  // short catches up at the next clip instead of drifting from the others.
+  async play(clips, offsetMs = 0) {
     this.stop();
     const run = this.runId;
     this.setSpeaking(true);
+    let clipStart = Date.now() - offsetMs; // local time the current clip is due
     for (let i = 0; i < clips.length; i++) {
       if (run !== this.runId) return;
       const clip = clips[i];
+      const length = clipMs(clip);
+      const due = clipStart;
+      clipStart += length + gapAfter(clip, clips[i + 1]);
+      if (Date.now() < due) await wait(due - Date.now());
+      if (run !== this.runId) return;
+      const into = Date.now() - due;
+      if (into >= length - 150) continue; // missed this clip
       const file = audioFileName(clip.k, clip.v);
       if (clip.ms != null) {
-        await wait(clip.ms); // a deliberate silent beat
+        // A deliberate silent beat: the wait for the next clip covers it.
       } else if (this.files.has(file)) {
-        await this.playFile(`/audio/${file}`, run).catch(() => this.speak(clip.t, run));
-      } else {
-        await this.speak(clip.t, run);
+        await this.playFile(`/audio/${file}`, run, into / 1000).catch(() => this.speak(clip.t, run));
+      } else if (into < 300) {
+        await this.speak(clip.t, run); // browser speech can't start mid-sentence
       }
-      // Same pauses the server assumes when timing the phase.
-      await wait(gapAfter(clip, clips[i + 1]));
     }
+    if (Date.now() < clipStart) await wait(clipStart - Date.now());
     if (run === this.runId) this.setSpeaking(false);
   }
 
-  playFile(src, run) {
+  playFile(src, run, startSec = 0) {
     return new Promise((resolve, reject) => {
       if (run !== this.runId) return resolve();
       const a = this.audio;
@@ -158,6 +175,9 @@ export class Narrator {
       a.addEventListener('ended', done);
       a.addEventListener('error', failed);
       a.src = src;
+      if (startSec > 0.05) {
+        a.addEventListener('loadedmetadata', () => { a.currentTime = startSec; }, { once: true });
+      }
       a.play().catch(failed);
     });
   }
