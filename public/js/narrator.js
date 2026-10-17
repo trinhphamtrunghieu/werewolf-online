@@ -7,6 +7,7 @@
 //    available, paced with real pauses at "...", commas and sentence ends.
 
 import { audioFileName, gapAfter } from '/shared/voice-lines.js';
+import { Ambience } from './ambience.js';
 
 const PREFERRED_VOICE = /(natural|online|neural|hoaimy|namminh|google|linh|an\b)/i;
 
@@ -68,6 +69,7 @@ export class Narrator {
       speechSynthesis.speak(u);
     }
     this.audioContext();
+    if (this.wantAmbience) this.setAmbience(true);
     this.prefetch();
     this.onState();
   }
@@ -233,40 +235,36 @@ export class Narrator {
     }
   }
 
-  setAmbience(on) {
+  // Background soundscape. `on` can be set before audio is unlocked; it
+  // starts on the first tap that unlocks audio.
+  setAmbience(on, mood = this.mood) {
+    this.wantAmbience = on;
+    this.mood = mood || 'night';
+    if (!this.unlocked) return;
     const ctx = this.audioContext();
     if (!ctx) return;
-    if (on && !this.ambience) {
-      const master = ctx.createGain();
-      master.gain.value = 0.0001;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 380;
-      filter.connect(master).connect(ctx.destination);
-      const oscs = [73.42, 110, 174.61].map((f, i) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = i ? 'triangle' : 'sine';
-        o.frequency.value = f;
-        o.detune.value = (i - 1) * 6;
-        g.gain.value = i ? 0.2 : 0.4;
-        o.connect(g).connect(filter);
-        o.start();
-        return o;
-      });
-      this.ambience = { master, oscs };
-      this.duckAmbience(this.speaking);
-    } else if (!on && this.ambience) {
-      const { master, oscs } = this.ambience;
-      master.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.3);
-      setTimeout(() => oscs.forEach(o => { try { o.stop(); } catch {} }), 1200);
-      this.ambience = null;
+    if (on) {
+      if (!this.ambience) this.ambience = new Ambience(ctx);
+      this.ambience.setVolume(this.ambienceVolume ?? 0.6);
+      this.ambience.start(this.mood);
+      this.ambience.duck(this.speaking);
+    } else {
+      this.ambience?.stop();
     }
   }
 
+  setMood(mood) {
+    this.mood = mood;
+    this.ambience?.setMood(mood);
+  }
+
+  setAmbienceVolume(v) {
+    this.ambienceVolume = v;
+    this.ambience?.setVolume(v);
+  }
+
   duckAmbience(speaking) {
-    if (!this.ambience || !this.ctx) return;
-    this.ambience.master.gain.setTargetAtTime(speaking ? 0.025 : 0.08, this.ctx.currentTime, 0.4);
+    this.ambience?.duck(speaking);
   }
 }
 
