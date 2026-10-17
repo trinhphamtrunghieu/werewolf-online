@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError
+  createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
 import { computeBalancedRoles, validateRoleCounts, totalRoles } from '../public/shared/roles.js';
 import { mutateRoom, createRoomRecord, setStoreForTests, _supabaseStoreForTests } from '../lib/store.js';
@@ -574,4 +574,77 @@ test('the game opens with three lines 5 s apart: welcome, night falls, first cal
   assert.deepEqual(clips.map(c => c.k), ['game_start', 'pause', 'night_start', 'pause', 'guard_wake']);
   assert.equal(clips[1].ms, 5000);
   assert.equal(clips[3].ms, 5000);
+});
+
+test('a silent host phone is replaced by a majority vote, with no new secrets', () => {
+  const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager'], { config: { hostPlays: true } });
+  const t = clock.now;
+  const host = P[0];
+  P.forEach(p => { p.lastSeen = t; });
+  assert.equal(viewFor(s, P[1].id, t, 1).hostOffline, null);
+  assert.throws(() => applyAction(s, P[1].id, 'hostVote', { candidate: P[2].id }, t), /kết nối lại/);
+
+  // The host goes quiet; everyone else keeps checking in.
+  const later = t + 13000;
+  P.slice(1).forEach(p => { p.lastSeen = later; });
+  const v = viewFor(s, P[1].id, later, 2).hostOffline;
+  assert.ok(v, 'players see the host is offline');
+  assert.equal(v.needed, 3, 'majority of the 4 players still here');
+  assert.ok(!v.candidates.includes(host.id));
+
+  applyAction(s, P[1].id, 'hostVote', { candidate: P[2].id }, later);
+  applyAction(s, P[3].id, 'hostVote', { candidate: P[2].id }, later);
+  assert.equal(s.hostId, host.id, 'two votes are not enough');
+  applyAction(s, P[2].id, 'hostVote', { candidate: P[2].id }, later);
+  assert.equal(s.hostId, P[2].id, 'third vote hands over the host phone');
+  assert.deepEqual(s.hostVotes, {});
+
+  const newHost = viewFor(s, P[2].id, later, 3);
+  assert.equal(newHost.me.isHost, true);
+  assert.equal(newHost.me.moderatorNight, undefined, 'a playing host gets no moderator view');
+  assert.deepEqual(newHost.players.filter(p => p.role).map(p => p.id), [P[2].id], 'still only sees their own card');
+  assert.equal(viewFor(s, host.id, later, 3).me.isHost, false, 'the old host is a normal player when back');
+});
+
+test('when the host leaves the lobby, the next player hosts and also plays', () => {
+  let now = 0;
+  const { state: s, player: host } = createRoom({ code: 'LEAVE', hostName: 'Host', now });
+  joinRoom(s, 'An', now);
+  joinRoom(s, 'Bình', now);
+  applyAction(s, host.id, 'config', { hostPlays: false }, now);
+  applyAction(s, host.id, 'leave', {}, now);
+  assert.equal(s.players.find(p => p.id === s.hostId).name, 'An');
+  assert.equal(s.config.hostPlays, true);
+  assert.equal(s.players.filter(p => p.seat).length, 2, 'the new host keeps a seat');
+});
+
+test('a tied host vote is settled by drawing one of the tied players', () => {
+  const picks = new Set();
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager'], { rng: seeded(seed) });
+    const later = clock.now + 13000;
+    P.forEach(p => { p.lastSeen = p === P[0] ? clock.now : later; });
+    // 4 players left: two votes each for P[1] and P[2], everyone has voted.
+    const rng = seeded(seed * 31);
+    applyAction(s, P[1].id, 'hostVote', { candidate: P[1].id }, later, rng);
+    applyAction(s, P[2].id, 'hostVote', { candidate: P[2].id }, later, rng);
+    applyAction(s, P[3].id, 'hostVote', { candidate: P[1].id }, later, rng);
+    assert.equal(s.hostId, P[0].id, 'not decided while someone has not voted');
+    applyAction(s, P[4].id, 'hostVote', { candidate: P[2].id }, later, rng);
+    assert.ok([P[1].id, P[2].id].includes(s.hostId), 'one of the tied players wins');
+    picks.add(s.hostId === P[1].id ? 'first' : 'second');
+    assert.ok(s.game.log[0].includes('bốc thăm'));
+  }
+  assert.equal(picks.size, 2, 'either tied player can be drawn');
+});
+
+test('a host vote closes after 20 s even if some players never vote', () => {
+  const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  const later = clock.now + 13000;
+  P.forEach(p => { p.lastSeen = p === P[0] ? clock.now : later; });
+  applyAction(s, P[1].id, 'hostVote', { candidate: P[3].id }, later);
+  assert.equal(resolveHostVote(s, later + 19000), false);
+  P.slice(1).forEach(p => { p.lastSeen = later + 19000; });
+  assert.equal(resolveHostVote(s, later + 20000), true);
+  assert.equal(s.hostId, P[3].id);
 });
