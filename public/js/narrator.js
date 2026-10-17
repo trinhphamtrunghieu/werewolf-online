@@ -6,13 +6,11 @@
 // 2. Fall back to the browser's speech engine with the best Vietnamese voice
 //    available, paced with real pauses at "...", commas and sentence ends.
 
-import { audioFileName, gapAfter, clipMs } from '/shared/voice-lines.js';
+import { audioFileName, gapAfter, clipMs, PLAYBACK_LEAD_MS } from '/shared/voice-lines.js';
 import { Ambience } from './ambience.js';
 
-// Every phone that speaks starts a narration exactly this long after the
-// server created it (on the server clock), so several phones read in unison
-// instead of echoing each other. It must stay under the server's speech slack.
-export const PLAYBACK_LEAD_MS = 450;
+// How late a line read by the browser's speech engine may still start.
+const TTS_LATE_MS = 2500;
 
 const PREFERRED_VOICE = /(natural|online|neural|hoaimy|namminh|google|linh|an\b)/i;
 
@@ -154,8 +152,10 @@ export class Narrator {
         // A deliberate silent beat: the wait for the next clip covers it.
       } else if (this.files.has(file)) {
         await this.playFile(`/audio/${file}`, run, into / 1000).catch(() => this.speak(clip.t, run));
-      } else if (into < 300) {
-        await this.speak(clip.t, run); // browser speech can't start mid-sentence
+      } else if (into < TTS_LATE_MS) {
+        // Browser speech can't start mid-sentence: read it from the top, a
+        // little behind; the next clip lines up again.
+        await this.speak(clip.t, run);
       }
     }
     if (Date.now() < clipStart) await wait(clipStart - Date.now());
