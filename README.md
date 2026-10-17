@@ -5,7 +5,7 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 - **Vercel làm máy chủ phòng**: toàn bộ luật chơi chạy trong Vercel Function `api/room.js`. Không dùng broker public, không cần WebRTC.
 - **Supabase** lưu trạng thái phòng (Postgres) và báo cho các máy biết khi phòng có thay đổi (Realtime). Kênh Realtime chỉ chở số phiên bản, không chở dữ liệu ván chơi.
 - **Không lộ bài**: mỗi máy chỉ nhận đúng thông tin mình được biết. Máy chủ kiểm tra mọi hành động (đúng lượt, đúng vai trò, còn sống).
-- **Vào lại được**: tải lại trang, mất mạng hay khoá màn hình đều quay về đúng ván cũ.
+- **Vào lại được**: tải lại trang, mất mạng hay khoá màn hình đều quay về đúng ván cũ. Mở trang chủ thì không tự vào phòng cũ mà hiện nút "Quay lại phòng".
 
 ## Vai trò
 
