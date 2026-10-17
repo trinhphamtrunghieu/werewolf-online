@@ -98,7 +98,7 @@ npm run dev      # http://localhost:3000, lưu phòng trong RAM, giả lập Rea
 npm test         # test luật chơi (node:test, không cần cài thư viện)
 ```
 
-Thêm `?debug=1` vào URL để chủ phòng có nút **Thêm bot thử nghiệm**. Bot tự hành động, giúp thử cả ván chơi chỉ với một máy. Nút này không hiện ở chế độ thường.
+Ở phòng chờ, chủ phòng có nút **Thêm người chơi máy**: người chơi máy tự chọn khi đến lượt và bỏ phiếu ngẫu nhiên. Dùng để chơi khi thiếu người, hoặc thử cả ván chỉ với một điện thoại. Bấm "Mời ra" để bớt. Người chơi máy không được bầu làm máy chủ phòng.
 
 ## Cấu trúc
 
