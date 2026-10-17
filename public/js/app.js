@@ -3,6 +3,7 @@ import {
 } from '/shared/roles.js';
 import { Narrator } from './narrator.js';
 import { connectRealtime } from './realtime.js';
+import { moodForPhase } from './ambience.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -36,7 +37,8 @@ let homeTab = params.get('room') ? 'join' : 'create';
 let lastTaskKey = null;
 let lastPhaseKey = null;
 let wakeLock = null;
-let ambienceOn = false;
+let ambienceOn = read('masoi_ambience') === 'on';
+let ambienceVolume = Number(read('masoi_ambience_volume') || 60);
 let ticksOn = read('masoi_ticks') !== 'off';
 let lastTick = null;
 let settingsOpen = false;
@@ -347,6 +349,8 @@ function onTransitions(prev, next) {
       if (next.phase === 'VERDICT' || next.phase === 'JUDGE') narrator.sfx('gavel');
     }
     narrator.handle(next.narration, { serverNow: serverNow() });
+    narrator.setAmbienceVolume(ambienceVolume / 100);
+    narrator.setAmbience(ambienceOn, moodForPhase(next.phase));
     if (next.phase !== 'LOBBY') requestWakeLock();
   }
 
@@ -523,7 +527,7 @@ function renderLobby() {
     ${host && view.debug ? '<button class="btn btn-ghost btn-small" style="margin-top:10px" data-act="addBot">Thêm bot thử nghiệm</button>' : ''}
     ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
 
-  document.getElementById('hostVoice').innerHTML = host ? voicePanel() : '';
+  renderVoicePanel(host);
 
   if (!focusInSettings) {
     document.getElementById('settings').innerHTML = host ? settingsPanel() : '';
@@ -540,6 +544,13 @@ function renderLobby() {
     : `<p class="note">Đang chờ chủ phòng bắt đầu ván chơi…</p>`;
 }
 
+// Don't redraw under the host's finger (e.g. while dragging the volume).
+function renderVoicePanel(host) {
+  const el = document.getElementById('hostVoice');
+  if (!el || document.activeElement?.matches?.('#hostVoice input[type=range]')) return;
+  el.innerHTML = host ? voicePanel() : '';
+}
+
 function voicePanel() {
   const status = narrator.hasRecordedVoice
     ? 'Đang dùng giọng đọc thu sẵn.'
@@ -553,8 +564,12 @@ function voicePanel() {
       <p class="small">${status}</p>
       <div class="row" style="flex-wrap:wrap">
         <button class="btn ${narrator.unlocked ? 'btn-ghost' : 'btn-primary'}" data-act="testVoice">${narrator.unlocked ? 'Nghe thử lại' : 'Bật âm thanh và nghe thử'}</button>
-        <label class="check" style="padding:0"><input type="checkbox" data-act="ambience" ${ambienceOn ? 'checked' : ''} /> <span>Âm thanh nền</span></label>
+        <label class="check" style="padding:0"><input type="checkbox" data-act="ambience" ${ambienceOn ? 'checked' : ''} /> <span>Nhạc nền</span></label>
         <label class="check" style="padding:0"><input type="checkbox" data-act="ticks" ${ticksOn ? 'checked' : ''} /> <span>Tích tắc 10 giây cuối</span></label>
+      </div>
+      <div class="slider">
+        <div class="row-between"><label for="ambienceVolume">Âm lượng nhạc nền</label><span class="slider-value" id="ambienceVolumeValue">${ambienceVolume}%</span></div>
+        <input type="range" id="ambienceVolume" min="0" max="100" step="5" value="${ambienceVolume}" />
       </div>
     </div>`;
 }
@@ -564,7 +579,6 @@ const SLIDERS = [
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
   ['judgeTime', 'Phán quyết treo cổ', 10, 90, 5],
-  ['nightCallTime', 'Ban đêm: gọi dậy', 5, 20, 1],
   ['nightStepTime', 'Ban đêm: thời gian thao tác', 10, 90, 5],
   ['nightSleepTime', 'Ban đêm: kêu đi ngủ', 3, 15, 1]
 ];
@@ -727,6 +741,7 @@ function hostBar() {
       ${narrator.unlocked
         ? `<button class="btn btn-ghost btn-small" data-act="replay">Đọc lại</button>`
         : `<button class="btn btn-primary btn-small" data-act="unlock">Bật giọng quản trò</button>`}
+      <button class="btn btn-ghost btn-small" data-act="toggleAmbience" aria-pressed="${ambienceOn}">${ambienceOn ? 'Tắt nhạc nền' : 'Bật nhạc nền'}</button>
       ${over ? '' : '<button class="btn btn-ghost btn-small" data-act="skip">Sang bước tiếp</button>'}
       <button class="btn btn-ghost btn-small" data-act="endGame">Kết thúc ván</button>
     </div>`;
@@ -1137,9 +1152,10 @@ document.addEventListener('click', async (e) => {
       store('masoi_ticks', ticksOn ? 'on' : 'off');
       return;
     case 'ambience':
-      narrator.unlock();
-      ambienceOn = el.checked;
-      return narrator.setAmbience(ambienceOn);
+      return setAmbience(el.checked);
+    case 'toggleAmbience':
+      setAmbience(!ambienceOn);
+      return renderGame();
     case 'unlock':
       narrator.unlock();
       if (view?.narration) narrator.handle(view.narration, { replay: true });
@@ -1209,6 +1225,22 @@ document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e)
   if (e.target === d) d.close();
 }));
 
+function setAmbience(on) {
+  ambienceOn = on;
+  store('masoi_ambience', on ? 'on' : 'off');
+  narrator.unlock();
+  narrator.setAmbienceVolume(ambienceVolume / 100);
+  narrator.setAmbience(on, moodForPhase(view?.phase || 'LOBBY'));
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'ambienceVolume') return;
+  ambienceVolume = Number(e.target.value);
+  store('masoi_ambience_volume', String(ambienceVolume));
+  document.getElementById('ambienceVolumeValue').textContent = `${ambienceVolume}%`;
+  narrator.setAmbienceVolume(ambienceVolume / 100);
+});
+
 async function share() {
   const url = shareUrl();
   const text = `Vào chơi Ma Sói với mình nhé! Mã phòng: ${view.code}`;
@@ -1235,7 +1267,7 @@ async function share() {
 narrator.onState = () => {
   if (screen === 'lobby' && isHost()) {
     const el = document.getElementById('hostVoice');
-    if (el) el.innerHTML = voicePanel();
+    if (el) renderVoicePanel(true);
   }
 };
 

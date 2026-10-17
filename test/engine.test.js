@@ -513,7 +513,7 @@ test('each night step is call, then act, then sleep, with fixed lengths', () => 
   // First step: the call slot stretches to fit the opening narration.
   assert.equal(s.game.nightStage, 'call');
   assert.ok(s.game.phaseEndsAt >= s.narration.endsAt);
-  assert.ok(s.game.phaseEndsAt >= clock.now + cfg.nightCallTime * 1000);
+  assert.ok(s.game.phaseEndsAt - s.narration.endsAt < 1000, 'action timer starts right after the call');
   endPhase();
   assert.equal(s.game.nightStage, 'act');
   assert.equal(s.game.phaseEndsAt - clock.now, cfg.nightStepTime * 1000);
@@ -556,7 +556,7 @@ test('after the verdict the narrator announces the night and counts down 10 s', 
 
 test('rooms saved before the night slot settings existed still work', () => {
   const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
-  delete s.config.nightCallTime;
+  delete s.config.nightStepTime;
   delete s.config.nightSleepTime;
   for (let i = 0; i < 10; i++) {
     clock.advance(Math.max(0, s.game.phaseEndsAt - clock.now));
