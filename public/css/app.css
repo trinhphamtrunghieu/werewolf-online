@@ -339,7 +339,13 @@ details.section[open] > summary { margin-bottom: 8px; }
   border-left: 3px solid var(--lantern);
   background: rgba(239, 228, 200, 0.05);
   border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  margin: 0;
 }
+
+.narration-list { display: grid; gap: 10px; }
+.narration-list .narration { transition: opacity 0.4s ease, border-color 0.4s ease; }
+.narration-list .narration[data-state="done"] { opacity: 0.45; border-left-color: var(--line); }
+.narration-list .narration[data-state="next"] { opacity: 0.3; border-left-color: var(--line); }
 
 .host-bar {
   display: flex;

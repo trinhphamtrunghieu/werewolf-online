@@ -567,3 +567,11 @@ test('rooms saved before the night slot settings existed still work', () => {
     assert.ok(Number.isFinite(s.game.phaseEndsAt), 'phase end stays a number');
   }
 });
+
+test('the game opens with three lines 5 s apart: welcome, night falls, first call', () => {
+  const { s } = setup(['guard', 'werewolf', 'seer', 'villager', 'villager']);
+  const clips = s.narration.clips;
+  assert.deepEqual(clips.map(c => c.k), ['game_start', 'pause', 'night_start', 'pause', 'guard_wake']);
+  assert.equal(clips[1].ms, 5000);
+  assert.equal(clips[3].ms, 5000);
+});

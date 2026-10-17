@@ -4,6 +4,7 @@ import {
 import { Narrator } from './narrator.js';
 import { connectRealtime } from './realtime.js';
 import { moodForPhase } from './ambience.js';
+import { clipMs, gapAfter } from '/shared/voice-lines.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -691,8 +692,7 @@ function renderGame() {
     </div>`;
   updateClock();
 
-  const text = narrationText(view.narration?.clips || []);
-  document.getElementById('narration').innerHTML = text ? `<blockquote class="narration">${esc(text)}</blockquote>` : '';
+  renderNarration();
   document.getElementById('hostBar').innerHTML = isHost() ? hostBar() : '';
   document.getElementById('stage').innerHTML = stage();
 
@@ -711,6 +711,57 @@ function renderGame() {
 
 // Seat clips ("Người chơi số ba") have no punctuation of their own; end the
 // sentence when the next clip starts a new one.
+// Split a narration into frames at its pauses, with each frame's timing
+// (ms from the narration's start) so the one being read can be highlighted.
+function narrationFrames(narration) {
+  const clips = narration?.clips || [];
+  const frames = [];
+  let current = null;
+  let t = 0;
+  clips.forEach((clip, i) => {
+    const length = clipMs(clip) + gapAfter(clip, clips[i + 1]);
+    if (clip.k === 'pause') {
+      current = null;
+    } else {
+      if (!current) frames.push(current = { clips: [], start: t, end: t });
+      current.clips.push(clip);
+      current.end = t + clipMs(clip);
+    }
+    t += length;
+  });
+  return frames.map(f => ({ ...f, text: narrationText(f.clips) }));
+}
+
+let shownNarration = null;
+function renderNarration() {
+  const box = document.getElementById('narration');
+  if (!box) return;
+  const n = view.narration;
+  const key = n ? `${n.at}:${n.clips.length}` : '';
+  if (key !== shownNarration) {
+    shownNarration = key;
+    const frames = narrationFrames(n);
+    box.className = frames.length > 1 ? 'narration-list' : '';
+    box.innerHTML = frames.map((f, i) =>
+      `<blockquote class="narration" data-frame="${i}" data-start="${f.start}" data-end="${f.end}">${esc(f.text)}</blockquote>`
+    ).join('');
+  }
+  highlightNarration();
+}
+
+// Mark frames as read / being read / coming up, following the server clock.
+function highlightNarration() {
+  const n = view?.narration;
+  const frames = document.querySelectorAll('#narration [data-frame]');
+  if (!n || frames.length < 2) return;
+  const elapsed = serverNow() - n.at;
+  frames.forEach(el => {
+    const start = Number(el.dataset.start);
+    const end = Number(el.dataset.end);
+    el.dataset.state = elapsed < start ? 'next' : elapsed > end + 400 ? 'done' : 'now';
+  });
+}
+
 function narrationText(clips) {
   clips = clips.filter(c => c.t);
   return clips.map((c, i) => {
@@ -1099,6 +1150,7 @@ function updateClock() {
   moon.classList.toggle('urgent', secs <= 5);
   moon.setAttribute('aria-label', `Còn ${secs} giây`);
   tickCountdown(secs);
+  highlightNarration();
 }
 
 // The host's phone ticks through the last 10 seconds of a timer, louder for
