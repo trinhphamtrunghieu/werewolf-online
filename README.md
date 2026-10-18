@@ -5,7 +5,7 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 - **Vercel làm máy chủ phòng**: toàn bộ luật chơi chạy trong Vercel Function `api/room.js`. Không dùng broker public, không cần WebRTC.
 - **Supabase** lưu trạng thái phòng (Postgres) và báo cho các máy biết khi phòng có thay đổi (Realtime). Kênh Realtime chỉ chở số phiên bản, không chở dữ liệu ván chơi.
 - **Không lộ bài**: mỗi máy chỉ nhận đúng thông tin mình được biết. Máy chủ kiểm tra mọi hành động (đúng lượt, đúng vai trò, còn sống).
-- **Vào lại được**: tải lại trang, mất mạng hay khoá màn hình đều quay về đúng ván cũ. Mở trang chủ thì không tự vào phòng cũ mà hiện nút "Quay lại phòng". Mất luôn phiên trên máy (đổi trình duyệt, xoá dữ liệu, mở link trong Zalo/Messenger) thì vào lại bằng đúng tên cũ: khi chỗ đó đã mất kết nối khoảng 45 giây, bạn nhận lại ghế và lá bài của mình, kể cả giữa ván.
+- **Vào lại được**: tải lại trang, mất mạng hay khoá màn hình đều quay về đúng ván cũ. Mở trang chủ thì không tự vào phòng cũ mà hiện nút "Quay lại phòng" (chỉ khi phòng còn tồn tại và bạn vẫn ở trong phòng). Mất luôn phiên trên máy (đổi trình duyệt, xoá dữ liệu, mở link trong Zalo/Messenger) thì vào lại bằng đúng tên cũ: khi chỗ đó đã mất kết nối khoảng 45 giây, bạn nhận lại ghế và lá bài của mình, kể cả giữa ván.
 
 ## Vai trò
 
@@ -49,7 +49,7 @@ Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi ph
 - Mỗi máy chỉ gọi API khi có thay đổi (ping Realtime), khi hết giờ một bước, và kiểm tra định kỳ mỗi 15 giây. Đo thực tế: khoảng 8 lần/phút với người chơi, 12 lần/phút với chủ phòng. Ván 10 người trong 1 giờ tốn khoảng 5–7 nghìn lượt gọi Vercel Function.
 - Supabase không tính phí theo số truy vấn. Gói Free giới hạn số kết nối Realtime đồng thời và số tin nhắn mỗi tháng (mỗi thay đổi trong phòng là 1 tin nhắn gửi tới mỗi máy), dư sức cho chơi giữa bạn bè.
 - Project Supabase gói Free sẽ **tạm dừng nếu 7 ngày không có hoạt động**. Khi đó vào Supabase Dashboard bấm Restore.
-- Phòng không hoạt động quá 12 giờ sẽ tự bị xoá.
+- Phòng không hoạt động quá 30 phút (không còn máy nào kết nối) sẽ bị coi là đã đóng và tự bị xoá.
 
 ## Máy chủ phòng
 

@@ -2,6 +2,7 @@
 //
 //   GET  /api/room?config=1                                       realtime settings for the browser
 //   GET  /api/room?code=ABCDE&pid=...&token=...&since=<version>   fetch my view (also advances timers)
+//   GET  /api/room?code=ABCDE&pid=...&token=...&check=1           is my seat still there? (read-only)
 //   POST /api/room { action: 'create', name }                     create a room
 //   POST /api/room { action: 'join', code, name }                 join a room
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
@@ -78,6 +79,17 @@ async function handleAct(store, body) {
   return { view: viewFor(state, body.pid, now, version) };
 }
 
+// Read-only: the home page asks this before offering "Quay lại phòng". It
+// must not touch lastSeen, or the player would look online (and a returning
+// host would cancel a vote for a new host) just by opening the home page.
+async function handleCheck(store, query) {
+  const code = normalizeCode(query.code);
+  const room = await store.load(code);
+  if (!room) throw notFound();
+  const p = authenticate(room.state, query.pid, query.token);
+  return { exists: true, phase: room.state.phase, name: p.name };
+}
+
 async function handlePoll(store, query) {
   const code = normalizeCode(query.code);
   const since = Number(query.since) || 0;
@@ -136,6 +148,8 @@ export default async function handler(req, res) {
     let out;
     if (req.method === 'GET' && req.query?.config) {
       out = { realtime: realtimeClientConfig() };
+    } else if (req.method === 'GET' && req.query?.check) {
+      out = await handleCheck(store, req.query);
     } else if (req.method === 'GET') {
       out = await handlePoll(store, req.query || {});
     } else if (req.method === 'POST') {

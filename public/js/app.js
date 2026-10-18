@@ -329,6 +329,32 @@ async function joinRoom(code, name) {
   }
 }
 
+function resumeBanner() {
+  if (!savedRoom) return '';
+  return `
+    <section class="panel stack" style="margin-top:16px">
+      <p>Bạn đang ở trong phòng <strong>${esc(savedRoom.code)}</strong>.</p>
+      <div class="row">
+        <button class="btn btn-primary" data-act="resumeRoom">Quay lại phòng</button>
+        <button class="btn btn-ghost" data-act="forgetRoom">Bỏ qua</button>
+      </div>
+    </section>`;
+}
+
+async function checkSavedRoom(saved) {
+  try {
+    await api('GET', null, { code: saved.code, pid: saved.playerId, token: saved.token, check: 1 });
+  } catch (e) {
+    // Room gone, or we are no longer in it (unless we joined another meanwhile).
+    if (e.status === 400 && !session) saveSession(null);
+    return; // offline: say nothing, try again on the next visit
+  }
+  if (session || view) return; // created or joined another room meanwhile
+  savedRoom = saved;
+  const slot = document.getElementById('resumeSlot');
+  if (slot) slot.innerHTML = resumeBanner();
+}
+
 function resumeRoom() {
   session = savedRoom;
   savedRoom = null;
@@ -488,14 +514,7 @@ function renderHome() {
   const code = (params.get('room') || '').toUpperCase();
   app.innerHTML = `
     ${topbar()}
-    ${savedRoom ? `
-      <section class="panel stack" style="margin-top:16px">
-        <p>Bạn đang ở trong phòng <strong>${esc(savedRoom.code)}</strong>.</p>
-        <div class="row">
-          <button class="btn btn-primary" data-act="resumeRoom">Quay lại phòng</button>
-          <button class="btn btn-ghost" data-act="forgetRoom">Bỏ qua</button>
-        </div>
-      </section>` : ''}
+    <div id="resumeSlot">${resumeBanner()}</div>
     <section class="hero">
       <svg class="hero-moon" viewBox="0 0 100 100" aria-hidden="true">
         <circle cx="50" cy="50" r="46" fill="var(--moon)"/>
@@ -1498,11 +1517,12 @@ narrator.onState = () => {
     startRealtime();
     sync();
   } else {
-    if (session && roomParam) saveSession(null); // a link to another room
-    else if (session) {
-      savedRoom = session; // plain home page: offer the room, don't enter it
-      session = null;
-    }
+    const saved = session;
+    if (saved && roomParam) saveSession(null); // a link to another room
+    else session = null;
     render();
+    // Plain home page: offer the saved room, but only once the server
+    // confirms it still exists with this player in it.
+    if (saved && !roomParam) checkSavedRoom(saved);
   }
 })();
