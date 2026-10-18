@@ -203,13 +203,17 @@ export function computeBalancedRoles(playerCount) {
   if (n >= 2) c.seer = 1;
   if (n >= 4) c.guard = 1;
   if (n >= 6) { c.werewolf = 2; c.witch = 1; }
+  if (n >= 7) c.cupid = 1;
   if (n >= 8) c.hunter = 1;
-  if (n >= 10) { c.werewolf = 3; c.cupid = 1; }
+  if (n >= 9) c.thief = 1;
+  if (n >= 10) c.werewolf = 3;
+  if (n >= 11) c.piper = 1;
+  if (n >= 12) c.elder = 1;
   if (n >= 13) c.werewolf = 4;
   if (n >= 16) c.werewolf = 5;
   const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
-  // New roles (Thief, Piper, Elder) are opt-in: the host adds them by hand.
-  c.villager = Math.max(0, n - special);
+  // The Thief brings two spare cards, filled with Villagers.
+  c.villager = Math.max(0, cardsNeeded(c, n) - special);
   return c;
 }
 
