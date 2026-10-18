@@ -57,9 +57,22 @@ function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
 test('auto balance always matches player count and is playable', () => {
   for (let n = 4; n <= 18; n++) {
     const c = computeBalancedRoles(n);
-    assert.equal(totalRoles(c), n, `n=${n}`);
+    assert.equal(totalRoles(c), n + (c.thief ? 2 : 0), `n=${n}`);
     assert.equal(validateRoleCounts(c, n), null, `n=${n}`);
   }
+});
+
+test('auto balance brings in Cupid, Thief, Piper and Elder as the village grows', () => {
+  const firstAt = (id) => {
+    for (let n = 1; n <= 18; n++) if (computeBalancedRoles(n)[id]) return n;
+    return null;
+  };
+  assert.equal(firstAt('cupid'), 7);
+  assert.equal(firstAt('thief'), 9);
+  assert.equal(firstAt('piper'), 11);
+  assert.equal(firstAt('elder'), 12);
+  const c = computeBalancedRoles(18);
+  for (const id of ['cupid', 'thief', 'piper', 'elder']) assert.equal(c[id], 1, id);
 });
 
 test('names are cleaned so they cannot inject HTML', () => {
