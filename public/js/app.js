@@ -570,7 +570,7 @@ function renderHome() {
 function botAdder() {
   const free = MAX_PLAYERS + 1 - view.players.length;
   botCount = Math.max(1, Math.min(botCount, free));
-  return `<div class="stack" style="margin-top:10px">
+  return `<div class="stack" style="margin-bottom:8px">
     <div class="row" style="flex-wrap:wrap">
       <span class="small">🤖 Người chơi máy</span>
       <div class="stepper">
@@ -620,6 +620,7 @@ function renderLobby() {
       <h3>Người trong phòng</h3>
       <span class="muted small">${participants.length} người chơi</span>
     </div>
+    ${host ? botAdder() : ''}
     ${view.players.map(p => `
       <div class="player-row">
         <div class="seat" style="min-height:0;padding:0"><span class="disc" style="width:40px;height:40px;font-size:1.1rem">${p.seat ?? '★'}</span></div>
@@ -631,7 +632,6 @@ function renderLobby() {
         </div>
         ${host && !p.isHost ? `<button class="btn btn-ghost btn-small" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">Mời ra</button>` : ''}
       </div>`).join('')}
-    ${host ? botAdder() : ''}
     ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
 
   renderVoicePanel(host);
