@@ -98,20 +98,20 @@ export const LINES = {
     'Bảo Vệ, hãy nhắm mắt, và cầu mong lựa chọn của bạn là đúng.'
   ],
   werewolf_wake: [
-    'Ma Sói... hãy thức dậy. Hãy nhìn nhau, và chọn con mồi cho đêm nay.',
+    'Bầy Sói... hãy thức dậy. Hãy nhìn nhau, và chọn con mồi cho đêm nay.',
     'Những con sói đói khát... hãy mở mắt ra. Đêm nay, các ngươi muốn săn ai?',
     'Bầy sói ơi, hãy thức dậy. Hãy nhận ra đồng bọn, và chọn nạn nhân cho đêm nay.',
-    'Ma Sói, mở mắt ra nào... Mùi máu đang lan trong gió. Đêm nay, ai sẽ là con mồi?',
+    'Bầy Sói, mở mắt ra nào... Mùi máu đang lan trong gió. Đêm nay, ai sẽ là con mồi?',
     'Những con sói, hãy thức dậy. Hãy nhìn nhau thật nhanh, và thống nhất mục tiêu.',
-    'Trăng đã lên cao... Ma Sói, hãy mở mắt. Các ngươi đói rồi phải không?'
+    'Trăng đã lên cao... Bầy Sói, hãy mở mắt. Các ngươi đói rồi phải không?'
   ],
   werewolf_sleep: [
-    'Ma Sói, hãy nhắm mắt lại.',
-    'Cuộc săn đã xong... Ma Sói, hãy quay về giấc ngủ.',
-    'Bầy sói, hãy nhắm mắt lại.',
-    'Ma Sói, nhắm mắt lại nào. Hãy giấu đi nanh vuốt của mình.',
+    'Bầy Sói, hãy nhắm mắt lại.',
+    'Cuộc săn đã xong... Sói, hãy quay về giấc ngủ.',
+    'Sói, hãy nhắm mắt lại.',
+    'Bầy Sói, nhắm mắt lại nào. Hãy giấu đi nanh vuốt của mình.',
     'Bầy sói đã no nê... Hãy quay về giấc ngủ.',
-    'Ma Sói, hãy nhắm mắt, và trở lại làm dân làng hiền lành.'
+    'Sói ơi, hãy nhắm mắt, và trở lại làm dân làng hiền lành.'
   ],
   seer_wake: [
     'Tiên Tri, hãy thức dậy. Đêm nay, bạn muốn soi ai?',
@@ -339,12 +339,12 @@ export const LINES = {
     'Sự thật đã được phơi bày. Phe Dân Làng, chiến thắng!'
   ],
   win_werewolf: [
-    'Bóng tối đã bao trùm ngôi làng... Không còn ai ngăn được bầy sói nữa. Phe Ma Sói, chiến thắng!',
-    'Bầy sói đã thống trị ngôi làng... Phe Ma Sói, chiến thắng!',
-    'Không còn ai đủ sức chống lại bầy sói. Ma Sói, chiến thắng!',
-    'Tiếng tru vang khắp ngôi làng... Phe Ma Sói đã giành chiến thắng!',
-    'Dân làng đã thua... Phe Ma Sói, chiến thắng!',
-    'Những kẻ giấu mặt đã thắng. Phe Ma Sói, chiến thắng!'
+    'Bóng tối đã bao trùm ngôi làng... Không còn ai ngăn được bầy sói nữa. Phe Sói, chiến thắng!',
+    'Bầy sói đã thống trị ngôi làng... Phe Sói, chiến thắng!',
+    'Không còn ai đủ sức chống lại bầy sói. Sói, chiến thắng!',
+    'Tiếng tru vang khắp ngôi làng... Phe Sói đã giành chiến thắng!',
+    'Dân làng đã thua... Phe Sói, chiến thắng!',
+    'Những kẻ giấu mặt đã thắng. Phe Sói, chiến thắng!'
   ],
   win_piper: [
     'Tiếng sáo vang lên khắp ngôi làng... Tất cả đã bị thôi miên. Người Thổi Sáo, chiến thắng!',
