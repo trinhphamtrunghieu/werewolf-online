@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
-import { computeBalancedRoles, validateRoleCounts, totalRoles } from '../public/shared/roles.js';
+import { computeBalancedRoles, validateRoleCounts, totalRoles, MAX_PLAYERS } from '../public/shared/roles.js';
 import { mutateRoom, createRoomRecord, setStoreForTests, _supabaseStoreForTests } from '../lib/store.js';
 
 function seeded(seed = 42) {
@@ -670,6 +670,17 @@ test('the host can add computer players in a normal (non-debug) room', () => {
   assert.equal(s.phase, 'NIGHT');
   const bot = s.players.find(p => p.isBot);
   assert.throws(() => applyAction(s, bot.id, 'addBot', {}, 0), /Chủ phòng/);
+});
+
+test('the host can add several computer players at once, up to a full room', () => {
+  const { state: s, player: host } = createRoom({ code: 'BOTS3', hostName: 'Host', now: 0 });
+  applyAction(s, host.id, 'addBot', { count: 5 }, 0);
+  assert.equal(s.players.filter(p => p.isBot).length, 5);
+  assert.equal(new Set(s.players.map(p => p.name)).size, s.players.length);
+  // Asking for more than fits fills the room and stops there.
+  applyAction(s, host.id, 'addBot', { count: 50 }, 0);
+  assert.equal(s.players.length, MAX_PLAYERS + 1);
+  assert.throws(() => applyAction(s, host.id, 'addBot', { count: 1 }, 0), /đầy/);
 });
 
 test('a player who lost their session can take their seat back by name once offline', () => {

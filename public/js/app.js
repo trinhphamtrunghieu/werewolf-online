@@ -1,5 +1,5 @@
 import {
-  ROLES, ROLE_IDS, TEAM_LABEL, MIN_PLAYERS, NIGHT_STEPS, totalRoles, validateRoleCounts, cardsNeeded, stepInfo
+  ROLES, ROLE_IDS, TEAM_LABEL, MIN_PLAYERS, MAX_PLAYERS, NIGHT_STEPS, totalRoles, validateRoleCounts, cardsNeeded, stepInfo
 } from '/shared/roles.js';
 import { Narrator } from './narrator.js';
 import { connectRealtime } from './realtime.js';
@@ -48,6 +48,7 @@ let lastTick = null;
 let settingsOpen = false;
 // Players can also hear the narrator on their own phone (off by default).
 let localAudio = read('masoi_local_audio') === 'on';
+let botCount = 1; // how many computer players the host's next tap adds
 let hostMissingTimer = null;
 const audioOn = () => isHost() || localAudio;
 // Vibration only exists on (Android) phones; iPhones' browsers don't allow it.
@@ -546,6 +547,26 @@ function renderHome() {
 
 // ---------- Lobby ----------
 
+// Pick how many computer players to add, then add them in one go.
+function botAdder() {
+  const free = MAX_PLAYERS + 1 - view.players.length;
+  botCount = Math.max(1, Math.min(botCount, free));
+  return `<div class="stack" style="margin-top:10px">
+    <div class="row" style="flex-wrap:wrap">
+      <span class="small">🤖 Người chơi máy</span>
+      <div class="stepper">
+        <button data-act="botCount" data-delta="-1" ${botCount > 1 ? '' : 'disabled'} aria-label="Bớt một">−</button>
+        <output>${botCount}</output>
+        <button data-act="botCount" data-delta="1" ${botCount < free ? '' : 'disabled'} aria-label="Thêm một">+</button>
+      </div>
+      <button class="btn btn-ghost btn-small" data-act="addBot" ${free > 0 ? '' : 'disabled'}>Thêm ${botCount}</button>
+    </div>
+    <span class="muted small">${free > 0
+      ? 'Máy tự chọn và bỏ phiếu ngẫu nhiên. Bấm “Mời ra” để bớt.'
+      : 'Phòng đã đầy.'}</span>
+  </div>`;
+}
+
 function renderLobby() {
   const host = isHost();
   const focusInSettings = document.activeElement?.closest?.('#settings');
@@ -591,10 +612,7 @@ function renderLobby() {
         </div>
         ${host && !p.isHost ? `<button class="btn btn-ghost btn-small" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">Mời ra</button>` : ''}
       </div>`).join('')}
-    ${host ? `<div class="row" style="margin-top:10px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-small" data-act="addBot">🤖 Thêm người chơi máy</button>
-      <span class="muted small">Máy tự chọn và bỏ phiếu ngẫu nhiên. Bấm “Mời ra” để bớt.</span>
-    </div>` : ''}
+    ${host ? botAdder() : ''}
     ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
 
   renderVoicePanel(host);
@@ -1311,7 +1329,10 @@ document.addEventListener('click', async (e) => {
       if (p && confirm(`Mời ${p.name} ra khỏi phòng?`)) act('kick', { id });
       return;
     }
-    case 'addBot': return act('addBot');
+    case 'botCount':
+      botCount += Number(el.dataset.delta);
+      return render();
+    case 'addBot': return act('addBot', { count: botCount });
     case 'autoBalance': return act('autoBalance');
     case 'role': return act('role', { roleId: el.dataset.role, delta: Number(el.dataset.delta) });
     case 'start':
