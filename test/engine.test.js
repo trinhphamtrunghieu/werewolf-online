@@ -4,7 +4,7 @@ import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
 import { computeBalancedRoles, validateRoleCounts, totalRoles, MAX_PLAYERS } from '../public/shared/roles.js';
-import { mutateRoom, createRoomRecord, setStoreForTests, _supabaseStoreForTests } from '../lib/store.js';
+import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests } from '../lib/store.js';
 
 function seeded(seed = 42) {
   return () => {
@@ -384,7 +384,7 @@ function fakeSupabase() {
     const code = u.searchParams.get('code')?.replace('eq.', '');
     if (init.method === 'GET') {
       const row = rows.get(code);
-      return reply(200, row ? [{ state: row.state, version: row.version }] : []);
+      return reply(200, row ? [{ state: row.state, version: row.version, updated_at: row.updated_at }] : []);
     }
     if (init.method === 'POST') {
       const body = JSON.parse(init.body);
@@ -399,7 +399,13 @@ function fakeSupabase() {
       Object.assign(row, JSON.parse(init.body));
       return reply(200, [{ version: row.version }]);
     }
-    if (init.method === 'DELETE') return reply(204);
+    if (init.method === 'DELETE') {
+      const before = u.searchParams.get('updated_at')?.replace('lt.', '');
+      for (const [k, row] of rows) {
+        if ((!code || k === code) && (!before || row.updated_at < before)) rows.delete(k);
+      }
+      return reply(204);
+    }
     throw new Error('unexpected ' + init.method);
   };
   return { rows, broadcasts, fetch };
@@ -428,6 +434,33 @@ test('supabase store: create, compare-and-set, and version-only broadcast', asyn
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+test('rooms nobody has touched for 30 minutes are gone', async () => {
+  const fake = fakeSupabase();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = fake.fetch;
+  try {
+    const store = _supabaseStoreForTests('https://demo.supabase.co/', 'service-key');
+    const { state } = createRoom({ code: 'IDLE1', hostName: 'Host', now: 0 });
+    await createRoomRecord(store, 'IDLE1', state);
+    await createRoomRecord(store, 'BUSY1', state);
+    fake.rows.get('IDLE1').updated_at = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+    fake.rows.get('BUSY1').updated_at = new Date(Date.now() - 29 * 60 * 1000).toISOString();
+    assert.equal(await store.load('IDLE1'), null);
+    assert.ok(!fake.rows.has('IDLE1'), 'an expired room is deleted when read');
+    assert.ok(await store.load('BUSY1'));
+    assert.ok(await createRoomRecord(store, 'IDLE1', state), 'the code can be used again');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+
+  setStoreForTests(undefined);
+  const mem = getStore();
+  const { state } = createRoom({ code: 'IDLE2', hostName: 'Host', now: 0 });
+  await createRoomRecord(mem, 'IDLE2', state);
+  globalThis.__masoiRooms.get('IDLE2').updatedAt = Date.now() - 31 * 60 * 1000;
+  assert.equal(await mem.load('IDLE2'), null);
 });
 
 test('bots finish games that use every role', () => {
