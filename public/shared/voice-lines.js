@@ -177,14 +177,6 @@ export const LINES = {
     'Xong rồi. Già Làng, hãy nhắm mắt lại.',
     'Già Làng, hãy nghỉ ngơi đi.'
   ],
-  elder_betrayed: [
-    'Già Làng đã ngã xuống... dưới tay chính dân làng. Từ giờ, mọi chức năng của dân làng đều biến mất.',
-    'Dân làng đã giết chính Già Làng của mình... Từ giờ, không ai còn chức năng gì nữa.',
-    'Một sai lầm không thể tha thứ... Già Làng đã chết, và mọi chức năng của dân làng biến mất.',
-    'Già Làng đã ra đi vì chính người trong làng. Kể từ đây, các chức năng của dân làng không còn tác dụng.',
-    'Thật đau xót... Già Làng đã bị chính dân làng sát hại. Mọi quyền năng của dân làng, đã mất.',
-    'Già Làng nhắm mắt lần cuối... và mang theo mọi quyền năng của dân làng.'
-  ],
   morning_peace: [
     'Trời đã sáng! Mọi người hãy mở mắt ra. Thật may mắn... đêm qua không có ai thiệt mạng.',
     'Gà đã gáy, trời sáng rồi! Một đêm bình yên... không ai bị hại cả.',
