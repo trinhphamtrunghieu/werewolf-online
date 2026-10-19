@@ -65,21 +65,13 @@ export const LINES = {
     'Xong rồi. Thần Tình Yêu, hãy nhắm mắt lại.',
     'Thần Tình Yêu, hãy giữ kín bí mật này, và nhắm mắt lại.'
   ],
-  lovers_wake: [
-    'Hai người vừa trúng mũi tên tình yêu... hãy mở mắt ra, và nhìn nhau thật lâu.',
-    'Cặp đôi của đêm nay, hãy mở mắt. Từ giờ, sống chết có nhau.',
-    'Hai người đã trúng tên tình yêu... hãy mở mắt ra, và nhận ra nửa kia của mình.',
-    'Cặp đôi ơi, mở mắt ra nào. Từ đêm nay, nếu một người ngã xuống, người kia cũng sẽ ra đi.',
-    'Những trái tim vừa được se duyên, hãy mở mắt... và nhìn thật kỹ người mình yêu.',
-    'Cặp đôi, hãy thức dậy. Hãy nhìn nhau... và ghi nhớ khuôn mặt ấy.'
-  ],
-  lovers_sleep: [
-    'Cặp đôi, hãy nhắm mắt lại.',
-    'Cặp đôi, nhắm mắt lại nào.',
-    'Cặp đôi, hãy nhắm mắt, và giữ kín bí mật của hai người.',
-    'Đủ rồi. Cặp đôi, hãy quay về giấc ngủ.',
-    'Cặp đôi, hãy đi ngủ đi.',
-    'Hai người, hãy nhắm mắt lại.'
+  lovers_note: [
+    'Hai người vừa trúng mũi tên tình yêu... tên của người kia đã hiện trên lá bài của bạn. Sáng mai thức dậy, hãy xem lá bài nhé.',
+    'Cặp đôi của đêm nay, tên nửa kia đã xuất hiện trên lá bài của bạn. Khi thức dậy, hãy xem lá bài của mình.',
+    'Những trái tim vừa được se duyên... tên người ấy đã nằm trên lá bài của bạn. Hãy xem lá bài khi trời sáng.',
+    'Mũi tên đã trúng đích. Tên người mình yêu đã hiện trên lá bài. Sau khi thức dậy, hai bạn hãy xem lá bài nhé.',
+    'Hai người được chọn, tên của nhau đã có trên lá bài. Sáng mai, hãy mở lá bài ra xem.',
+    'Sợi chỉ đỏ đã được buộc. Tên nửa kia đã xuất hiện trên lá bài của bạn. Thức dậy rồi, hãy xem lá bài.'
   ],
   guard_wake: [
     'Bảo Vệ, hãy thức dậy. Đêm nay, bạn muốn che chở cho ai?',
@@ -161,21 +153,13 @@ export const LINES = {
     'Xong rồi. Người Thổi Sáo, hãy nhắm mắt lại.',
     'Người Thổi Sáo, hãy cất cây sáo đi, và nhắm mắt lại.'
   ],
-  charmed_wake: [
-    'Những người đã bị thôi miên... hãy mở mắt ra, và nhìn nhau.',
-    'Ai đã nghe thấy tiếng sáo, hãy mở mắt. Hãy nhận ra những người cùng cảnh ngộ.',
-    'Ai đã bị thôi miên, hãy mở mắt ra... và nhìn những người cùng cảnh ngộ.',
-    'Những linh hồn đã nghe tiếng sáo, hãy thức dậy, và nhận ra nhau.',
-    'Những người bị mê hoặc, hãy mở mắt. Các bạn không hề đơn độc.',
-    'Tiếng sáo đã gọi... Những ai bị thôi miên, hãy mở mắt nhìn nhau.'
-  ],
-  charmed_sleep: [
-    'Những người bị thôi miên, hãy nhắm mắt lại.',
-    'Những người bị thôi miên, nhắm mắt lại nào.',
-    'Những người bị thôi miên, hãy đi ngủ đi.',
-    'Những người bị thôi miên, hãy quay về giấc ngủ.',
-    'Xong rồi. Những ai bị thôi miên, hãy nhắm mắt lại.',
-    'Những người bị thôi miên, hãy nhắm mắt, và giữ kín bí mật này.'
+  charmed_note: [
+    'Những ai đã bị thôi miên... tên những người cùng cảnh ngộ đã hiện trên lá bài của bạn. Sáng mai thức dậy, hãy xem lá bài nhé.',
+    'Ai đã nghe thấy tiếng sáo, tên những người bị thôi miên khác đã xuất hiện trên lá bài. Khi thức dậy, hãy xem lá bài của mình.',
+    'Tiếng sáo đã để lại dấu vết. Tên những người cùng cảnh ngộ đã nằm trên lá bài của bạn. Hãy xem lá bài khi trời sáng.',
+    'Những người bị mê hoặc, tên của nhau đã hiện trên lá bài. Sau khi thức dậy, hãy xem lá bài nhé.',
+    'Những linh hồn nghe theo tiếng sáo, các bạn không hề đơn độc. Sáng mai, hãy mở lá bài ra xem tên nhau.',
+    'Ai đã bị thôi miên, tên những người chung số phận đã có trên lá bài. Thức dậy rồi, hãy xem lá bài.'
   ],
   elder_wake: [
     'Già Làng, hãy thức dậy... và cho quản trò biết bạn là ai.',
@@ -218,14 +202,6 @@ export const LINES = {
     'Mặt trời đã lên... Đêm qua, bầy sói đã không bỏ qua cơ hội. Người đã chết là...'
   ],
   and: ['và'],
-  lover_death: [
-    'Vì quá đau buồn... người yêu của họ cũng đã ra đi theo.',
-    'Không thể sống thiếu người mình yêu... người còn lại cũng đã ra đi.',
-    'Mũi tên tình yêu đã buộc họ lại với nhau... và người kia cũng đã ngã xuống theo.',
-    'Trái tim tan vỡ... người yêu của họ cũng không còn nữa.',
-    'Sống chết có nhau... người yêu của họ cũng đã đi theo.',
-    'Tình yêu đã đưa họ đi cùng nhau... người còn lại cũng đã ra đi.'
-  ],
   discussion_start: [
     'Hãy bắt đầu thảo luận. Ai trong số các bạn... mới là Ma Sói?',
     'Cả làng hãy cùng bàn bạc. Kẻ giấu mặt đang ngồi ngay giữa chúng ta.',

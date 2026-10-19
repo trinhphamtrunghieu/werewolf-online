@@ -16,16 +16,14 @@ Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn 
 **Thứ tự thức dậy mỗi đêm** (vai trò nào không có trong ván thì bỏ qua; vai trò có trong ván mà người giữ đã chết thì vẫn được gọi, để không lộ ai còn sống):
 
 1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy.
-2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi.
-3. **Cặp đôi** (đêm đầu): mở mắt nhìn mặt nhau.
-4. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
-5. **Ma Sói**: nhận diện đồng đội và thống nhất chọn nạn nhân.
-6. **Tiên Tri**: chọn 1 người để xem phe.
-7. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
-8. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên.
-9. **Những người bị thôi miên**: mở mắt nhìn nhau.
-10. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), Tiên Tri, Bảo Vệ, Phù Thủy và Thợ Săn mất chức năng đến hết ván.
-11. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
+2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi. Cặp đôi không bị gọi dậy: quản trò báo rằng tên người kia đã hiện trên lá bài, và nhắc họ xem lá bài khi thức dậy.
+3. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
+4. **Ma Sói**: nhận diện đồng đội và thống nhất chọn nạn nhân.
+5. **Tiên Tri**: chọn 1 người để xem phe.
+6. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
+7. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên. Những người bị thôi miên không bị gọi dậy: quản trò báo rằng tên những người cùng cảnh ngộ đã hiện trên lá bài, và nhắc họ xem khi thức dậy.
+8. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), Tiên Tri, Bảo Vệ, Phù Thủy và Thợ Săn mất chức năng đến hết ván.
+9. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
 
 Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
 

@@ -407,6 +407,27 @@ function screenFor(v) {
 }
 
 // Side effects when the game moves on: narrator, sounds, vibration.
+// The couple and the charmed are not woken at night: their partners' names
+// just appear on their cards. Point it out once day breaks (not during the
+// night, when a neighbour might glance at the screen).
+let cardSeen = { lover: null, charmed: '' };
+function noticeCardNews(next) {
+  const m = next.me;
+  if (!m || next.phase === 'LOBBY') {
+    cardSeen = { lover: null, charmed: '' };
+    return;
+  }
+  if (next.phase === 'NIGHT') return;
+  const charmed = m.charmed ? [...(m.charmedWith || [])].sort().join(',') || '-' : '';
+  if (m.lover && m.lover !== cardSeen.lover) {
+    toast(`💘 Thần Tình Yêu đã ghép đôi bạn với ${seatName(m.lover)}. Xem lại trong lá bài của bạn.`);
+  }
+  if (charmed && charmed !== cardSeen.charmed) {
+    toast('🎶 Bạn đã bị thôi miên. Tên những người cùng cảnh ngộ có trong lá bài của bạn.');
+  }
+  cardSeen = { lover: m.lover, charmed };
+}
+
 function onTransitions(prev, next) {
   const phaseKey = `${next.phase}:${next.game.day}:${next.game.step}`;
   const phaseChanged = phaseKey !== lastPhaseKey;
@@ -432,6 +453,7 @@ function onTransitions(prev, next) {
     narrator.handle(next.narration, { serverNow: serverNow() });
   }
   watchHostPresence();
+  if (phaseChanged) noticeCardNews(next);
 
   if (next.me?.isHost) {
     narrator.setAmbienceVolume(ambienceVolume / 100);
@@ -1113,7 +1135,6 @@ function nightTask(task) {
   const ackButton = (label) => task.acked
     ? '<p class="result" style="margin-top:12px">Đã xong. Nhắm mắt lại nhé.</p>'
     : `<button class="btn btn-primary btn-block" style="margin-top:14px" data-act="ack">${label}</button>`;
-  const faces = (ids) => `<div class="village" style="margin-top:14px">${ids.map(id => player(id)).filter(Boolean).map(p => seat(p)).join('')}</div>`;
 
   if (task.powerless) {
     return `<div class="panel">${head(task.role, 'Bạn đã mất chức năng', 'Già Làng đã chết dưới tay dân làng, nên từ giờ bạn không còn dùng được chức năng nữa. Hãy giữ im lặng và nhắm mắt.')}</div>`;
@@ -1130,16 +1151,6 @@ function nightTask(task) {
           <span class="big" aria-hidden="true">${ROLES[r].icon}</span>${ROLES[r].name}<span class="n">Lấy lá này</span>
         </button>`).join('')}</div>
       ${mustTake ? '' : '<button class="btn btn-ghost btn-block" data-act="thiefKeep">Giữ nguyên, không đổi</button>'}</div>`;
-  }
-  if (task.role === 'lovers') {
-    return `<div class="panel">${head('lovers', 'Hãy nhìn người yêu của bạn', 'Từ giờ hai bạn sống chết có nhau. Nếu một người chết, người kia chết theo.')}
-      ${faces([task.partner])}${ackButton('Đã nhìn thấy nhau')}</div>`;
-  }
-  if (task.role === 'charmed') {
-    return `<div class="panel">${head('charmed', 'Bạn đã bị thôi miên', task.group.length
-      ? 'Những người dưới đây cũng đã nghe thấy tiếng sáo. Hãy mở mắt nhìn nhau. Bạn có thể xem lại danh sách này trong lá bài của mình.'
-      : 'Chưa có ai khác còn sống bị thôi miên cùng bạn.')}
-      ${faces(task.group)}${ackButton('Đã nhìn thấy')}</div>`;
   }
   if (task.role === 'elder') {
     return `<div class="panel">${head('elder', 'Bạn là Già Làng', 'Quản trò đã biết bạn. Lần đầu bị Sói cắn bạn sẽ không chết.')}
@@ -1276,6 +1287,7 @@ function renderRules() {
     <div class="stack small">
       <p>Mỗi đêm, quản trò gọi dậy theo thứ tự dưới đây. Người được gọi thao tác trên điện thoại của mình.</p>
       <ol class="rules-steps">${NIGHT_STEPS.map(st => `<li>${stepInfo(st.id).icon} ${stepInfo(st.id).name}${st.firstNightOnly ? ' (đêm đầu)' : ''}</li>`).join('')}</ol>
+      <p>Cặp đôi và những người bị thôi miên không bị gọi dậy: tên của người kia hiện trên lá bài của họ, hãy xem lá bài khi trời sáng.</p>
       <p>Ban ngày: công bố người chết, thảo luận, bỏ phiếu chọn nghi phạm, nghi phạm biện hộ, rồi cả làng chọn treo cổ hay tha.</p>
       <p>Phe Dân thắng khi hết Sói (và Người Thổi Sáo, nếu có, đã chết). Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên.</p>
       <h3 style="margin-top:8px">Vai trò</h3>
