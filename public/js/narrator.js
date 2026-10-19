@@ -11,6 +11,8 @@ import { Ambience } from './ambience.js';
 
 // How late a line read by the browser's speech engine may still start.
 const TTS_LATE_MS = 2500;
+// How far behind a phone must be before it skips ahead inside a recorded clip.
+const CATCH_UP_MS = 1500;
 
 const PREFERRED_VOICE = /(natural|online|neural|hoaimy|namminh|google|linh|an\b)/i;
 
@@ -146,12 +148,17 @@ export class Narrator {
       if (Date.now() < due) await wait(due - Date.now());
       if (run !== this.runId) return;
       const into = Date.now() - due;
-      if (into >= length - 150) continue; // missed this clip
+      // A little late (loading the file takes a moment on a phone): play the
+      // whole clip anyway and let the pause before the next one absorb it.
+      // Cutting in would swallow the first word. Only a phone that is far
+      // behind (it opened mid-narration) jumps to where the others are.
+      const farBehind = into >= CATCH_UP_MS;
+      if (farBehind && into >= length - 150) continue; // missed this clip
       const file = audioFileName(clip.k, clip.v);
       if (clip.ms != null) {
         // A deliberate silent beat: the wait for the next clip covers it.
       } else if (this.files.has(file)) {
-        await this.playFile(`/audio/${file}`, run, into / 1000).catch(() => this.speak(clip.t, run));
+        await this.playFile(`/audio/${file}`, run, farBehind ? into / 1000 : 0).catch(() => this.speak(clip.t, run));
       } else if (into < TTS_LATE_MS) {
         // Browser speech can't start mid-sentence: read it from the top, a
         // little behind; the next clip lines up again.
