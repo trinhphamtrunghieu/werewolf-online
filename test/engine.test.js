@@ -213,11 +213,13 @@ test('lovers die together and a cross-team couple can win', () => {
   act(P[0], 'night', { target: P[1].id });
   act(P[0], 'night', { target: P[2].id });
   assert.deepEqual(s.game.lovers, [P[1].id, P[2].id]);
-  assert.equal(viewFor(s, P[2].id, 0, 1).me.lover, null, 'lovers only learn each other when they open their eyes');
-  untilNightRole('lovers');
-  assert.equal(viewFor(s, P[2].id, 0, 1).me.lover, P[1].id);
-  assert.equal(viewFor(s, P[2].id, 0, 1).me.task.partner, P[1].id);
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.lover, null, 'not while Cupid is still choosing');
+  // No wake-up for the couple: each one's card shows the other once Cupid is done.
   untilNightRole('werewolf');
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.lover, P[1].id);
+  assert.equal(viewFor(s, P[1].id, 0, 1).me.lover, P[2].id);
+  assert.equal(viewFor(s, P[3].id, 0, 1).me.lover, null);
+  assert.ok(s.narration.clips.some(c => c.k === 'lovers_note'), 'the narrator says where to look');
   act(P[1], 'night', { target: P[3].id });
   untilPhase('MORNING');
   // Kill everyone but the couple: the lovers win, not the wolves.
@@ -239,13 +241,18 @@ test('lynching one lover takes the other one too', () => {
   untilPhase('VERDICT');
   assert.equal(P[3].alive, false);
   assert.equal(P[4].deathCause, 'heartbreak');
-  assert.ok(s.narration.clips.some(c => c.k === 'lover_death'));
+  // The narrator just says who else died, never why: that would expose the couple.
+  const keys = s.narration.clips.map(c => c.k);
+  assert.ok(keys.includes('also_died') && keys.includes(`seat_${P[4].seat}`));
+  assert.ok(!keys.includes('lover_death'));
+  assert.ok(!s.game.log.some(e => /chết theo|người yêu/i.test(e)), 'the public log does not say it either');
+  assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.lovers, [], 'nor the view');
 });
 
 test('night wake-up order follows the house rules', () => {
   const { s } = setup(['thief', 'cupid', 'guard', 'werewolf', 'werewolf', 'seer', 'witch', 'piper', 'elder', 'hunter', 'villager', 'villager', 'villager'], { extras: ['villager', 'villager'] });
   assert.deepEqual(s.game.queue, [
-    'thief', 'cupid', 'lovers', 'guard', 'werewolf', 'seer', 'witch', 'piper', 'charmed', 'elder', 'hunter'
+    'thief', 'cupid', 'guard', 'werewolf', 'seer', 'witch', 'piper', 'elder', 'hunter'
   ]);
 });
 
@@ -278,12 +285,12 @@ test('piper charms two per night, the charmed see each other, and the piper can 
   assert.throws(() => act(P[0], 'night', { target: P[0].id }));
   act(P[0], 'night', { target: P[2].id });
   act(P[0], 'night', { target: P[3].id });
-  untilNightRole('charmed');
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.charmed, false, 'not while the Piper is still choosing');
+  // No wake-up for the charmed: their cards show each other once the Piper is done.
+  untilPhase('MORNING');
   const v = viewFor(s, P[2].id, 0, 1);
-  assert.deepEqual(v.me.task.group, [P[3].id], 'the charmed see the others, not themselves');
   assert.equal(v.me.charmed, true);
-  assert.deepEqual(v.me.charmedWith, [P[3].id], 'and keep knowing who they are');
-  assert.equal(viewFor(s, P[4].id, 0, 1).me.task, null, 'others keep sleeping');
+  assert.deepEqual(v.me.charmedWith, [P[3].id]);
   assert.equal(viewFor(s, P[4].id, 0, 1).me.charmedWith, undefined, 'nobody else learns who is charmed');
   // Charm the rest and kill nobody: the piper wins at dawn.
   s.game.charmed.push(P[1].id, P[4].id);

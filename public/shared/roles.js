@@ -4,18 +4,16 @@ export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 18;
 
 // Night wake-up order. `role` is the card that makes the step happen; steps are
-// called even when that card's holder is dead so nothing leaks. "lovers" and
-// "charmed" are group steps: the couple / the hypnotised open their eyes.
+// called even when that card's holder is dead so nothing leaks. The couple and
+// the charmed are not woken: they find each other's names on their cards.
 export const NIGHT_STEPS = [
   { id: 'thief', role: 'thief', firstNightOnly: true },
   { id: 'cupid', role: 'cupid', firstNightOnly: true },
-  { id: 'lovers', role: 'cupid', firstNightOnly: true },
   { id: 'guard', role: 'guard' },
   { id: 'werewolf', role: 'werewolf' },
   { id: 'seer', role: 'seer' },
   { id: 'witch', role: 'witch' },
   { id: 'piper', role: 'piper' },
-  { id: 'charmed', role: 'piper' },
   { id: 'elder', role: 'elder', firstNightOnly: true },
   { id: 'hunter', role: 'hunter' }
 ];
@@ -179,14 +177,9 @@ export const TEAM_LABEL = {
   piper: 'Phe riêng của Người Thổi Sáo'
 };
 
-const GROUP_STEPS = {
-  lovers: { id: 'lovers', name: 'Cặp Đôi', icon: '💞', color: '#ff8cc6' },
-  charmed: { id: 'charmed', name: 'Người bị thôi miên', icon: '🎶', color: '#9fd3ff' }
-};
-
-// Display info for a night step (a role, or one of the group steps).
+// Display info for a night step.
 export function stepInfo(stepId) {
-  return GROUP_STEPS[stepId] || ROLES[stepId] || null;
+  return ROLES[stepId] || null;
 }
 
 const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter'];
