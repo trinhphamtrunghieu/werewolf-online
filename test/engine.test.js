@@ -280,9 +280,11 @@ test('piper charms two per night, the charmed see each other, and the piper can 
   act(P[0], 'night', { target: P[3].id });
   untilNightRole('charmed');
   const v = viewFor(s, P[2].id, 0, 1);
-  assert.deepEqual(new Set(v.me.task.group), new Set([P[2].id, P[3].id]));
+  assert.deepEqual(v.me.task.group, [P[3].id], 'the charmed see the others, not themselves');
   assert.equal(v.me.charmed, true);
+  assert.deepEqual(v.me.charmedWith, [P[3].id], 'and keep knowing who they are');
   assert.equal(viewFor(s, P[4].id, 0, 1).me.task, null, 'others keep sleeping');
+  assert.equal(viewFor(s, P[4].id, 0, 1).me.charmedWith, undefined, 'nobody else learns who is charmed');
   // Charm the rest and kill nobody: the piper wins at dawn.
   s.game.charmed.push(P[1].id, P[4].id);
   untilPhase('GAME_OVER');
