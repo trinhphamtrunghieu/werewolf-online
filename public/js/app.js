@@ -1136,7 +1136,9 @@ function nightTask(task) {
       ${faces([task.partner])}${ackButton('Đã nhìn thấy nhau')}</div>`;
   }
   if (task.role === 'charmed') {
-    return `<div class="panel">${head('charmed', 'Bạn đã bị thôi miên', 'Đây là tất cả những người đã nghe thấy tiếng sáo. Hãy nhìn nhau.')}
+    return `<div class="panel">${head('charmed', 'Bạn đã bị thôi miên', task.group.length
+      ? 'Những người dưới đây cũng đã nghe thấy tiếng sáo. Hãy mở mắt nhìn nhau. Bạn có thể xem lại danh sách này trong lá bài của mình.'
+      : 'Chưa có ai khác còn sống bị thôi miên cùng bạn.')}
       ${faces(task.group)}${ackButton('Đã nhìn thấy')}</div>`;
   }
   if (task.role === 'elder') {
@@ -1242,7 +1244,11 @@ function renderCard(reset = true) {
   if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(seatName).join(', ')}`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);
-  if (m.charmed) extra.push('🎶 Bạn đã bị Người Thổi Sáo thôi miên.');
+  if (m.charmed) {
+    extra.push(m.charmedWith?.length
+      ? `🎶 Bạn đã bị Người Thổi Sáo thôi miên, cùng với: ${m.charmedWith.map(seatName).join(', ')}`
+      : '🎶 Bạn đã bị Người Thổi Sáo thôi miên.');
+  }
   if (m.charmedList?.length) extra.push(`🎶 Đã thôi miên: ${m.charmedList.map(seatName).join(', ')}`);
   if (!m.alive) extra.push('Bạn đã bị loại, hãy giữ im lặng nhé.');
   body.innerHTML = `
