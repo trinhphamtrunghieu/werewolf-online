@@ -161,7 +161,23 @@ test('hunter aims at night; when lynched, the aimed player dies too and win is c
   assert.equal(P[1].alive, false, 'the aimed wolf dies with the hunter');
   assert.equal(s.phase, 'GAME_OVER');
   assert.equal(s.game.winner, 'village');
-  assert.ok(s.narration.clips.some(c => c.k === 'hunter_fire'));
+  assert.ok(!s.narration.clips.some(c => c.k === 'hunter_fire'), 'no gunshot line: it would expose the Hunter');
+});
+
+test('a bitten hunter takes his target along, announced as plain deaths', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilNightRole('hunter');
+  act(P[0], 'night', { target: P[2].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
+  assert.equal(P[2].alive, false);
+  const keys = s.narration.clips.map(c => c.k);
+  assert.deepEqual(keys.filter(k => k.startsWith('seat_')).sort(), [`seat_${P[0].seat}`, `seat_${P[2].seat}`].sort());
+  assert.ok(keys.includes('morning_deaths'));
+  assert.ok(!keys.includes('hunter_fire'));
+  assert.ok(!s.game.log.some(e => /Thợ Săn|súng/.test(e)), 'the public log does not say it either');
 });
 
 test('witch heal is blind: saves the bitten player, and is spent on a quiet night', () => {
@@ -493,6 +509,43 @@ test('bots finish games that use every role', () => {
   }
 });
 
+test('no player ever learns another player\'s role or secret before the game ends', () => {
+  for (const seed of [11, 12, 13, 14, 15, 16, 17, 18]) {
+    const rng = seeded(seed);
+    let now = 9_000_000;
+    const { state: s, player: host } = createRoom({ code: 'LEAK1', hostName: 'Host', now, rng });
+    applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
+    applyAction(s, host.id, 'addBot', { count: 12 }, now, rng);
+    const want = { werewolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, thief: 1, piper: 1, elder: 1, villager: 3 };
+    for (const [roleId, n] of Object.entries(want)) {
+      while ((s.roleCounts[roleId] || 0) < n) applyAction(s, host.id, 'role', { roleId, delta: 1 }, now, rng);
+      while ((s.roleCounts[roleId] || 0) > n) applyAction(s, host.id, 'role', { roleId, delta: -1 }, now, rng);
+    }
+    applyAction(s, host.id, 'start', {}, now, rng);
+    for (let i = 0; i < 4000 && s.phase !== 'GAME_OVER'; i++) {
+      now += 1000;
+      tick(s, now, rng);
+      if (s.phase === 'GAME_OVER') break;
+      for (const p of s.players.filter(x => x.inGame)) {
+        const v = viewFor(s, p.id, now, 1);
+        for (const o of v.players) {
+          if (o.id === p.id || !o.role) continue;
+          assert.ok(p.role === 'werewolf' && o.role === 'werewolf', `seed ${seed}: ${p.role} saw a ${o.role}`);
+        }
+        assert.deepEqual(v.game.lovers, [], 'the couple stays secret');
+        assert.ok(!v.game.powersLost, 'the Elder\'s fate stays secret');
+        if (v.me.lover) assert.ok(s.game.lovers.includes(p.id));
+        if (v.me.charmedWith) assert.ok(s.game.charmed.includes(p.id));
+      }
+      const keys = s.narration?.clips.map(c => c.k) || [];
+      assert.ok(!keys.some(k => /hunter_fire|lover_death|elder_betrayed/.test(k)), `seed ${seed}: narration explained a death`);
+      const seats = keys.filter(k => k.startsWith('seat_')).map(k => Number(k.slice(5)));
+      if (keys.includes('morning_deaths')) assert.deepEqual(seats, [...seats].sort((a, b) => a - b), 'deaths read by seat');
+    }
+    assert.equal(s.phase, 'GAME_OVER', `seed ${seed}`);
+  }
+});
+
 test('lynching the elder strips every village power for the rest of the game', () => {
   const { s, P, act, endPhase, untilNightRole, untilPhase } = setup(['elder', 'werewolf', 'seer', 'hunter', 'villager', 'villager', 'villager']);
   untilNightRole('hunter');
@@ -505,7 +558,12 @@ test('lynching the elder strips every village power for the rest of the game', (
   endPhase();
   assert.equal(P[0].alive, false);
   assert.equal(s.game.powersLost, true);
-  assert.ok(s.narration.clips.some(c => c.k === 'elder_betrayed'));
+  // Kept secret: announcing it would tell everyone the hanged player was the Elder.
+  assert.ok(!s.narration.clips.some(c => c.k === 'elder_betrayed'));
+  assert.ok(!s.game.log.some(e => /Già Làng|mất chức năng/.test(e)));
+  assert.ok(!viewFor(s, P[4].id, 0, 1).game.powersLost, 'a villager is not told');
+  assert.ok(!viewFor(s, P[4].id, 0, 1).me.powerless);
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.powerless, true, 'the seer learns it on their own card');
   untilNightRole('seer');
   assert.equal(viewFor(s, P[2].id, 0, 1).me.task.powerless, true);
   assert.throws(() => act(P[2], 'night', { target: P[1].id }), /mất chức năng/);
@@ -520,6 +578,22 @@ test('lynching the elder strips every village power for the rest of the game', (
   endPhase();
   assert.equal(P[3].alive, false);
   assert.equal(P[4].alive, true, 'powerless hunter takes nobody with them');
+});
+
+test('deaths are announced in seat order, never in the order they happened', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['villager', 'witch', 'cupid', 'villager', 'werewolf', 'villager', 'villager']);
+  untilNightRole('cupid');
+  act(P[2], 'night', { target: P[0].id });
+  act(P[2], 'night', { target: P[6].id });
+  untilNightRole('werewolf');
+  act(P[4], 'night', { target: P[6].id }); // bitten: the highest seat
+  untilNightRole('witch');
+  act(P[1], 'witch', { use: 'poison', target: P[3].id });
+  untilPhase('MORNING');
+  const seats = s.narration.clips.filter(c => c.k.startsWith('seat_')).map(c => Number(c.k.slice(5)));
+  assert.deepEqual(seats, [P[0].seat, P[3].seat, P[6].seat], 'bitten, poisoned and heartbroken all read by seat');
+  assert.deepEqual(s.game.lastNightDeaths, [P[0].id, P[3].id, P[6].id]);
+  assert.ok(!s.game.log.some(e => /Thần Tình Yêu|mũi tên/.test(e)), 'no public trace of Cupid');
 });
 
 test('the elder dying to wolves does not cost the village its powers', () => {

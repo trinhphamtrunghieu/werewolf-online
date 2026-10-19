@@ -1261,6 +1261,7 @@ function renderCard(reset = true) {
       : '🎶 Bạn đã bị Người Thổi Sáo thôi miên.');
   }
   if (m.charmedList?.length) extra.push(`🎶 Đã thôi miên: ${m.charmedList.map(seatName).join(', ')}`);
+  if (m.powerless) extra.push('👴 Già Làng đã chết dưới tay dân làng: bạn đã mất chức năng đến hết ván. Hãy giữ bí mật điều này.');
   if (!m.alive) extra.push('Bạn đã bị loại, hãy giữ im lặng nhé.');
   body.innerHTML = `
     <div class="sheet-head">
