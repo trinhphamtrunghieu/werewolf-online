@@ -161,7 +161,23 @@ test('hunter aims at night; when lynched, the aimed player dies too and win is c
   assert.equal(P[1].alive, false, 'the aimed wolf dies with the hunter');
   assert.equal(s.phase, 'GAME_OVER');
   assert.equal(s.game.winner, 'village');
-  assert.ok(s.narration.clips.some(c => c.k === 'hunter_fire'));
+  assert.ok(!s.narration.clips.some(c => c.k === 'hunter_fire'), 'no gunshot line: it would expose the Hunter');
+});
+
+test('a bitten hunter takes his target along, announced as plain deaths', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilNightRole('hunter');
+  act(P[0], 'night', { target: P[2].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
+  assert.equal(P[2].alive, false);
+  const keys = s.narration.clips.map(c => c.k);
+  assert.deepEqual(keys.filter(k => k.startsWith('seat_')).sort(), [`seat_${P[0].seat}`, `seat_${P[2].seat}`].sort());
+  assert.ok(keys.includes('morning_deaths'));
+  assert.ok(!keys.includes('hunter_fire'));
+  assert.ok(!s.game.log.some(e => /Thợ Săn|súng/.test(e)), 'the public log does not say it either');
 });
 
 test('witch heal is blind: saves the bitten player, and is spent on a quiet night', () => {

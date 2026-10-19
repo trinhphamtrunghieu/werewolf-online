@@ -290,14 +290,6 @@ export const LINES = {
     'Xong rồi. Thợ Săn, hãy nhắm mắt lại.',
     'Thợ Săn, hãy quay về giấc ngủ.'
   ],
-  hunter_fire: [
-    'Trước khi ngã xuống... Thợ Săn đã kịp bóp cò.',
-    'Một tiếng súng vang lên... Thợ Săn đã kéo theo một người.',
-    'Phát súng cuối cùng của Thợ Săn đã nổ...',
-    'Ngay trước lúc ra đi, Thợ Săn đã nổ súng.',
-    'Đoàng! Thợ Săn không ra đi một mình.',
-    'Thợ Săn đã gục ngã... nhưng viên đạn của anh ấy đã tìm thấy mục tiêu.'
-  ],
   also_died: [
     'Cùng ra đi với họ là...',
     'Ra đi cùng với họ còn có...',
