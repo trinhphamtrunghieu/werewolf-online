@@ -9,7 +9,13 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 
 ## Vai trò
 
-Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người): Thần Tình Yêu từ 7 người, Ăn Trộm từ 9 (kèm 2 lá dư), Người Thổi Sáo từ 11, Già Làng từ 12. Chủ phòng vẫn chỉnh tay được.
+Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Mục Sư, Thầy Đồng, Kẻ Ngốc, Sói Báo Thù, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người): Thần Tình Yêu từ 7 người, Ăn Trộm từ 9 (kèm 2 lá dư), Người Thổi Sáo từ 11, Già Làng từ 12. Chủ phòng vẫn chỉnh tay được; Sói Con, Mục Sư, Thầy Đồng, Kẻ Ngốc và Sói Báo Thù do chủ phòng tự thêm.
+
+- **Sói Con** (phe Sói): thức dậy và cắn cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm sau đàn Sói được cắn 2 người.
+- **Mục Sư** (phe Dân): một lần mỗi ván, ban đêm vẩy nước thánh vào 1 người. Nếu đó là Sói (kể cả Sói Con) thì người đó chết vào sáng hôm sau; nếu không thì không có gì xảy ra.
+- **Thầy Đồng** (phe Dân): một lần mỗi ván, ban đêm hồi sinh 1 người đã chết; sáng hôm sau người đó sống lại với vai trò cũ.
+- **Kẻ Ngốc** (phe Dân): nếu bị dân làng treo cổ thì ván kết thúc và Kẻ Ngốc thắng.
+- **Sói Báo Thù**: khi chia bài được xếp ngẫu nhiên vào phe Dân hoặc phe Sói (chỉ người đó biết; đàn Sói không biết). Từ đêm thứ hai, mỗi đêm chọn 1 mục tiêu; khi bị Sói cắn hoặc bị treo cổ, mục tiêu chết theo ngay.
 
 **Mỗi lượt đêm gồm 3 khoảng cố định** (chủ phòng chỉnh được trong Cài đặt ván chơi): **gọi dậy** (vừa đủ để quản trò đọc câu gọi, rồi bắt đầu đếm giờ ngay), **thao tác 30 giây** (người được gọi chọn trên điện thoại), rồi **kêu đi ngủ**: quản trò đọc "… hãy nhắm mắt lại", nghỉ **1 giây** và gọi luôn vai tiếp theo trong cùng một mạch đọc. Lượt luôn chạy đủ thời gian, kể cả khi đã chọn xong hoặc người giữ vai đã chết, nên không ai đoán được gì từ độ dài của lượt.
 
@@ -18,12 +24,15 @@ Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn 
 1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy.
 2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi. Cặp đôi không bị gọi dậy: quản trò báo rằng tên người kia đã hiện trên lá bài, và nhắc họ xem lá bài khi thức dậy.
 3. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
-4. **Ma Sói**: nhận diện đồng đội và thống nhất chọn nạn nhân.
+4. **Ma Sói** (cùng Sói Con): nhận diện đồng đội và thống nhất chọn nạn nhân (2 nạn nhân vào đêm sau khi Sói Con chết).
 5. **Tiên Tri**: chọn 1 người để xem phe.
-6. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
-7. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên. Những người bị thôi miên không bị gọi dậy: quản trò báo rằng tên những người cùng cảnh ngộ đã hiện trên lá bài, và nhắc họ xem khi thức dậy.
-8. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), Tiên Tri, Bảo Vệ, Phù Thủy và Thợ Săn mất chức năng đến hết ván. Việc này không được thông báo công khai (sẽ lộ người vừa chết là Già Làng): chỉ những người mất chức năng thấy ghi chú trên lá bài của mình.
-9. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
+6. **Mục Sư**: có muốn vẩy nước thánh không (1 lần mỗi ván).
+7. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
+8. **Thầy Đồng**: có muốn hồi sinh 1 người đã chết không (1 lần mỗi ván).
+9. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên. Những người bị thôi miên không bị gọi dậy: quản trò báo rằng tên những người cùng cảnh ngộ đã hiện trên lá bài, và nhắc họ xem khi thức dậy.
+10. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), Tiên Tri, Bảo Vệ, Phù Thủy và Thợ Săn mất chức năng đến hết ván. Việc này không được thông báo công khai (sẽ lộ người vừa chết là Già Làng): chỉ những người mất chức năng thấy ghi chú trên lá bài của mình.
+11. **Sói Báo Thù** (từ đêm thứ hai): chọn mục tiêu báo thù.
+12. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
 
 Quản trò không bao giờ nói lý do chết (bị cắn, trúng độc, chết theo người yêu hay trúng súng Thợ Săn) và luôn đọc người chết theo thứ tự số ghế, để không lộ vai trò.
 

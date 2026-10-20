@@ -194,6 +194,15 @@ export const LINES = {
     'Mặt trời đã lên... Đêm qua, bầy sói đã không bỏ qua cơ hội. Người đã chết là...'
   ],
   and: ['và'],
+  // Followed by the seat of the player who came back.
+  revived: [
+    'Nhưng một phép màu đã xảy ra trong đêm... Người vừa sống lại là...',
+    'Và rồi, từ cõi chết, một linh hồn đã trở về. Đó là...',
+    'Thầy Đồng đã gọi được một linh hồn quay lại. Người sống lại là...',
+    'Một điều kỳ diệu... Có người đã trở về từ cõi chết. Đó là...',
+    'Ngọn nến đêm qua đã cháy sáng. Người được hồi sinh là...',
+    'Cả làng hãy nhìn kìa... Một người đã sống lại. Đó là...'
+  ],
   discussion_start: [
     'Hãy bắt đầu thảo luận. Ai trong số các bạn... mới là Ma Sói?',
     'Cả làng hãy cùng bàn bạc. Kẻ giấu mặt đang ngồi ngay giữa chúng ta.',
@@ -266,6 +275,54 @@ export const LINES = {
     'được cả làng tha mạng. Liệu đó có phải là một sai lầm?',
     'đã được tha. Ngôi làng chọn tin tưởng, ít nhất là hôm nay.'
   ],
+  priest_wake: [
+    'Mục Sư ơi, hãy thức dậy. Đêm nay, bạn có muốn vẩy nước thánh không?',
+    'Mục Sư, mở mắt ra nào. Nước thánh trong tay bạn chỉ dùng được một lần.',
+    'Mục Sư, hãy thức dậy... Nếu nghi ngờ ai là Sói, đây là lúc để thử.',
+    'Mục Sư ơi, đến lượt bạn rồi. Hãy cân nhắc thật kỹ, nước thánh chỉ có một lần.',
+    'Mục Sư, mở mắt ra. Ánh sáng thánh thiện có xua đuổi được bóng tối đêm nay?',
+    'Mục Sư, hãy thức dậy. Hãy cầu nguyện, và quyết định có dùng nước thánh hay không.'
+  ],
+  priest_sleep: [
+    'Mục Sư, hãy nhắm mắt lại.',
+    'Mục Sư, nhắm mắt lại nào.',
+    'Lời cầu nguyện đã xong. Mục Sư, hãy đi ngủ.',
+    'Mục Sư, hãy quay về giấc ngủ.',
+    'Xong rồi. Mục Sư, hãy nhắm mắt lại.',
+    'Mục Sư, hãy giữ bí mật này, và nhắm mắt lại.'
+  ],
+  medium_wake: [
+    'Thầy Đồng ơi, hãy thức dậy. Đêm nay, bạn có muốn gọi một linh hồn trở về không?',
+    'Thầy Đồng, mở mắt ra nào. Năng lực hồi sinh chỉ dùng được một lần.',
+    'Thầy Đồng, hãy thức dậy... Những linh hồn đã khuất đang chờ bạn.',
+    'Thầy Đồng ơi, đến lượt bạn rồi. Ai xứng đáng được sống lại?',
+    'Thầy Đồng, mở mắt ra. Ngọn nến đã thắp, cánh cửa giữa hai thế giới đang hé mở.',
+    'Thầy Đồng, hãy thức dậy. Hãy quyết định, có đánh thức người đã khuất hay không.'
+  ],
+  medium_sleep: [
+    'Thầy Đồng, hãy nhắm mắt lại.',
+    'Thầy Đồng, nhắm mắt lại nào.',
+    'Ngọn nến đã tắt. Thầy Đồng, hãy đi ngủ.',
+    'Thầy Đồng, hãy quay về giấc ngủ.',
+    'Xong rồi. Thầy Đồng, hãy nhắm mắt lại.',
+    'Thầy Đồng, hãy giữ kín bí mật này, và nhắm mắt lại.'
+  ],
+  avenger_wake: [
+    'Sói Báo Thù ơi, hãy thức dậy. Hãy chọn người sẽ phải trả giá nếu bạn ngã xuống.',
+    'Sói Báo Thù, mở mắt ra nào. Mối thù của bạn sẽ nhắm vào ai đêm nay?',
+    'Sói Báo Thù, hãy thức dậy... Nếu bạn chết, ai sẽ đi cùng bạn?',
+    'Sói Báo Thù ơi, đến lượt bạn rồi. Hãy chọn mục tiêu báo thù.',
+    'Sói Báo Thù, mở mắt ra. Lưỡi dao của bạn đang chờ một cái tên.',
+    'Sói Báo Thù, hãy thức dậy. Hãy chọn kẻ sẽ không thoát khỏi cơn thịnh nộ của bạn.'
+  ],
+  avenger_sleep: [
+    'Sói Báo Thù, hãy nhắm mắt lại.',
+    'Sói Báo Thù, nhắm mắt lại nào.',
+    'Mối thù đã được ghi nhớ. Sói Báo Thù, hãy đi ngủ.',
+    'Sói Báo Thù, hãy quay về giấc ngủ.',
+    'Xong rồi. Sói Báo Thù, hãy nhắm mắt lại.',
+    'Sói Báo Thù, hãy giấu kín lưỡi dao, và nhắm mắt lại.'
+  ],
   hunter_wake: [
     'Thợ Săn, hãy thức dậy. Đêm nay, bạn sẽ chĩa súng vào ai?',
     'Thợ Săn ơi, mở mắt ra nào. Hãy chọn người mà bạn sẽ kéo theo... nếu bạn phải ngã xuống.',
@@ -321,6 +378,14 @@ export const LINES = {
     'Vượt qua mọi chia rẽ... Cặp Tình Nhân, chiến thắng!',
     'Hai trái tim đã cùng nhau sống sót. Cặp đôi, chiến thắng!',
     'Bất chấp phe phái, tình yêu đã chiến thắng!'
+  ],
+  win_fool: [
+    'Ha ha ha! Dân làng đã treo cổ Kẻ Ngốc... đúng như hắn mong muốn. Kẻ Ngốc, chiến thắng!',
+    'Các bạn đã mắc bẫy! Kẻ Ngốc bị treo cổ, và hắn là người chiến thắng!',
+    'Thật trớ trêu... Người bị treo cổ chính là Kẻ Ngốc. Kẻ Ngốc, chiến thắng!',
+    'Cả làng đã bị lừa một vố đau. Kẻ Ngốc đã đạt được điều mình muốn, và chiến thắng!',
+    'Sợi dây thòng lọng đã mang lại chiến thắng cho Kẻ Ngốc!',
+    'Kẻ Ngốc cười lớn trên giá treo cổ... Hắn đã thắng!'
   ]
 };
 
