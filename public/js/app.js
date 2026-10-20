@@ -4,7 +4,7 @@ import {
 import { Narrator } from './narrator.js';
 import { connectRealtime } from './realtime.js';
 import { moodForPhase } from './ambience.js';
-import { clipMs, gapAfter } from '/shared/voice-lines.js';
+import { clipMs, gapAfter, lineText } from '/shared/voice-lines.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -1424,7 +1424,7 @@ document.addEventListener('click', async (e) => {
       narrator.sfx('night');
       narrator.play([
         { k: 'night_start', v: 0, t: 'Màn đêm buông xuống... Cả làng hãy nhắm mắt lại, và chìm vào giấc ngủ.' },
-        { k: 'werewolf_wake', v: 0, t: 'Ma Sói... hãy thức dậy. Hãy nhìn nhau, và chọn con mồi cho đêm nay.' }
+        { k: 'werewolf_wake', v: 0, t: lineText('werewolf_wake', 0) }
       ]);
       return renderLobby();
     case 'hostVote':

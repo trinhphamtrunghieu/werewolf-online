@@ -6,8 +6,8 @@
 // `npm run voice` (see README) or record your own voice with the same names.
 // Any line without an audio file falls back to the browser's speech engine.
 //
-// Writing tips for a natural, emotional read: short clauses, commas for breath,
-// "..." for a dramatic pause, and "!" only where the narrator should lift.
+// Keep lines short and plain: who wakes up, then what to do. Three variants
+// per line is enough to avoid sounding repetitive.
 
 import { CLIP_MS } from './voice-durations.js';
 
@@ -18,390 +18,247 @@ const NUMBERS = [
 
 export const LINES = {
   game_start: [
-    'Chào mừng các bạn đến với ngôi làng... Hãy lặng lẽ xem lá bài của mình, và giữ kín bí mật ấy.',
-    'Ngôi làng nhỏ của chúng ta... đang ẩn giấu những con sói. Mỗi người, hãy xem thật kỹ lá bài của mình.',
-    'Đêm nay, ngôi làng sẽ không còn yên bình nữa... Hãy xem lá bài của mình, và đừng để ai nhìn thấy.',
-    'Có những kẻ khoác lốt người, đang sống giữa chúng ta... Mỗi người, hãy lặng lẽ xem vai trò của mình.',
-    'Một ván mới bắt đầu. Ai là dân làng, ai là sói... chỉ lá bài trong tay bạn mới biết.',
-    'Ngôi làng đã bị nguyền rủa... Hãy xem lá bài của mình, và giữ bí mật cho đến phút cuối cùng.'
+    'Ván mới bắt đầu. Hãy xem lá bài của mình, và giữ bí mật.',
+    'Chào mừng đến ngôi làng. Mỗi người hãy xem lá bài của mình.',
+    'Sói đang ẩn trong làng. Xem lá bài của mình, đừng để ai thấy.'
   ],
   night_start: [
-    'Màn đêm buông xuống... Cả làng hãy nhắm mắt lại, và chìm vào giấc ngủ.',
-    'Trời đã tối rồi. Mọi người hãy nhắm mắt lại... Ngôi làng chìm vào im lặng.',
-    'Đêm nay trăng tròn, gió rít qua từng mái nhà... Cả làng, hãy nhắm mắt lại.',
-    'Mặt trời đã lặn sau rặng núi... Cả làng, hãy nhắm mắt lại.',
-    'Tiếng côn trùng rả rích khắp nơi... Đêm đã về. Mọi người, hãy nhắm mắt.',
-    'Đèn trong làng lần lượt tắt hết... Cả làng hãy nhắm mắt, và đừng hé nhìn.'
+    'Màn đêm buông xuống. Cả làng nhắm mắt.',
+    'Trời tối rồi. Mọi người nhắm mắt lại.',
+    'Đêm đã về. Cả làng hãy nhắm mắt.'
   ],
   thief_wake: [
-    'Ăn Trộm, hãy thức dậy. Có hai lá bài đang nằm úp trên bàn... Bạn có muốn đổi không?',
-    'Ăn Trộm ơi, mở mắt ra nào. Hãy xem hai lá bài dư, và quyết định số phận của mình.',
-    'Ăn Trộm, hãy thức dậy. Hai lá bài bí ẩn đang chờ bạn... Đổi, hay không đổi?',
-    'Kẻ trộm trong đêm, hãy mở mắt ra. Bạn có muốn trộm một số phận khác không?',
-    'Ăn Trộm, mở mắt ra nào. Hãy nhìn hai lá bài dư... và chọn cho mình một con đường.',
-    'Ăn Trộm ơi, đến lượt bạn rồi. Hãy xem thật nhanh hai lá bài còn lại.'
+    'Ăn Trộm, mở mắt. Xem hai lá dư, đổi hoặc giữ.',
+    'Ăn Trộm, thức dậy. Có muốn đổi lá bài không?',
+    'Ăn Trộm, mở mắt. Chọn đổi bài, hoặc giữ nguyên.'
   ],
   thief_sleep: [
-    'Ăn Trộm, hãy nhắm mắt lại.',
-    'Ăn Trộm, nhắm mắt lại nào.',
-    'Ăn Trộm, hãy đi ngủ đi.',
-    'Xong rồi. Ăn Trộm, hãy nhắm mắt lại.',
-    'Ăn Trộm, hãy giữ kín lựa chọn của mình, và nhắm mắt lại.',
-    'Ăn Trộm, quay về giấc ngủ thôi.'
+    'Ăn Trộm, nhắm mắt.',
+    'Ăn Trộm, nhắm mắt lại.',
+    'Ăn Trộm, đi ngủ.'
   ],
   cupid_wake: [
-    'Thần Tình Yêu ơi, hãy thức dậy. Hãy chọn hai người, để se duyên cho họ.',
-    'Thần Tình Yêu, mở mắt ra nào... Đêm nay, mũi tên của bạn sẽ gắn kết hai trái tim nào?',
-    'Thần Tình Yêu, hãy thức dậy. Hãy giương cung, và chọn hai người sẽ yêu nhau.',
-    'Thần Tình Yêu ơi, đến lượt bạn rồi. Hai trái tim nào sẽ gắn bó với nhau mãi mãi?',
-    'Thần Tình Yêu, mở mắt ra. Đêm nay, hãy se sợi chỉ đỏ cho hai người.',
-    'Thần Tình Yêu, hãy thức dậy... Ai sẽ là cặp đôi định mệnh của ngôi làng?'
+    'Thần Tình Yêu, mở mắt. Chọn hai người làm cặp đôi.',
+    'Thần Tình Yêu, thức dậy. Hãy ghép đôi hai người.',
+    'Thần Tình Yêu, mở mắt. Đêm nay se duyên cho ai?'
   ],
   cupid_sleep: [
-    'Thần Tình Yêu, hãy nhắm mắt lại.',
-    'Thần Tình Yêu, nhắm mắt lại nào.',
-    'Mũi tên đã bay đi. Thần Tình Yêu, hãy đi ngủ.',
-    'Thần Tình Yêu, hãy quay về giấc ngủ.',
-    'Xong rồi. Thần Tình Yêu, hãy nhắm mắt lại.',
-    'Thần Tình Yêu, hãy giữ kín bí mật này, và nhắm mắt lại.'
+    'Thần Tình Yêu, nhắm mắt.',
+    'Thần Tình Yêu, nhắm mắt lại.',
+    'Thần Tình Yêu, đi ngủ.'
   ],
   lovers_note: [
-    'Hai người vừa trúng mũi tên tình yêu... tên của người kia đã hiện trên lá bài của bạn. Sáng mai thức dậy, hãy xem lá bài nhé.',
-    'Cặp đôi của đêm nay, tên nửa kia đã xuất hiện trên lá bài của bạn. Khi thức dậy, hãy xem lá bài của mình.',
-    'Những trái tim vừa được se duyên... tên người ấy đã nằm trên lá bài của bạn. Hãy xem lá bài khi trời sáng.',
-    'Mũi tên đã trúng đích. Tên người mình yêu đã hiện trên lá bài. Sau khi thức dậy, hai bạn hãy xem lá bài nhé.',
-    'Hai người được chọn, tên của nhau đã có trên lá bài. Sáng mai, hãy mở lá bài ra xem.',
-    'Sợi chỉ đỏ đã được buộc. Tên nửa kia đã xuất hiện trên lá bài của bạn. Thức dậy rồi, hãy xem lá bài.'
+    'Cặp đôi: tên người kia đã ở trên lá bài. Sáng mai hãy xem.',
+    'Hai người được ghép đôi, sáng mai hãy xem lá bài để biết nửa kia.',
+    'Tên nửa kia đã hiện trên lá bài. Thức dậy rồi hãy xem.'
   ],
   guard_wake: [
-    'Bảo Vệ, hãy thức dậy. Đêm nay, bạn muốn che chở cho ai?',
-    'Bảo Vệ ơi, mở mắt ra nào. Hãy chọn một người, để bảo vệ trong đêm nay.',
-    'Bảo Vệ, mở mắt ra. Đêm nay, tấm khiên của bạn sẽ che chở cho ai?',
-    'Người Bảo Vệ của làng, hãy thức dậy. Ai cần được bảo vệ trong đêm nay?',
-    'Bảo Vệ ơi, đến lượt bạn rồi. Hãy chọn người mà bạn sẽ canh giữ.',
-    'Bảo Vệ, hãy thức dậy... Đêm nay nguy hiểm lắm. Bạn sẽ đứng gác trước cửa nhà ai?'
+    'Bảo Vệ, mở mắt. Chọn người để bảo vệ.',
+    'Bảo Vệ, thức dậy. Đêm nay bảo vệ ai?',
+    'Bảo Vệ, mở mắt. Hãy che chở một người.'
   ],
   guard_sleep: [
-    'Bảo Vệ, hãy nhắm mắt lại.',
-    'Bảo Vệ, nhắm mắt lại nào.',
-    'Bảo Vệ, hãy đi ngủ đi.',
-    'Xong rồi. Bảo Vệ, hãy nhắm mắt lại.',
-    'Bảo Vệ, hãy quay về giấc ngủ.',
-    'Bảo Vệ, hãy nhắm mắt, và cầu mong lựa chọn của bạn là đúng.'
+    'Bảo Vệ, nhắm mắt.',
+    'Bảo Vệ, nhắm mắt lại.',
+    'Bảo Vệ, đi ngủ.'
   ],
   werewolf_wake: [
-    'Bầy Sói... hãy thức dậy. Hãy nhìn nhau, và chọn con mồi cho đêm nay.',
-    'Những con sói đói khát... hãy mở mắt ra. Đêm nay, các ngươi muốn săn ai?',
-    'Bầy sói ơi, hãy thức dậy. Hãy nhận ra đồng bọn, và chọn nạn nhân cho đêm nay.',
-    'Bầy Sói, mở mắt ra nào... Mùi máu đang lan trong gió. Đêm nay, ai sẽ là con mồi?',
-    'Những con sói, hãy thức dậy. Hãy nhìn nhau thật nhanh, và thống nhất mục tiêu.',
-    'Trăng đã lên cao... Bầy Sói, hãy mở mắt. Các ngươi đói rồi phải không?'
+    'Bầy Sói, mở mắt. Chọn con mồi.',
+    'Bầy Sói, thức dậy. Đêm nay cắn ai?',
+    'Bầy Sói, mở mắt. Hãy thống nhất nạn nhân.'
   ],
   werewolf_sleep: [
-    'Bầy Sói, hãy nhắm mắt lại.',
-    'Cuộc săn đã xong... Sói, hãy quay về giấc ngủ.',
-    'Sói, hãy nhắm mắt lại.',
-    'Bầy Sói, nhắm mắt lại nào. Hãy giấu đi nanh vuốt của mình.',
-    'Bầy sói đã no nê... Hãy quay về giấc ngủ.',
-    'Sói ơi, hãy nhắm mắt, và trở lại làm dân làng hiền lành.'
-  ],
-  seer_wake: [
-    'Tiên Tri, hãy thức dậy. Đêm nay, bạn muốn soi ai?',
-    'Tiên Tri ơi, mở mắt ra nào. Hãy chọn một người, để nhìn thấu bản chất của họ.',
-    'Tiên Tri, mở mắt ra. Quả cầu pha lê đang chờ bạn... Đêm nay, bạn muốn nhìn thấu ai?',
-    'Tiên Tri ơi, đến lượt bạn rồi. Hãy chọn một người, và sự thật sẽ hiện ra.',
-    'Tiên Tri, hãy thức dậy. Kẻ nào đang giấu mặt? Hãy chỉ tay vào người bạn nghi ngờ.',
-    'Tiên Tri, mở mắt ra nào... Đôi mắt của bạn là hy vọng của cả làng.'
-  ],
-  seer_sleep: [
-    'Tiên Tri, hãy nhắm mắt lại.',
-    'Tiên Tri, nhắm mắt lại nào.',
-    'Tiên Tri, hãy ghi nhớ điều bạn thấy, và nhắm mắt lại.',
-    'Tiên Tri, hãy đi ngủ đi.',
-    'Xong rồi. Tiên Tri, hãy nhắm mắt lại.',
-    'Tiên Tri, hãy quay về giấc ngủ.'
-  ],
-  witch_wake: [
-    'Phù Thủy, hãy thức dậy. Đêm nay... bạn có muốn dùng thuốc không?',
-    'Phù Thủy ơi, mở mắt ra nào. Bình cứu, hay bình độc... hãy quyết định đi.',
-    'Phù Thủy, hãy thức dậy. Hai lọ thuốc đang chờ trên kệ... Bạn sẽ dùng chúng chứ?',
-    'Phù Thủy ơi, đến lượt bạn rồi. Cứu một mạng người, hay lấy đi một mạng người?',
-    'Phù Thủy, mở mắt ra. Đêm nay, bạn có muốn can thiệp vào số phận không?',
-    'Phù Thủy, hãy thức dậy... Hãy suy nghĩ thật kỹ, mỗi lọ thuốc chỉ dùng được một lần.'
-  ],
-  witch_sleep: [
-    'Phù Thủy, hãy nhắm mắt lại.',
-    'Phù Thủy, nhắm mắt lại nào.',
-    'Phù Thủy, hãy cất thuốc đi, và nhắm mắt lại.',
-    'Phù Thủy, hãy đi ngủ đi.',
-    'Xong rồi. Phù Thủy, hãy nhắm mắt lại.',
-    'Phù Thủy, hãy quay về giấc ngủ.'
-  ],
-  piper_wake: [
-    'Người Thổi Sáo, hãy thức dậy. Tiếng sáo đêm nay... sẽ mê hoặc hai người nào?',
-    'Người Thổi Sáo ơi, mở mắt ra nào. Hãy chọn hai người để thôi miên.',
-    'Người Thổi Sáo, mở mắt ra. Hãy cất tiếng sáo, và chọn hai người sẽ nghe theo bạn.',
-    'Người Thổi Sáo ơi, đến lượt bạn rồi. Đêm nay, hai linh hồn nào sẽ bị mê hoặc?',
-    'Người Thổi Sáo, hãy thức dậy... Tiếng sáo du dương đang vang lên trong đêm.',
-    'Người Thổi Sáo, mở mắt ra nào. Cả làng sắp thuộc về bạn rồi.'
-  ],
-  piper_sleep: [
-    'Người Thổi Sáo, hãy nhắm mắt lại.',
-    'Người Thổi Sáo, nhắm mắt lại nào.',
-    'Tiếng sáo đã ngừng. Người Thổi Sáo, hãy đi ngủ.',
-    'Người Thổi Sáo, hãy quay về giấc ngủ.',
-    'Xong rồi. Người Thổi Sáo, hãy nhắm mắt lại.',
-    'Người Thổi Sáo, hãy cất cây sáo đi, và nhắm mắt lại.'
-  ],
-  charmed_note: [
-    'Những ai đã bị thôi miên... tên những người cùng cảnh ngộ đã hiện trên lá bài của bạn. Sáng mai thức dậy, hãy xem lá bài nhé.',
-    'Ai đã nghe thấy tiếng sáo, tên những người bị thôi miên khác đã xuất hiện trên lá bài. Khi thức dậy, hãy xem lá bài của mình.',
-    'Tiếng sáo đã để lại dấu vết. Tên những người cùng cảnh ngộ đã nằm trên lá bài của bạn. Hãy xem lá bài khi trời sáng.',
-    'Những người bị mê hoặc, tên của nhau đã hiện trên lá bài. Sau khi thức dậy, hãy xem lá bài nhé.',
-    'Những linh hồn nghe theo tiếng sáo, các bạn không hề đơn độc. Sáng mai, hãy mở lá bài ra xem tên nhau.',
-    'Ai đã bị thôi miên, tên những người chung số phận đã có trên lá bài. Thức dậy rồi, hãy xem lá bài.'
-  ],
-  elder_wake: [
-    'Già Làng, hãy thức dậy... và cho quản trò biết bạn là ai.',
-    'Già Làng, mở mắt ra nào. Hãy cho quản trò biết bạn đang ở đây.',
-    'Già Làng kính mến, hãy thức dậy... và giơ tay cho quản trò thấy.',
-    'Già Làng, hãy thức dậy. Ngôi làng này cần sự từng trải của bạn.',
-    'Già Làng ơi, đến lượt bạn rồi. Hãy mở mắt trong giây lát.',
-    'Già Làng, hãy mở mắt... Bạn đã sống qua nhiều mùa trăng sói rồi.'
-  ],
-  elder_sleep: [
-    'Già Làng, hãy nhắm mắt lại.',
-    'Già Làng, nhắm mắt lại nào.',
-    'Già Làng, hãy đi ngủ đi.',
-    'Già Làng, hãy quay về giấc ngủ.',
-    'Xong rồi. Già Làng, hãy nhắm mắt lại.',
-    'Già Làng, hãy nghỉ ngơi đi.'
-  ],
-  morning_peace: [
-    'Trời đã sáng! Mọi người hãy mở mắt ra. Thật may mắn... đêm qua không có ai thiệt mạng.',
-    'Gà đã gáy, trời sáng rồi! Một đêm bình yên... không ai bị hại cả.',
-    'Mặt trời đã lên! Mọi người hãy mở mắt. Thật bất ngờ... đêm qua không ai chết cả.',
-    'Trời sáng rồi! Cả làng hãy thức dậy. Đêm qua, tất cả vẫn bình an.',
-    'Bình minh đã đến... Hãy mở mắt ra. Một phép màu, không ai bị hại trong đêm qua.',
-    'Trời đã sáng! Hãy nhìn quanh xem... Đêm qua, không có ai ra đi.'
-  ],
-  morning_deaths: [
-    'Trời đã sáng... Mọi người hãy mở mắt ra. Thật đau buồn, đêm qua chúng ta đã mất đi...',
-    'Trời sáng rồi. Nhưng đêm qua... máu đã đổ. Người đã ra đi là...',
-    'Trời đã sáng... Hãy mở mắt ra. Đêm qua, ngôi làng đã mất đi...',
-    'Bình minh lên, nhưng không mang theo niềm vui... Người đã ra đi là...',
-    'Trời sáng rồi. Cả làng hãy mở mắt... và tiễn biệt...',
-    'Mặt trời đã lên... Đêm qua, bầy sói đã không bỏ qua cơ hội. Người đã chết là...'
-  ],
-  and: ['và'],
-  // Followed by the seat of the player who came back.
-  revived: [
-    'Nhưng một phép màu đã xảy ra trong đêm... Người vừa sống lại là...',
-    'Và rồi, từ cõi chết, một linh hồn đã trở về. Đó là...',
-    'Thầy Đồng đã gọi được một linh hồn quay lại. Người sống lại là...',
-    'Một điều kỳ diệu... Có người đã trở về từ cõi chết. Đó là...',
-    'Ngọn nến đêm qua đã cháy sáng. Người được hồi sinh là...',
-    'Cả làng hãy nhìn kìa... Một người đã sống lại. Đó là...'
-  ],
-  discussion_start: [
-    'Hãy bắt đầu thảo luận. Ai trong số các bạn... mới là Ma Sói?',
-    'Cả làng hãy cùng bàn bạc. Kẻ giấu mặt đang ngồi ngay giữa chúng ta.',
-    'Thời gian thảo luận bắt đầu. Hãy lắng nghe... và tìm ra kẻ nói dối.',
-    'Bây giờ là lúc bàn bạc. Ai có điều gì muốn nói, hãy lên tiếng.',
-    'Hãy cùng nhau thảo luận. Mỗi lời nói đều có thể là manh mối... hoặc là cái bẫy.',
-    'Cả làng hãy bàn bạc. Sói đang ở đâu đó quanh đây thôi.'
-  ],
-  vote_start: [
-    'Hết giờ thảo luận! Hãy bỏ phiếu cho người mà bạn nghi ngờ nhất.',
-    'Đã đến lúc lựa chọn. Hãy bỏ phiếu cho kẻ đáng ngờ nhất.',
-    'Thảo luận kết thúc! Mỗi người, hãy chọn một người đáng nghi nhất.',
-    'Hết giờ! Hãy bỏ phiếu cho người mà bạn tin là Ma Sói.',
-    'Đã đến giờ bỏ phiếu. Hãy chỉ ra kẻ đáng ngờ nhất ngôi làng.',
-    'Hết thời gian thảo luận. Hãy bỏ phiếu... theo lý trí, hoặc theo linh cảm của bạn.'
-  ],
-  defense_intro: [
-    'Người bị nghi ngờ nhiều nhất là...',
-    'Cả làng đã chỉ tay về phía...',
-    'Người nhận nhiều phiếu nhất là...',
-    'Ngôi làng đã gọi tên...',
-    'Kẻ bị nghi ngờ hôm nay là...',
-    'Mọi ánh mắt đang đổ dồn về phía...'
-  ],
-  defense_outro: [
-    'Mời bạn lên bục, và đưa ra lời biện hộ của mình.',
-    'Bạn có lời nào để tự bào chữa không?',
-    'Hãy lên bục, và nói lời biện hộ của mình.',
-    'Đây là cơ hội cuối cùng để bạn tự cứu mình.',
-    'Hãy thuyết phục cả làng rằng bạn vô tội.',
-    'Mời bạn lên tiếng. Cả làng đang lắng nghe.'
-  ],
-  no_defendant: [
-    'Dân làng chưa thể thống nhất. Hôm nay, không ai phải lên bục.',
-    'Phiếu bầu bị chia đều... Hôm nay, làng tạm tha cho tất cả.',
-    'Không ai nhận đủ phiếu. Hôm nay, không ai phải lên bục.',
-    'Ngôi làng còn do dự... Hôm nay, không ai bị đưa lên giá treo cổ.',
-    'Phiếu bầu quá phân tán. Hôm nay làng tạm hoãn phán xét.',
-    'Không có kết quả rõ ràng. Hãy cẩn thận trong đêm nay.'
-  ],
-  night_soon: [
-    'Màn đêm sẽ buông xuống sau mười giây nữa. Mọi người, hãy chuẩn bị.',
-    'Mặt trời sắp lặn... Mười giây nữa, cả làng sẽ chìm vào bóng đêm.',
-    'Trời đang tối dần... Mười giây nữa, màn đêm sẽ buông xuống.',
-    'Hãy chuẩn bị... Mười giây nữa, cả làng sẽ đi ngủ.',
-    'Ngày sắp tàn. Còn mười giây nữa, đêm sẽ đến.',
-    'Hoàng hôn đã xuống... Mười giây nữa, bầy sói sẽ thức giấc.'
-  ],
-  judge_start: [
-    'Lời biện hộ đã kết thúc. Cả làng hãy quyết định: treo cổ... hay tha mạng?',
-    'Hết giờ biện hộ. Treo cổ, hay tha mạng? Cả làng hãy bỏ phiếu.',
-    'Lời biện hộ đã xong. Giờ là lúc phán quyết.',
-    'Cả làng đã nghe đủ rồi. Hãy quyết định: treo cổ... hay tha mạng?',
-    'Đã đến lúc phán xét. Hãy bỏ phiếu theo lương tâm của mình.',
-    'Số phận của người trên bục, giờ nằm trong tay các bạn.'
-  ],
-  verdict_kill: [
-    'đã bị dân làng treo cổ. Mong rằng... đó là một con sói.',
-    'đã bị đưa lên giá treo cổ. Sự thật, sẽ sớm được phơi bày.',
-    'đã bị treo cổ theo phán quyết của cả làng.',
-    'đã phải lên giá treo cổ. Liệu cả làng có chọn đúng không?',
-    'đã bị xử treo cổ. Cầu mong đó không phải một người vô tội.',
-    'đã bị dân làng kết án, và treo cổ.'
-  ],
-  verdict_spare: [
-    'đã được dân làng tha mạng. Hãy cảnh giác nhé.',
-    'đã được tha mạng. Nhưng mọi ánh mắt vẫn đang dõi theo.',
-    'được tha bổng. Hôm nay, không ai phải chết.',
-    'thoát chết trong gang tấc. Hãy cẩn thận nhé.',
-    'được cả làng tha mạng. Liệu đó có phải là một sai lầm?',
-    'đã được tha. Ngôi làng chọn tin tưởng, ít nhất là hôm nay.'
-  ],
-  detective_wake: [
-    'Thám Tử ơi, hãy thức dậy. Hãy chọn hai người để điều tra.',
-    'Thám Tử, mở mắt ra nào. Hai người nào có chung một phe?',
-    'Thám Tử, hãy thức dậy... Hãy so sánh hai người, xem họ có cùng phe hay không.',
-    'Thám Tử ơi, đến lượt bạn rồi. Manh mối đêm nay sẽ nằm ở hai người nào?',
-    'Thám Tử, mở mắt ra. Hãy chọn hai người, sự thật sẽ dần lộ diện.',
-    'Thám Tử, hãy thức dậy. Hãy điều tra thật kỹ hai người mà bạn nghi ngờ.'
-  ],
-  detective_sleep: [
-    'Thám Tử, hãy nhắm mắt lại.',
-    'Thám Tử, nhắm mắt lại nào.',
-    'Cuộc điều tra đêm nay đã xong. Thám Tử, hãy đi ngủ.',
-    'Thám Tử, hãy quay về giấc ngủ.',
-    'Xong rồi. Thám Tử, hãy nhắm mắt lại.',
-    'Thám Tử, hãy giữ kín manh mối này, và nhắm mắt lại.'
-  ],
-  priest_wake: [
-    'Mục Sư ơi, hãy thức dậy. Đêm nay, bạn có muốn vẩy nước thánh không?',
-    'Mục Sư, mở mắt ra nào. Nước thánh trong tay bạn chỉ dùng được một lần.',
-    'Mục Sư, hãy thức dậy... Nếu nghi ngờ ai là Sói, đây là lúc để thử.',
-    'Mục Sư ơi, đến lượt bạn rồi. Hãy cân nhắc thật kỹ, nước thánh chỉ có một lần.',
-    'Mục Sư, mở mắt ra. Ánh sáng thánh thiện có xua đuổi được bóng tối đêm nay?',
-    'Mục Sư, hãy thức dậy. Hãy cầu nguyện, và quyết định có dùng nước thánh hay không.'
-  ],
-  priest_sleep: [
-    'Mục Sư, hãy nhắm mắt lại.',
-    'Mục Sư, nhắm mắt lại nào.',
-    'Lời cầu nguyện đã xong. Mục Sư, hãy đi ngủ.',
-    'Mục Sư, hãy quay về giấc ngủ.',
-    'Xong rồi. Mục Sư, hãy nhắm mắt lại.',
-    'Mục Sư, hãy giữ bí mật này, và nhắm mắt lại.'
-  ],
-  medium_wake: [
-    'Thầy Đồng ơi, hãy thức dậy. Đêm nay, bạn có muốn gọi một linh hồn trở về không?',
-    'Thầy Đồng, mở mắt ra nào. Năng lực hồi sinh chỉ dùng được một lần.',
-    'Thầy Đồng, hãy thức dậy... Những linh hồn đã khuất đang chờ bạn.',
-    'Thầy Đồng ơi, đến lượt bạn rồi. Ai xứng đáng được sống lại?',
-    'Thầy Đồng, mở mắt ra. Ngọn nến đã thắp, cánh cửa giữa hai thế giới đang hé mở.',
-    'Thầy Đồng, hãy thức dậy. Hãy quyết định, có đánh thức người đã khuất hay không.'
-  ],
-  medium_sleep: [
-    'Thầy Đồng, hãy nhắm mắt lại.',
-    'Thầy Đồng, nhắm mắt lại nào.',
-    'Ngọn nến đã tắt. Thầy Đồng, hãy đi ngủ.',
-    'Thầy Đồng, hãy quay về giấc ngủ.',
-    'Xong rồi. Thầy Đồng, hãy nhắm mắt lại.',
-    'Thầy Đồng, hãy giữ kín bí mật này, và nhắm mắt lại.'
+    'Bầy Sói, nhắm mắt.',
+    'Bầy Sói, nhắm mắt lại.',
+    'Bầy Sói, đi ngủ.'
   ],
   avenger_wake: [
-    'Sói Báo Thù ơi, hãy mở mắt. Hãy chọn người sẽ phải chết theo nếu bạn bị treo cổ.',
-    'Sói Báo Thù, mở mắt ra nào. Nếu dân làng treo cổ bạn, ai sẽ đi cùng bạn?',
-    'Sói Báo Thù, hãy thức dậy... Hãy chọn kẻ sẽ trả giá cho sợi dây thòng lọng.',
-    'Sói Báo Thù ơi, đến lượt bạn rồi. Hãy chọn người sẽ chết theo bạn.',
-    'Sói Báo Thù, mở mắt ra. Mối thù của bạn sẽ nhắm vào ai?',
-    'Sói Báo Thù, hãy thức dậy. Nếu bạn ngã xuống trên giá treo cổ, ai sẽ không thoát?'
+    'Sói Báo Thù, mở mắt. Chọn người chết theo nếu bạn bị treo cổ.',
+    'Sói Báo Thù, thức dậy. Bạn sẽ kéo ai theo?',
+    'Sói Báo Thù, mở mắt. Chọn mục tiêu báo thù.'
   ],
   avenger_sleep: [
-    'Sói Báo Thù, hãy nhắm mắt lại.',
-    'Sói Báo Thù, nhắm mắt lại nào.',
-    'Mối thù đã được ghi nhớ. Sói Báo Thù, hãy đi ngủ.',
-    'Sói Báo Thù, hãy quay về giấc ngủ.',
-    'Xong rồi. Sói Báo Thù, hãy nhắm mắt lại.',
-    'Sói Báo Thù, hãy giấu kín lưỡi dao, và nhắm mắt lại.'
+    'Sói Báo Thù, nhắm mắt.',
+    'Sói Báo Thù, nhắm mắt lại.',
+    'Sói Báo Thù, đi ngủ.'
+  ],
+  seer_wake: [
+    'Tiên Tri, mở mắt. Chọn một người để soi.',
+    'Tiên Tri, thức dậy. Đêm nay soi ai?',
+    'Tiên Tri, mở mắt. Hãy xem phe của một người.'
+  ],
+  seer_sleep: [
+    'Tiên Tri, nhắm mắt.',
+    'Tiên Tri, nhắm mắt lại.',
+    'Tiên Tri, đi ngủ.'
+  ],
+  detective_wake: [
+    'Thám Tử, mở mắt. Chọn hai người để so sánh.',
+    'Thám Tử, thức dậy. Hãy điều tra hai người.',
+    'Thám Tử, mở mắt. Hai người nào cùng phe?'
+  ],
+  detective_sleep: [
+    'Thám Tử, nhắm mắt.',
+    'Thám Tử, nhắm mắt lại.',
+    'Thám Tử, đi ngủ.'
+  ],
+  priest_wake: [
+    'Mục Sư, mở mắt. Có vẩy nước thánh không?',
+    'Mục Sư, thức dậy. Dùng nước thánh, hay chờ?',
+    'Mục Sư, mở mắt. Nước thánh chỉ có một lần.'
+  ],
+  priest_sleep: [
+    'Mục Sư, nhắm mắt.',
+    'Mục Sư, nhắm mắt lại.',
+    'Mục Sư, đi ngủ.'
+  ],
+  witch_wake: [
+    'Phù Thủy, mở mắt. Có dùng bình thuốc không?',
+    'Phù Thủy, thức dậy. Bình cứu, bình độc, hay bỏ qua?',
+    'Phù Thủy, mở mắt. Đêm nay có dùng thuốc không?'
+  ],
+  witch_sleep: [
+    'Phù Thủy, nhắm mắt.',
+    'Phù Thủy, nhắm mắt lại.',
+    'Phù Thủy, đi ngủ.'
+  ],
+  medium_wake: [
+    'Thầy Đồng, mở mắt. Có hồi sinh ai không?',
+    'Thầy Đồng, thức dậy. Gọi một linh hồn trở về?',
+    'Thầy Đồng, mở mắt. Hồi sinh chỉ dùng được một lần.'
+  ],
+  medium_sleep: [
+    'Thầy Đồng, nhắm mắt.',
+    'Thầy Đồng, nhắm mắt lại.',
+    'Thầy Đồng, đi ngủ.'
+  ],
+  piper_wake: [
+    'Người Thổi Sáo, mở mắt. Chọn hai người để thôi miên.',
+    'Người Thổi Sáo, thức dậy. Hãy thôi miên hai người.',
+    'Người Thổi Sáo, mở mắt. Đêm nay mê hoặc ai?'
+  ],
+  piper_sleep: [
+    'Người Thổi Sáo, nhắm mắt.',
+    'Người Thổi Sáo, nhắm mắt lại.',
+    'Người Thổi Sáo, đi ngủ.'
+  ],
+  charmed_note: [
+    'Ai bị thôi miên: tên những người cùng cảnh ngộ đã ở trên lá bài. Sáng mai hãy xem.',
+    'Người bị thôi miên, sáng mai hãy xem lá bài của mình.',
+    'Tên những người bị thôi miên đã hiện trên lá bài. Thức dậy rồi hãy xem.'
+  ],
+  elder_wake: [
+    'Già Làng, mở mắt cho quản trò biết.',
+    'Già Làng, thức dậy. Quản trò đã thấy bạn.',
+    'Già Làng, mở mắt. Quản trò ghi nhận bạn.'
+  ],
+  elder_sleep: [
+    'Già Làng, nhắm mắt.',
+    'Già Làng, nhắm mắt lại.',
+    'Già Làng, đi ngủ.'
   ],
   hunter_wake: [
-    'Thợ Săn, hãy thức dậy. Đêm nay, bạn sẽ chĩa súng vào ai?',
-    'Thợ Săn ơi, mở mắt ra nào. Hãy chọn người mà bạn sẽ kéo theo... nếu bạn phải ngã xuống.',
-    'Thợ Săn, mở mắt ra. Hãy nạp đạn, và chĩa súng vào một người.',
-    'Thợ Săn ơi, đến lượt bạn rồi. Nếu đêm nay bạn ngã xuống, ai sẽ đi cùng bạn?',
-    'Thợ Săn, hãy thức dậy. Hãy chọn mục tiêu cho phát súng cuối cùng.',
-    'Thợ Săn, mở mắt ra nào... Họng súng của bạn đang hướng về ai?'
+    'Thợ Săn, mở mắt. Chĩa súng vào ai?',
+    'Thợ Săn, thức dậy. Chọn người để chĩa súng.',
+    'Thợ Săn, mở mắt. Đêm nay nhắm vào ai?'
   ],
   hunter_sleep: [
-    'Thợ Săn, hãy nhắm mắt lại.',
-    'Thợ Săn, nhắm mắt lại nào.',
-    'Thợ Săn, hãy hạ súng, và nhắm mắt lại.',
-    'Thợ Săn, hãy đi ngủ đi.',
-    'Xong rồi. Thợ Săn, hãy nhắm mắt lại.',
-    'Thợ Săn, hãy quay về giấc ngủ.'
+    'Thợ Săn, nhắm mắt.',
+    'Thợ Săn, nhắm mắt lại.',
+    'Thợ Săn, đi ngủ.'
+  ],
+  morning_peace: [
+    'Trời sáng. Đêm qua không ai chết.',
+    'Mọi người mở mắt. Đêm qua bình yên.',
+    'Trời sáng rồi. Không ai thiệt mạng.'
+  ],
+  morning_deaths: [
+    'Trời sáng. Đêm qua đã chết...',
+    'Mọi người mở mắt. Người chết đêm qua là...',
+    'Trời sáng rồi. Làng đã mất...'
+  ],
+  and: [
+    'và'
+  ],
+  revived: [
+    'Người được hồi sinh là...',
+    'Có người sống lại...',
+    'Trở về từ cõi chết là...'
+  ],
+  discussion_start: [
+    'Bắt đầu thảo luận. Ai là Sói?',
+    'Thảo luận nào. Hãy tìm ra Ma Sói.',
+    'Cả làng thảo luận. Ai đáng ngờ nhất?'
+  ],
+  vote_start: [
+    'Hết giờ. Bỏ phiếu người bạn nghi nhất.',
+    'Bỏ phiếu nào. Bạn nghi ai?',
+    'Hết giờ thảo luận. Hãy bỏ phiếu.'
+  ],
+  defense_intro: [
+    'Người bị nghi nhiều nhất là...',
+    'Lên bục biện hộ là...',
+    'Nhiều phiếu nhất là...'
+  ],
+  defense_outro: [
+    'Mời lên bục biện hộ.',
+    'Hãy thuyết phục cả làng.',
+    'Bạn có thời gian để biện hộ.'
+  ],
+  no_defendant: [
+    'Phiếu chưa thống nhất. Không ai lên bục.',
+    'Hôm nay không ai lên bục.',
+    'Làng chưa thống nhất. Không ai lên bục.'
+  ],
+  night_soon: [
+    'Mười giây nữa trời tối.',
+    'Đêm xuống sau mười giây.',
+    'Chuẩn bị, mười giây nữa là đêm.'
+  ],
+  judge_start: [
+    'Treo cổ hay tha? Hãy bỏ phiếu.',
+    'Biện hộ xong. Treo hay tha?',
+    'Cả làng quyết định: treo cổ, hay tha mạng.'
+  ],
+  verdict_kill: [
+    'đã bị treo cổ.',
+    'bị dân làng treo cổ.',
+    'đã bị xử treo cổ.'
+  ],
+  verdict_spare: [
+    'được tha.',
+    'được dân làng tha mạng.',
+    'thoát án treo cổ.'
   ],
   also_died: [
-    'Cùng ra đi với họ là...',
-    'Ra đi cùng với họ còn có...',
-    'Người cũng đã ngã xuống là...',
-    'Không chỉ một người... mà còn có...',
-    'Cùng chung số phận là...',
-    'Theo sau họ là...'
+    'Cũng đã chết...',
+    'Ra đi cùng là...',
+    'Thêm một người chết...'
   ],
   win_village: [
-    'Ma Sói cuối cùng đã bị tiêu diệt! Ngôi làng đã trở lại bình yên. Phe Dân Làng, chiến thắng!',
-    'Con sói cuối cùng đã gục ngã! Phe Dân Làng, chiến thắng!',
-    'Ngôi làng đã sạch bóng sói. Dân làng đã chiến thắng!',
-    'Bình yên đã trở lại! Phe Dân Làng, giành chiến thắng!',
-    'Không còn con sói nào nữa... Dân làng, chiến thắng vẻ vang!',
-    'Sự thật đã được phơi bày. Phe Dân Làng, chiến thắng!'
+    'Hết Sói rồi. Phe Dân Làng thắng!',
+    'Ngôi làng bình yên. Dân Làng chiến thắng!',
+    'Ma Sói đã bị tiêu diệt. Dân Làng thắng!'
   ],
   win_werewolf: [
-    'Bóng tối đã bao trùm ngôi làng... Không còn ai ngăn được bầy sói nữa. Phe Sói, chiến thắng!',
-    'Bầy sói đã thống trị ngôi làng... Phe Sói, chiến thắng!',
-    'Không còn ai đủ sức chống lại bầy sói. Sói, chiến thắng!',
-    'Tiếng tru vang khắp ngôi làng... Phe Sói đã giành chiến thắng!',
-    'Dân làng đã thua... Phe Sói, chiến thắng!',
-    'Những kẻ giấu mặt đã thắng. Phe Sói, chiến thắng!'
+    'Sói đã áp đảo. Phe Sói thắng!',
+    'Không ai cản được bầy Sói. Phe Sói chiến thắng!',
+    'Bóng tối bao trùm. Phe Sói thắng!'
   ],
   win_piper: [
-    'Tiếng sáo vang lên khắp ngôi làng... Tất cả đã bị thôi miên. Người Thổi Sáo, chiến thắng!',
-    'Cả làng đã chìm trong tiếng sáo... Người Thổi Sáo, chiến thắng!',
-    'Không ai còn tỉnh táo nữa. Người Thổi Sáo đã chiến thắng!',
-    'Mọi người đều đã bị mê hoặc... Người Thổi Sáo, giành chiến thắng!',
-    'Tiếng sáo đã khuất phục cả ngôi làng. Người Thổi Sáo, chiến thắng!',
-    'Một mình chống lại tất cả... Người Thổi Sáo đã chiến thắng!'
+    'Cả làng đã bị thôi miên. Người Thổi Sáo thắng!',
+    'Tiếng sáo đã thắng. Người Thổi Sáo chiến thắng!',
+    'Tất cả nghe theo tiếng sáo. Người Thổi Sáo thắng!'
   ],
   win_lovers: [
-    'Tình yêu đã vượt qua tất cả! Cặp Tình Nhân là những người cuối cùng còn sống, và họ đã chiến thắng!',
-    'Chỉ còn lại hai người yêu nhau... Cặp đôi, chiến thắng!',
-    'Tình yêu đã thắng tất cả! Cặp đôi là người chiến thắng!',
-    'Vượt qua mọi chia rẽ... Cặp Tình Nhân, chiến thắng!',
-    'Hai trái tim đã cùng nhau sống sót. Cặp đôi, chiến thắng!',
-    'Bất chấp phe phái, tình yêu đã chiến thắng!'
+    'Chỉ còn cặp đôi. Tình Nhân thắng!',
+    'Tình yêu chiến thắng. Cặp Tình Nhân thắng!',
+    'Cặp đôi sống sót đến cuối. Tình Nhân thắng!'
   ],
   win_fool: [
-    'Ha ha ha! Dân làng đã treo cổ Kẻ Cuồng Loạn... đúng như hắn mong muốn. Kẻ Cuồng Loạn, chiến thắng!',
-    'Các bạn đã mắc bẫy! Kẻ Cuồng Loạn bị treo cổ, và hắn là người chiến thắng!',
-    'Thật trớ trêu... Người bị treo cổ chính là Kẻ Cuồng Loạn. Kẻ Cuồng Loạn, chiến thắng!',
-    'Cả làng đã bị lừa một vố đau. Kẻ Cuồng Loạn đã đạt được điều mình muốn, và chiến thắng!',
-    'Sợi dây thòng lọng đã mang lại chiến thắng cho Kẻ Cuồng Loạn!',
-    'Kẻ Cuồng Loạn cười lớn trên giá treo cổ... Hắn đã thắng!'
+    'Treo nhầm Kẻ Cuồng Loạn rồi. Kẻ Cuồng Loạn thắng!',
+    'Kẻ Cuồng Loạn đã lừa được cả làng. Hắn thắng!',
+    'Đúng ý Kẻ Cuồng Loạn. Hắn chiến thắng!'
   ]
 };
 

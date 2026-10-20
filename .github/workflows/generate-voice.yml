@@ -13,7 +13,7 @@ on:
           - vi-VN-NamMinhNeural
           - vi-VN-HoaiMyNeural
       force:
-        description: 'Tạo lại tất cả file (khi đổi giọng hoặc sửa lời thoại)'
+        description: 'Tạo lại tất cả file (khi đổi giọng). Lời thoại đã sửa tự được tạo lại.'
         type: boolean
         default: false
 
