@@ -518,7 +518,7 @@ test('no player ever learns another player\'s role or secret before the game end
     applyAction(s, host.id, 'addBot', { count: 12 }, now, rng);
     // Odd seeds use the newer roles.
     const want = seed % 2
-      ? { werewolf: 2, wolf_cub: 1, seer: 1, witch: 1, hunter: 1, priest: 1, medium: 1, fool: 1, avenger: 1, villager: 2 }
+      ? { werewolf: 1, wolf_cub: 1, avenger: 1, seer: 1, detective: 1, witch: 1, hunter: 1, priest: 1, medium: 1, fool: 1, villager: 2 }
       : { werewolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, thief: 1, piper: 1, elder: 1, villager: 3 };
     for (const roleId of Object.keys(s.roleCounts)) {
       const n = want[roleId] || 0;
@@ -534,14 +534,13 @@ test('no player ever learns another player\'s role or secret before the game end
         const v = viewFor(s, p.id, now, 1);
         for (const o of v.players) {
           if (o.id === p.id || !o.role) continue;
-          const pack = ['werewolf', 'wolf_cub'];
+          const pack = ['werewolf', 'wolf_cub', 'avenger'];
           assert.ok(pack.includes(p.role) && pack.includes(o.role), `seed ${seed}: ${p.role} saw a ${o.role}`);
         }
         assert.deepEqual(v.game.lovers, [], 'the couple stays secret');
         assert.ok(!v.game.powersLost, 'the Elder\'s fate stays secret');
         if (v.me.lover) assert.ok(s.game.lovers.includes(p.id));
         if (v.me.charmedWith) assert.ok(s.game.charmed.includes(p.id));
-        if (v.me.team) assert.equal(p.role, 'avenger', 'only the Avenger is told a team');
       }
       const keys = s.narration?.clips.map(c => c.k) || [];
       assert.ok(!keys.some(k => /hunter_fire|lover_death|elder_betrayed/.test(k)), `seed ${seed}: narration explained a death`);
@@ -632,25 +631,31 @@ test('wolf cub wakes with the pack; once it dies the wolves bite two the next ni
   assert.equal(s.game.night.wolfKills, 1, 'only once');
 });
 
-test('priest: holy water once per game kills a wolf, does nothing to others', () => {
+test('priest: holy water once per game; a wolf dies, a villager costs the priest their life', () => {
   const g = setup(['priest', 'werewolf', 'wolf_cub', 'villager', 'villager', 'villager', 'villager', 'villager']);
   g.untilNightRole('priest');
   assert.throws(() => g.act(g.P[0], 'night', { target: g.P[0].id }));
   g.act(g.P[0], 'night', { target: g.P[2].id });
   g.untilPhase('MORNING');
   assert.equal(g.P[2].alive, false, 'the cub is a wolf too');
+  assert.equal(g.P[0].alive, true);
   g.untilNightRole('priest');
   assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.task.used, true);
   assert.throws(() => g.act(g.P[0], 'night', { target: g.P[1].id }), /đã dùng/);
 
   const h = setup(['priest', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
-  h.untilNightRole('werewolf');
-  h.act(h.P[1], 'night', { target: h.P[5].id });
   h.untilNightRole('priest');
   h.act(h.P[0], 'night', { target: h.P[3].id });
   h.untilPhase('MORNING');
-  assert.equal(h.P[3].alive, true, 'not a wolf: nothing happens');
-  assert.equal(h.s.game.priestUsed, true);
+  assert.equal(h.P[3].alive, true, 'the villager is unharmed');
+  assert.equal(h.P[0].alive, false, 'the priest pays for it');
+  assert.ok(h.s.narration.clips.some(c => c.k === `seat_${h.P[0].seat}`), 'announced like any death');
+
+  const k = setup(['priest', 'werewolf', 'fool', 'villager', 'villager', 'villager']);
+  k.untilNightRole('priest');
+  k.act(k.P[0], 'night', { target: k.P[2].id });
+  k.untilPhase('MORNING');
+  assert.ok(k.P[0].alive && k.P[2].alive, 'a third-party player: nothing happens');
 });
 
 test('medium brings one dead player back, once per game', () => {
@@ -673,8 +678,11 @@ test('medium brings one dead player back, once per game', () => {
   assert.equal(viewFor(s, P[0].id, 0, 1).me.task.used, true);
 });
 
-test('the fool wins alone when the village hangs them', () => {
-  const { s, P, act, untilPhase } = setup(['fool', 'werewolf', 'villager', 'villager', 'villager']);
+test('the madman (third party) wins alone when the village hangs them', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['fool', 'werewolf', 'seer', 'villager', 'villager']);
+  untilNightRole('seer');
+  act(P[2], 'night', { target: P[0].id });
+  assert.equal(s.game.night.seerResult, 'fool', 'the seer sees a third party');
   untilPhase('VOTE');
   const voters = P.filter(p => p.alive && p.id !== P[0].id);
   voters.forEach(v => act(v, 'vote', { target: P[0].id }));
@@ -685,26 +693,52 @@ test('the fool wins alone when the village hangs them', () => {
   assert.ok(s.narration.clips.some(c => c.k === 'win_fool'));
 });
 
-test('avenger: secret team, picks a target from night two, takes it along when bitten or hanged', () => {
-  const { s, P, act, untilNightRole, untilPhase } = setup(['avenger', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager']);
-  assert.ok(['village', 'werewolf'].includes(s.game.avengerTeam));
-  s.game.avengerTeam = 'werewolf';
-  assert.equal(viewFor(s, P[0].id, 0, 1).me.team, 'werewolf', 'the avenger knows their team');
-  assert.equal(viewFor(s, P[1].id, 0, 1).players[0].role, null, 'the wolves do not');
-  assert.ok(!s.game.queue.includes('avenger'), 'not called on the first night');
+test('avenger wolf: hunts with the pack, marks a target, takes it along only when hanged', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['avenger', 'werewolf', 'seer', 'witch', 'villager', 'villager', 'villager', 'villager']);
+  assert.equal(viewFor(s, P[1].id, 0, 1).players[0].role, 'avenger', 'the pack knows the avenger');
+  assert.deepEqual(viewFor(s, P[0].id, 0, 1).me.wolves, [P[1].id]);
+  untilNightRole('werewolf');
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.role, 'werewolf', 'hunts with the pack');
   untilNightRole('seer');
   act(P[2], 'night', { target: P[0].id });
-  assert.equal(s.game.night.seerResult, 'werewolf', 'the seer sees the real team');
-  untilPhase('DISCUSSION');
+  assert.equal(s.game.night.seerResult, 'werewolf');
   untilNightRole('avenger');
   act(P[0], 'night', { target: P[4].id });
-  // The pack is called before the Avenger, so they bite on night three.
-  untilNightRole('werewolf');
-  act(P[1], 'night', { target: P[0].id });
-  untilPhase('MORNING');
+  untilPhase('VOTE');
+  const voters = P.filter(p => p.alive && p.id !== P[0].id);
+  voters.forEach(v => act(v, 'vote', { target: P[0].id }));
+  untilPhase('JUDGE');
+  voters.forEach(v => act(v, 'judge', { choice: 'kill' }));
+  untilPhase('VERDICT');
   assert.equal(P[0].alive, false);
-  assert.equal(P[4].alive, false, 'the target dies with the avenger');
+  assert.equal(P[4].alive, false, 'the marked player dies with the hanged avenger');
   assert.equal(P[4].deathCause, 'avenger');
+
+  // Poisoned at night: no revenge.
+  const g = setup(['avenger', 'werewolf', 'witch', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('witch');
+  g.act(g.P[2], 'witch', { use: 'poison', target: g.P[0].id });
+  g.untilNightRole('avenger');
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false);
+  assert.equal(g.P.filter(p => !p.alive).length, 1);
+});
+
+test('detective: picks two players and learns whether they are on the same side', () => {
+  const { s, P, act, untilNightRole } = setup(['detective', 'werewolf', 'avenger', 'villager', 'fool', 'villager', 'villager']);
+  untilNightRole('detective');
+  act(P[0], 'night', { target: P[1].id });
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.result, null, 'needs two');
+  act(P[0], 'night', { target: P[2].id });
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.result, 'same', 'wolf and avenger are both wolves');
+  assert.throws(() => act(P[0], 'night', { target: P[3].id }), /đã kiểm tra/);
+  act(P[0], 'detectiveDone', {});
+  assert.equal(s.game.night.complete, true);
+  const g = setup(['detective', 'werewolf', 'villager', 'fool', 'villager', 'villager']);
+  g.untilNightRole('detective');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.task.result, 'different', 'villager and madman differ');
 });
 
 test('the elder dying to wolves does not cost the village its powers', () => {

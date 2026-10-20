@@ -11,14 +11,15 @@ export const NIGHT_STEPS = [
   { id: 'cupid', role: 'cupid', firstNightOnly: true },
   { id: 'guard', role: 'guard' },
   // The Wolf Cub wakes with the pack.
-  { id: 'werewolf', role: 'werewolf', also: ['wolf_cub'] },
+  { id: 'werewolf', role: 'werewolf', also: ['wolf_cub', 'avenger'] },
+  { id: 'avenger', role: 'avenger' },
   { id: 'seer', role: 'seer' },
+  { id: 'detective', role: 'detective' },
   { id: 'priest', role: 'priest' },
   { id: 'witch', role: 'witch' },
   { id: 'medium', role: 'medium' },
   { id: 'piper', role: 'piper' },
   { id: 'elder', role: 'elder', firstNightOnly: true },
-  { id: 'avenger', role: 'avenger', notFirstNight: true },
   { id: 'hunter', role: 'hunter' }
 ];
 
@@ -178,11 +179,25 @@ export const ROLES = {
     team: 'village',
     icon: '✝️',
     color: '#f5e6a8',
-    short: 'Một lần mỗi ván vẩy nước thánh: trúng Sói thì Sói chết.',
-    description: 'Một lần trong cả ván, ban đêm bạn vẩy nước thánh vào 1 người. Nếu người đó là Sói (kể cả Sói Con), họ chết vào sáng hôm sau. Nếu không phải Sói thì không có gì xảy ra, và nước thánh vẫn bị dùng hết.',
+    short: 'Một lần mỗi ván vẩy nước thánh: trúng Sói thì Sói chết, trúng phe Dân thì Mục Sư chết.',
+    description: 'Một lần trong cả ván, ban đêm bạn vẩy nước thánh vào 1 người. Nếu người đó là Sói (Sói thường, Sói Con, Sói Báo Thù), họ chết vào sáng hôm sau. Nếu người đó thuộc phe Dân, chính bạn sẽ chết. Nếu người đó thuộc phe thứ ba thì không có gì xảy ra.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M50 16V84M30 36H70" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
       <path d="M70 62C70 70 78 70 78 62C78 56 74 52 74 52C74 52 70 56 70 62Z" fill="#bae6fd"/>
+    </svg>`
+  },
+  detective: {
+    id: 'detective',
+    name: 'Thám Tử',
+    team: 'village',
+    icon: '🕵️',
+    color: '#8fd3c8',
+    short: 'Mỗi đêm chọn 2 người, biết họ có cùng phe không.',
+    description: 'Mỗi đêm chọn 2 người. Bạn sẽ biết hai người đó có cùng phe hay không (Phe Sói, Phe Dân hay phe thứ ba), nhưng không biết họ thuộc phe nào.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle cx="44" cy="44" r="20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="4"/>
+      <path d="M58 58L78 78" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+      <path d="M36 44H52" stroke="#a7f3d0" stroke-width="3" stroke-linecap="round"/>
     </svg>`
   },
   medium: {
@@ -200,12 +215,12 @@ export const ROLES = {
   },
   fool: {
     id: 'fool',
-    name: 'Kẻ Ngốc',
-    team: 'village',
+    name: 'Kẻ Cuồng Loạn',
+    team: 'fool',
     icon: '🤡',
-    color: '#ffd166',
-    short: 'Phe Dân. Bị dân làng treo cổ thì Kẻ Ngốc thắng.',
-    description: 'Thuộc phe Dân, không có chức năng ban đêm. Nếu bạn bị dân làng treo cổ, ván chơi kết thúc ngay và Kẻ Ngốc thắng một mình. Hãy khiến cả làng nghi ngờ bạn!',
+    color: '#c58cff',
+    short: 'Phe thứ ba. Thắng riêng nếu bị dân làng treo cổ.',
+    description: 'Bạn thuộc phe thứ ba và không có chức năng ban đêm. Nếu bạn bị dân làng treo cổ, ván chơi kết thúc ngay và bạn thắng một mình. Hãy khiến cả làng nghi ngờ bạn!',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="56" r="24" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M26 44L34 18L50 34L66 18L74 44" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
@@ -215,11 +230,11 @@ export const ROLES = {
   avenger: {
     id: 'avenger',
     name: 'Sói Báo Thù',
-    team: 'village',
+    team: 'werewolf',
     icon: '🗡️',
     color: '#ff9f6b',
-    short: 'Phe Dân hoặc phe Sói. Chết thì mục tiêu đã chọn chết theo.',
-    description: 'Khi chia bài, bạn được xếp ngẫu nhiên vào phe Dân hoặc phe Sói (chỉ mình bạn biết, ghi trên lá bài; Sói không biết bạn). Từ đêm thứ hai, mỗi đêm chọn 1 mục tiêu. Khi bạn bị Sói cắn hoặc bị dân làng treo cổ, mục tiêu đã chọn chết theo ngay. Đêm nào không chọn thì giữ mục tiêu cũ.',
+    short: 'Phe Sói. Bị treo cổ thì người đã chọn chết theo.',
+    description: 'Thuộc phe Sói: mỗi đêm thức dậy và cắn cùng đàn Sói. Sau đó bạn được gọi riêng để chọn 1 người (đêm nào không chọn thì giữ người cũ). Nếu bạn bị dân làng treo cổ, người đó chết theo ngay.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M30 70L66 34L74 26L70 38L36 74Z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
       <path d="M26 64L36 74M22 78L30 70" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -245,7 +260,8 @@ export const ROLE_IDS = Object.keys(ROLES);
 export const TEAM_LABEL = {
   werewolf: 'Phe Ma Sói',
   village: 'Phe Dân Làng',
-  piper: 'Phe riêng của Người Thổi Sáo'
+  piper: 'Phe riêng của Người Thổi Sáo',
+  fool: 'Phe thứ ba (Kẻ Cuồng Loạn)'
 };
 
 // Display info for a night step.
@@ -253,10 +269,10 @@ export function stepInfo(stepId) {
   return ROLES[stepId] || null;
 }
 
-const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter', 'wolf_cub', 'priest', 'medium', 'fool', 'avenger'];
+const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter', 'wolf_cub', 'priest', 'medium', 'fool', 'avenger', 'detective'];
 
 // Cards that belong to the wolf pack (they wake together and know each other).
-export const PACK_ROLES = ['werewolf', 'wolf_cub'];
+export const PACK_ROLES = ['werewolf', 'wolf_cub', 'avenger'];
 
 export function emptyRoleCounts() {
   return Object.fromEntries(ROLE_IDS.map(id => [id, 0]));

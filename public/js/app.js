@@ -1110,7 +1110,7 @@ function stage() {
   if (view.phase === 'GAME_OVER') {
     const w = g.winner;
     const icon = { village: '🌾', werewolf: '🐺', lovers: '💘', piper: '🪈', fool: '🤡' }[w];
-    const title = { village: 'Phe Dân Làng chiến thắng', werewolf: 'Phe Ma Sói chiến thắng', lovers: 'Cặp Tình Nhân chiến thắng', piper: 'Người Thổi Sáo chiến thắng', fool: 'Kẻ Ngốc chiến thắng' }[w];
+    const title = { village: 'Phe Dân Làng chiến thắng', werewolf: 'Phe Ma Sói chiến thắng', lovers: 'Cặp Tình Nhân chiến thắng', piper: 'Người Thổi Sáo chiến thắng', fool: 'Kẻ Cuồng Loạn chiến thắng' }[w];
     return `
       <div class="panel winner">
         <div class="big" aria-hidden="true">${icon}</div>
@@ -1197,9 +1197,19 @@ function nightTask(task) {
         ? `<p class="result result-wolf" style="margin-top:12px">Đàn Sói đã chốt: ${esc(task.targets.map(seatName).join(' và '))}.</p>`
         : pickGrid('night', { exclude: [m.id, ...view.me.wolves], selected: task.votes[m.id] || [], counts })}</div>`;
   }
+  if (task.role === 'detective') {
+    if (task.result) {
+      const same = task.result === 'same';
+      return `<div class="panel stack">${head('detective', 'Kết quả điều tra', 'Chỉ bạn nhìn thấy kết quả này.')}
+        <p class="result ${same ? 'result-village' : 'result-wolf'}">${esc(task.picks.map(seatName).join(' và '))} ${same ? 'cùng phe 🤝' : 'khác phe ⚔️'}</p>
+        ${task.complete ? '' : '<button class="btn btn-primary btn-block" data-act="detectiveDone">Đã nhớ, nhắm mắt lại</button>'}</div>`;
+    }
+    return `<div class="panel">${head('detective', 'Điều tra 2 người', `Đã chọn ${task.picks.length}/2. Bạn sẽ biết họ có cùng phe hay không.`)}
+      ${pickGrid('night', { exclude: [m.id], selected: task.picks })}</div>`;
+  }
   if (task.role === 'priest') {
     if (task.used && !task.pick) return `<div class="panel">${head('priest', 'Nước thánh đã dùng hết', 'Bạn đã dùng nước thánh. Hãy nhắm mắt lại.')}</div>`;
-    return `<div class="panel">${head('priest', 'Vẩy nước thánh?', 'Chỉ được dùng 1 lần cả ván. Nếu người đó là Sói, họ chết vào sáng mai; nếu không thì không có gì xảy ra. Không muốn dùng thì cứ để hết giờ.')}
+    return `<div class="panel">${head('priest', 'Vẩy nước thánh?', 'Chỉ được dùng 1 lần cả ván. Trúng Sói thì Sói chết vào sáng mai; trúng người phe Dân thì chính bạn chết. Không muốn dùng thì cứ để hết giờ.')}
       ${task.pick
         ? `<p class="result" style="margin-top:12px">Bạn đã vẩy nước thánh vào ${esc(seatName(task.pick))}.</p>`
         : pickGrid('night', { exclude: [m.id] })}</div>`;
@@ -1216,9 +1226,9 @@ function nightTask(task) {
   if (task.role === 'avenger') {
     const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
     const subs = lastAim ? { [lastAim]: 'Mục tiêu hiện tại' } : {};
-    return `<div class="panel">${head('avenger', 'Chọn mục tiêu báo thù', lastAim
-      ? `Mục tiêu đang là ${esc(seatName(lastAim))}. Chọn lại, hoặc để nguyên khi hết giờ.`
-      : 'Nếu bạn bị Sói cắn hoặc bị treo cổ, người này chết theo.')}
+    return `<div class="panel">${head('avenger', 'Chọn người chết theo', lastAim
+      ? `Đang chọn ${esc(seatName(lastAim))}. Chọn lại, hoặc để nguyên khi hết giờ.`
+      : 'Nếu bạn bị dân làng treo cổ, người này chết theo.')}
       ${task.aim
         ? `<p class="result" style="margin-top:12px">Mục tiêu: ${esc(seatName(task.aim))}.</p>`
         : pickGrid('night', { exclude: [m.id], selected: lastAim ? [lastAim] : [], subs })}</div>`;
@@ -1227,7 +1237,7 @@ function nightTask(task) {
     if (task.result) {
       const wolf = task.result === 'werewolf';
       return `<div class="panel stack">${head('seer', 'Kết quả soi', 'Chỉ bạn nhìn thấy kết quả này.')}
-        <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : task.result === 'piper' ? '🪈' : '🌾'}</p>
+        <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : { piper: '🪈', fool: '🤡' }[task.result] || '🌾'}</p>
         ${task.complete ? '' : '<button class="btn btn-primary btn-block" data-act="seerDone">Đã nhớ, nhắm mắt lại</button>'}</div>`;
     }
     return `<div class="panel">${head('seer', 'Soi ai đêm nay?', 'Bạn sẽ biết người đó thuộc phe Sói hay phe Dân.')}
@@ -1267,7 +1277,7 @@ function moderatorNight() {
       ${line('Mục Sư vẩy nước thánh', n.holy)}
       ${line('Thầy Đồng hồi sinh', n.revive)}
       ${line('Sói Báo Thù nhắm', n.avengerAim)}
-      ${n.avengerTeam ? `<p class="small">Sói Báo Thù thuộc ${TEAM_LABEL[n.avengerTeam]}</p>` : ''}
+      ${n.detectivePicks?.length ? `<p class="small">Thám Tử kiểm tra: <strong>${names(n.detectivePicks)}</strong>${n.detectiveResult ? ` (${n.detectiveResult === 'same' ? 'cùng phe' : 'khác phe'})` : ''}</p>` : ''}
       ${line('Tiên Tri soi', n.seerTarget)}
       ${n.heal ? '<p class="small">Phù Thủy đã dùng bình Cứu.</p>' : ''}
       ${line('Phù Thủy đầu độc', n.poison)}
@@ -1284,8 +1294,8 @@ function renderCard(reset = true) {
   const card = body.querySelector('.card');
   const revealed = !reset && card?.classList.contains('revealed');
   const extra = [];
-  if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(id => `${seatName(id)}${player(id)?.role === 'wolf_cub' ? ' (Sói Con)' : ''}`).join(', ')}`);
-  if (m.team) extra.push(`🗡️ Bạn thuộc ${TEAM_LABEL[m.team]}${m.team === 'werewolf' ? ' (đàn Sói không biết bạn)' : ''}.${m.avengerTarget ? ` Mục tiêu báo thù: ${seatName(m.avengerTarget)}.` : ''}`);
+  if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(id => `${seatName(id)}${['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
+  if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);
   if (m.charmed) {
@@ -1307,7 +1317,7 @@ function renderCard(reset = true) {
         <div class="card-face card-front" style="color:${r.color}">
           <div class="art">${r.art}</div>
           <h3>${r.name}</h3>
-          <span class="team">${TEAM_LABEL[m.team || r.team]}</span>
+          <span class="team">${TEAM_LABEL[r.team]}</span>
           <p class="desc">${r.description}</p>
         </div>
       </div>
@@ -1462,6 +1472,7 @@ document.addEventListener('click', async (e) => {
     case 'flip': return el.classList.toggle('revealed');
     case 'night': return act('night', { target: id });
     case 'seerDone': return act('seerDone');
+    case 'detectiveDone': return act('detectiveDone');
     case 'ack': return act('ack');
     case 'thiefPick': {
       const card = view.me.task?.extras?.[Number(el.dataset.pick)];

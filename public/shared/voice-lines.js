@@ -275,6 +275,22 @@ export const LINES = {
     'được cả làng tha mạng. Liệu đó có phải là một sai lầm?',
     'đã được tha. Ngôi làng chọn tin tưởng, ít nhất là hôm nay.'
   ],
+  detective_wake: [
+    'Thám Tử ơi, hãy thức dậy. Hãy chọn hai người để điều tra.',
+    'Thám Tử, mở mắt ra nào. Hai người nào có chung một phe?',
+    'Thám Tử, hãy thức dậy... Hãy so sánh hai người, xem họ có cùng phe hay không.',
+    'Thám Tử ơi, đến lượt bạn rồi. Manh mối đêm nay sẽ nằm ở hai người nào?',
+    'Thám Tử, mở mắt ra. Hãy chọn hai người, sự thật sẽ dần lộ diện.',
+    'Thám Tử, hãy thức dậy. Hãy điều tra thật kỹ hai người mà bạn nghi ngờ.'
+  ],
+  detective_sleep: [
+    'Thám Tử, hãy nhắm mắt lại.',
+    'Thám Tử, nhắm mắt lại nào.',
+    'Cuộc điều tra đêm nay đã xong. Thám Tử, hãy đi ngủ.',
+    'Thám Tử, hãy quay về giấc ngủ.',
+    'Xong rồi. Thám Tử, hãy nhắm mắt lại.',
+    'Thám Tử, hãy giữ kín manh mối này, và nhắm mắt lại.'
+  ],
   priest_wake: [
     'Mục Sư ơi, hãy thức dậy. Đêm nay, bạn có muốn vẩy nước thánh không?',
     'Mục Sư, mở mắt ra nào. Nước thánh trong tay bạn chỉ dùng được một lần.',
@@ -308,12 +324,12 @@ export const LINES = {
     'Thầy Đồng, hãy giữ kín bí mật này, và nhắm mắt lại.'
   ],
   avenger_wake: [
-    'Sói Báo Thù ơi, hãy thức dậy. Hãy chọn người sẽ phải trả giá nếu bạn ngã xuống.',
-    'Sói Báo Thù, mở mắt ra nào. Mối thù của bạn sẽ nhắm vào ai đêm nay?',
-    'Sói Báo Thù, hãy thức dậy... Nếu bạn chết, ai sẽ đi cùng bạn?',
-    'Sói Báo Thù ơi, đến lượt bạn rồi. Hãy chọn mục tiêu báo thù.',
-    'Sói Báo Thù, mở mắt ra. Lưỡi dao của bạn đang chờ một cái tên.',
-    'Sói Báo Thù, hãy thức dậy. Hãy chọn kẻ sẽ không thoát khỏi cơn thịnh nộ của bạn.'
+    'Sói Báo Thù ơi, hãy mở mắt. Hãy chọn người sẽ phải chết theo nếu bạn bị treo cổ.',
+    'Sói Báo Thù, mở mắt ra nào. Nếu dân làng treo cổ bạn, ai sẽ đi cùng bạn?',
+    'Sói Báo Thù, hãy thức dậy... Hãy chọn kẻ sẽ trả giá cho sợi dây thòng lọng.',
+    'Sói Báo Thù ơi, đến lượt bạn rồi. Hãy chọn người sẽ chết theo bạn.',
+    'Sói Báo Thù, mở mắt ra. Mối thù của bạn sẽ nhắm vào ai?',
+    'Sói Báo Thù, hãy thức dậy. Nếu bạn ngã xuống trên giá treo cổ, ai sẽ không thoát?'
   ],
   avenger_sleep: [
     'Sói Báo Thù, hãy nhắm mắt lại.',
@@ -380,12 +396,12 @@ export const LINES = {
     'Bất chấp phe phái, tình yêu đã chiến thắng!'
   ],
   win_fool: [
-    'Ha ha ha! Dân làng đã treo cổ Kẻ Ngốc... đúng như hắn mong muốn. Kẻ Ngốc, chiến thắng!',
-    'Các bạn đã mắc bẫy! Kẻ Ngốc bị treo cổ, và hắn là người chiến thắng!',
-    'Thật trớ trêu... Người bị treo cổ chính là Kẻ Ngốc. Kẻ Ngốc, chiến thắng!',
-    'Cả làng đã bị lừa một vố đau. Kẻ Ngốc đã đạt được điều mình muốn, và chiến thắng!',
-    'Sợi dây thòng lọng đã mang lại chiến thắng cho Kẻ Ngốc!',
-    'Kẻ Ngốc cười lớn trên giá treo cổ... Hắn đã thắng!'
+    'Ha ha ha! Dân làng đã treo cổ Kẻ Cuồng Loạn... đúng như hắn mong muốn. Kẻ Cuồng Loạn, chiến thắng!',
+    'Các bạn đã mắc bẫy! Kẻ Cuồng Loạn bị treo cổ, và hắn là người chiến thắng!',
+    'Thật trớ trêu... Người bị treo cổ chính là Kẻ Cuồng Loạn. Kẻ Cuồng Loạn, chiến thắng!',
+    'Cả làng đã bị lừa một vố đau. Kẻ Cuồng Loạn đã đạt được điều mình muốn, và chiến thắng!',
+    'Sợi dây thòng lọng đã mang lại chiến thắng cho Kẻ Cuồng Loạn!',
+    'Kẻ Cuồng Loạn cười lớn trên giá treo cổ... Hắn đã thắng!'
   ]
 };
 
