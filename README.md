@@ -9,7 +9,7 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 
 ## Vai trò
 
-Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Mục Sư, Thầy Đồng, Thám Tử, Kẻ Cuồng Loạn, Sói Báo Thù, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người): Thần Tình Yêu từ 7 người, Ăn Trộm từ 9 (kèm 2 lá dư), Người Thổi Sáo từ 11, Già Làng từ 12. Chủ phòng vẫn chỉnh tay được; Sói Con, Sói Báo Thù, Mục Sư, Thầy Đồng, Thám Tử và Kẻ Cuồng Loạn do chủ phòng tự thêm.
+Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Mục Sư, Thầy Đồng, Thám Tử, Kẻ Cuồng Loạn, Sói Báo Thù, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người): Thần Tình Yêu từ 7 người, Ăn Trộm từ 9 (kèm 2 lá dư), Người Thổi Sáo từ 11. Từ 12 người dùng bộ bài chuẩn: 2 Sói thường + Sói Báo Thù, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thám Tử, Thầy Đồng, Mục Sư, 1 Dân Làng, Kẻ Cuồng Loạn (3 Sói · 8 Dân · 1 phe thứ ba); thêm người thì thêm Dân Làng, từ 15 người thêm 1 Sói thường. Chủ phòng vẫn chỉnh tay được (Sói Con, Già Làng… tự thêm).
 
 - **Sói Con** (phe Sói): thức dậy và cắn cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm sau đàn Sói được cắn 2 người.
 - **Mục Sư** (phe Dân): một lần mỗi ván, ban đêm vẩy nước thánh vào 1 người. Nếu đó là Sói (Sói thường, Sói Con, Sói Báo Thù) thì người đó chết vào sáng hôm sau; nếu là người phe Dân thì Mục Sư chết; người phe thứ ba thì không sao.

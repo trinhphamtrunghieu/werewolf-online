@@ -62,17 +62,30 @@ test('auto balance always matches player count and is playable', () => {
   }
 });
 
-test('auto balance brings in Cupid, Thief, Piper and Elder as the village grows', () => {
+test('auto balance brings in Cupid, Thief and Piper as the village grows', () => {
   const firstAt = (id) => {
-    for (let n = 1; n <= 18; n++) if (computeBalancedRoles(n)[id]) return n;
+    for (let n = 1; n <= 11; n++) if (computeBalancedRoles(n)[id]) return n;
     return null;
   };
   assert.equal(firstAt('cupid'), 7);
   assert.equal(firstAt('thief'), 9);
   assert.equal(firstAt('piper'), 11);
-  assert.equal(firstAt('elder'), 12);
-  const c = computeBalancedRoles(18);
-  for (const id of ['cupid', 'thief', 'piper', 'elder']) assert.equal(c[id], 1, id);
+});
+
+test('12 players get the house table: 3 wolves, 8 villagers, 1 third party', () => {
+  const c = computeBalancedRoles(12);
+  const used = Object.fromEntries(Object.entries(c).filter(([, n]) => n));
+  assert.deepEqual(used, {
+    werewolf: 2, avenger: 1, seer: 1, guard: 1, witch: 1, hunter: 1,
+    detective: 1, medium: 1, priest: 1, villager: 1, fool: 1
+  });
+  assert.equal(computeBalancedRoles(13).villager, 2);
+  // Bigger rooms build on it.
+  for (let n = 13; n <= 18; n++) {
+    const d = computeBalancedRoles(n);
+    for (const id of ['avenger', 'seer', 'guard', 'witch', 'hunter', 'detective', 'medium', 'priest', 'fool']) assert.equal(d[id], 1, `${id} n=${n}`);
+  }
+  assert.equal(computeBalancedRoles(15).werewolf, 3);
 });
 
 test('names are cleaned so they cannot inject HTML', () => {
@@ -496,7 +509,8 @@ test('bots finish games that use every role', () => {
     applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
     for (let i = 0; i < 12; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
     const want = { werewolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, thief: 1, piper: 1, elder: 1, villager: 3 };
-    for (const [roleId, n] of Object.entries(want)) {
+    for (const roleId of Object.keys(s.roleCounts)) {
+      const n = want[roleId] || 0;
       while ((s.roleCounts[roleId] || 0) < n) applyAction(s, host.id, 'role', { roleId, delta: 1 }, now, rng);
       while ((s.roleCounts[roleId] || 0) > n) applyAction(s, host.id, 'role', { roleId, delta: -1 }, now, rng);
     }
@@ -759,7 +773,8 @@ test('the narrator is never cut off: each narration starts after the previous on
     applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
     for (let i = 0; i < 12; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
     const want = { werewolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, thief: 1, piper: 1, elder: 1, villager: 3 };
-    for (const [roleId, n] of Object.entries(want)) {
+    for (const roleId of Object.keys(s.roleCounts)) {
+      const n = want[roleId] || 0;
       while ((s.roleCounts[roleId] || 0) < n) applyAction(s, host.id, 'role', { roleId, delta: 1 }, now, rng);
       while ((s.roleCounts[roleId] || 0) > n) applyAction(s, host.id, 'role', { roleId, delta: -1 }, now, rng);
     }

@@ -278,10 +278,27 @@ export function emptyRoleCounts() {
   return Object.fromEntries(ROLE_IDS.map(id => [id, 0]));
 }
 
+// The house setup for 12 players: 3 wolves, 8 villagers (7 roles and one
+// plain Villager), 1 third party. Villagers fill any extra seats.
+const HOUSE_TABLE_12 = {
+  werewolf: 2, avenger: 1,
+  seer: 1, guard: 1, witch: 1, hunter: 1, detective: 1, medium: 1, priest: 1,
+  fool: 1
+};
+
 export function computeBalancedRoles(playerCount) {
   const n = Math.max(0, playerCount);
   const c = emptyRoleCounts();
   if (n === 0) return c;
+  if (n >= 12) {
+    // From 12 players, start from the house table; extra players are
+    // villagers, with one more wolf from 15.
+    Object.assign(c, HOUSE_TABLE_12);
+    if (n >= 15) c.werewolf += 1;
+    const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
+    c.villager = n - special;
+    return c;
+  }
   c.werewolf = 1;
   if (n >= 2) c.seer = 1;
   if (n >= 4) c.guard = 1;
@@ -291,9 +308,6 @@ export function computeBalancedRoles(playerCount) {
   if (n >= 9) c.thief = 1;
   if (n >= 10) c.werewolf = 3;
   if (n >= 11) c.piper = 1;
-  if (n >= 12) c.elder = 1;
-  if (n >= 13) c.werewolf = 4;
-  if (n >= 16) c.werewolf = 5;
   const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
   // The Thief brings two spare cards, filled with Villagers.
   c.villager = Math.max(0, cardsNeeded(c, n) - special);
