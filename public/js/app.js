@@ -832,6 +832,27 @@ const PHASE_TITLE = {
   GAME_OVER: () => 'Ván chơi kết thúc'
 };
 
+// Votes are public, like hands raised around the table: who picked whom.
+function voteList(votes) {
+  const byTarget = {};
+  Object.entries(votes || {}).forEach(([voter, target]) => { (byTarget[target] ||= []).push(voter); });
+  const rows = Object.entries(byTarget).sort((a, b) => b[1].length - a[1].length);
+  if (!rows.length) return '';
+  return `<ul class="vote-list">${rows.map(([target, voters]) => `
+    <li><strong>${esc(seatName(target))}</strong> <span class="muted">(${voters.length})</span> ← ${esc(voters.map(seatName).join(', '))}</li>`).join('')}</ul>`;
+}
+
+function judgeList(judge) {
+  const names = (choice) => Object.keys(judge || {}).filter(id => judge[id] === choice).map(seatName).join(', ');
+  const kill = names('kill');
+  const spare = names('spare');
+  if (!kill && !spare) return '';
+  return `<ul class="vote-list">
+    ${kill ? `<li>🪢 <strong>Treo cổ</strong> ← ${esc(kill)}</li>` : ''}
+    ${spare ? `<li>🕊️ <strong>Tha mạng</strong> ← ${esc(spare)}</li>` : ''}
+  </ul>`;
+}
+
 function renderGame() {
   if (!document.getElementById('gameRoot')) {
     app.innerHTML = `
@@ -872,11 +893,16 @@ function renderGame() {
   const total = view.players.filter(p => p.inGame).length;
   document.getElementById('aliveCount').textContent = `Còn sống ${alive}/${total}`;
   document.getElementById('village').innerHTML = view.players.filter(p => p.inGame).map(p => seat(p)).join('');
+  // Only a moderator who does not play receives the log.
+  document.getElementById('logBox').hidden = !g.log.length;
   document.getElementById('log').innerHTML = g.log.map(l => `<li>${esc(l)}</li>`).join('');
 
   const m = view.me;
   document.getElementById('gameFooter').innerHTML = m.inGame
-    ? `<button class="btn btn-ghost btn-block" data-act="card" style="background:var(--ink-2)">🂠 Lá bài của tôi</button>`
+    ? `<button class="btn btn-primary btn-block card-button" data-act="card">
+        <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
+        <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
+      </button>`
     : '';
   if (document.getElementById('cardSheet').open) renderCard(false);
 }
@@ -1063,6 +1089,7 @@ function stage() {
         ${canVote
           ? pickGrid('vote', { exclude: [m.id], selected: mine ? [mine] : [], counts })
           : `<div class="village" style="margin-top:14px">${alivePlayers().map(p => seat(p, { count: counts[p.id] || 0 })).join('')}</div>`}
+        ${voteList(g.votes)}
       </div>`;
   }
 
@@ -1073,6 +1100,7 @@ function stage() {
         <div class="village" style="grid-template-columns:110px;justify-content:center">${seat(d)}</div>
         <h2>${d.id === m.id ? 'Bạn đang trên bục biện hộ' : `${esc(d.name)} đang biện hộ`}</h2>
         <p class="lead">${d.id === m.id ? 'Hãy thuyết phục cả làng rằng bạn vô tội.' : 'Hãy lắng nghe. Khi hết giờ, cả làng sẽ quyết định.'}</p>
+        ${voteList(g.votes)}
         ${isHost() ? '<button class="btn btn-ghost" data-act="skip">Kết thúc biện hộ</button>' : ''}
       </div>`;
   }
@@ -1096,6 +1124,7 @@ function stage() {
             <span class="big" aria-hidden="true">🕊️</span>Tha mạng<span class="n">${spare} phiếu</span>
           </button>
         </div>
+        ${judgeList(g.judge)}
       </div>`;
   }
 
@@ -1104,7 +1133,7 @@ function stage() {
     let body = '<h2>Hôm nay không ai lên bục</h2><p class="lead">Phiếu bầu chưa thống nhất. Màn đêm sắp buông xuống.</p>';
     if (v.type === 'kill') body = `<h2>${esc(v.ids.map(seatName).join(' và '))} đã bị loại</h2><p class="lead">${v.kill} phiếu treo, ${v.spare} phiếu tha.</p>`;
     if (v.type === 'spare') body = `<h2>${esc(seatName(v.ids[0]))} được tha</h2><p class="lead">${v.kill} phiếu treo, ${v.spare} phiếu tha.</p>`;
-    return `<div class="panel stack">${body}</div>`;
+    return `<div class="panel stack">${body}${v.type ? judgeList(g.judge) : ''}</div>`;
   }
 
   if (view.phase === 'GAME_OVER') {

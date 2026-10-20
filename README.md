@@ -38,6 +38,8 @@ Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình 
 
 Quản trò không bao giờ nói lý do chết (bị cắn, trúng độc, chết theo người yêu hay trúng súng Thợ Săn) và luôn đọc người chết theo thứ tự số ghế, để không lộ vai trò.
 
+Bỏ phiếu công khai: mọi người thấy ai bầu ai, và ai chọn treo cổ hay tha. Nhật ký ván chơi chỉ hiện cho chủ phòng làm quản trò (không tham gia chơi).
+
 Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
 
 **Điều kiện thắng:** Phe Dân thắng khi hết Sói và Người Thổi Sáo (nếu có) đã chết. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên. Cặp đôi khác phe thắng khi họ là 2 người cuối cùng còn sống.
