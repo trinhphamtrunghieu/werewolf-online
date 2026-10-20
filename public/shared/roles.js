@@ -10,9 +10,14 @@ export const NIGHT_STEPS = [
   { id: 'thief', role: 'thief', firstNightOnly: true },
   { id: 'cupid', role: 'cupid', firstNightOnly: true },
   { id: 'guard', role: 'guard' },
-  { id: 'werewolf', role: 'werewolf' },
+  // The Wolf Cub wakes with the pack.
+  { id: 'werewolf', role: 'werewolf', also: ['wolf_cub', 'avenger'] },
+  { id: 'avenger', role: 'avenger' },
   { id: 'seer', role: 'seer' },
+  { id: 'detective', role: 'detective' },
+  { id: 'priest', role: 'priest' },
   { id: 'witch', role: 'witch' },
+  { id: 'medium', role: 'medium' },
   { id: 'piper', role: 'piper' },
   { id: 'elder', role: 'elder', firstNightOnly: true },
   { id: 'hunter', role: 'hunter' }
@@ -154,6 +159,87 @@ export const ROLES = {
       <path d="M68 30C68 24 80 24 80 30" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
     </svg>`
   },
+  wolf_cub: {
+    id: 'wolf_cub',
+    name: 'Sói Con',
+    team: 'werewolf',
+    icon: '🐺',
+    color: '#ff9a8a',
+    short: 'Thức dậy cùng Sói. Sói Con chết thì đêm sau Sói được cắn 2 người.',
+    description: 'Thuộc phe Sói, mỗi đêm thức dậy và chọn nạn nhân cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm tiếp theo đàn Sói được cắn 2 người.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <path d="M32 74L36 50L28 32L44 42L50 36L56 42L72 32L64 50L68 74H32Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="43" cy="55" r="3" fill="#fef08a"/><circle cx="57" cy="55" r="3" fill="#fef08a"/>
+      <path d="M46 66Q50 69 54 66" stroke="#fecaca" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`
+  },
+  priest: {
+    id: 'priest',
+    name: 'Mục Sư',
+    team: 'village',
+    icon: '✝️',
+    color: '#f5e6a8',
+    short: 'Một lần mỗi ván vẩy nước thánh: trúng Sói thì Sói chết, trúng phe Dân thì Mục Sư chết.',
+    description: 'Một lần trong cả ván, ban đêm bạn vẩy nước thánh vào 1 người. Nếu người đó là Sói (Sói thường, Sói Con, Sói Báo Thù), họ chết vào sáng hôm sau. Nếu người đó thuộc phe Dân, chính bạn sẽ chết. Nếu người đó thuộc phe thứ ba thì không có gì xảy ra.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <path d="M50 16V84M30 36H70" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+      <path d="M70 62C70 70 78 70 78 62C78 56 74 52 74 52C74 52 70 56 70 62Z" fill="#bae6fd"/>
+    </svg>`
+  },
+  detective: {
+    id: 'detective',
+    name: 'Thám Tử',
+    team: 'village',
+    icon: '🕵️',
+    color: '#8fd3c8',
+    short: 'Mỗi đêm chọn 2 người, biết họ có cùng phe không.',
+    description: 'Mỗi đêm chọn 2 người. Bạn sẽ biết hai người đó có cùng phe hay không (Phe Sói, Phe Dân hay phe thứ ba), nhưng không biết họ thuộc phe nào.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle cx="44" cy="44" r="20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="4"/>
+      <path d="M58 58L78 78" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+      <path d="M36 44H52" stroke="#a7f3d0" stroke-width="3" stroke-linecap="round"/>
+    </svg>`
+  },
+  medium: {
+    id: 'medium',
+    name: 'Thầy Đồng',
+    team: 'village',
+    icon: '🕯️',
+    color: '#d6b4ff',
+    short: 'Một lần mỗi ván hồi sinh 1 người đã chết.',
+    description: 'Một lần trong cả ván, ban đêm bạn chọn 1 người đã chết để hồi sinh. Sáng hôm sau người đó sống lại với vai trò cũ. Dùng xong thì mất năng lực.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <rect x="38" y="44" width="24" height="40" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
+      <path d="M50 18C56 26 58 32 50 40C42 32 44 26 50 18Z" fill="#fde68a" stroke="#fbbf24" stroke-width="2"/>
+    </svg>`
+  },
+  fool: {
+    id: 'fool',
+    name: 'Kẻ Cuồng Loạn',
+    team: 'fool',
+    icon: '🤡',
+    color: '#c58cff',
+    short: 'Phe thứ ba. Thắng riêng nếu bị dân làng treo cổ.',
+    description: 'Bạn thuộc phe thứ ba và không có chức năng ban đêm. Nếu bạn bị dân làng treo cổ, ván chơi kết thúc ngay và bạn thắng một mình. Hãy khiến cả làng nghi ngờ bạn!',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle cx="50" cy="56" r="24" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
+      <path d="M26 44L34 18L50 34L66 18L74 44" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M40 62Q50 72 60 62" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </svg>`
+  },
+  avenger: {
+    id: 'avenger',
+    name: 'Sói Báo Thù',
+    team: 'werewolf',
+    icon: '🗡️',
+    color: '#ff9f6b',
+    short: 'Phe Sói. Bị treo cổ thì người đã chọn chết theo.',
+    description: 'Thuộc phe Sói: mỗi đêm thức dậy và cắn cùng đàn Sói. Sau đó bạn được gọi riêng để chọn 1 người (đêm nào không chọn thì giữ người cũ). Nếu bạn bị dân làng treo cổ, người đó chết theo ngay.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <path d="M30 70L66 34L74 26L70 38L36 74Z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M26 64L36 74M22 78L30 70" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+    </svg>`
+  },
   villager: {
     id: 'villager',
     name: 'Dân Làng',
@@ -174,7 +260,8 @@ export const ROLE_IDS = Object.keys(ROLES);
 export const TEAM_LABEL = {
   werewolf: 'Phe Ma Sói',
   village: 'Phe Dân Làng',
-  piper: 'Phe riêng của Người Thổi Sáo'
+  piper: 'Phe riêng của Người Thổi Sáo',
+  fool: 'Phe thứ ba (Kẻ Cuồng Loạn)'
 };
 
 // Display info for a night step.
@@ -182,16 +269,36 @@ export function stepInfo(stepId) {
   return ROLES[stepId] || null;
 }
 
-const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter'];
+const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter', 'wolf_cub', 'priest', 'medium', 'fool', 'avenger', 'detective'];
+
+// Cards that belong to the wolf pack (they wake together and know each other).
+export const PACK_ROLES = ['werewolf', 'wolf_cub', 'avenger'];
 
 export function emptyRoleCounts() {
   return Object.fromEntries(ROLE_IDS.map(id => [id, 0]));
 }
 
+// The house setup for 12 players: 3 wolves, 8 villagers (7 roles and one
+// plain Villager), 1 third party. Villagers fill any extra seats.
+const HOUSE_TABLE_12 = {
+  werewolf: 2, avenger: 1,
+  seer: 1, guard: 1, witch: 1, hunter: 1, detective: 1, medium: 1, priest: 1,
+  fool: 1
+};
+
 export function computeBalancedRoles(playerCount) {
   const n = Math.max(0, playerCount);
   const c = emptyRoleCounts();
   if (n === 0) return c;
+  if (n >= 12) {
+    // From 12 players, start from the house table; extra players are
+    // villagers, with one more wolf from 15.
+    Object.assign(c, HOUSE_TABLE_12);
+    if (n >= 15) c.werewolf += 1;
+    const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
+    c.villager = n - special;
+    return c;
+  }
   c.werewolf = 1;
   if (n >= 2) c.seer = 1;
   if (n >= 4) c.guard = 1;
@@ -201,9 +308,6 @@ export function computeBalancedRoles(playerCount) {
   if (n >= 9) c.thief = 1;
   if (n >= 10) c.werewolf = 3;
   if (n >= 11) c.piper = 1;
-  if (n >= 12) c.elder = 1;
-  if (n >= 13) c.werewolf = 4;
-  if (n >= 16) c.werewolf = 5;
   const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
   // The Thief brings two spare cards, filled with Villagers.
   c.villager = Math.max(0, cardsNeeded(c, n) - special);
@@ -221,7 +325,7 @@ export function cardsNeeded(counts, playerCount) {
 // Returns a Vietnamese error message, or null when the role setup is playable.
 export function validateRoleCounts(counts, playerCount) {
   const total = totalRoles(counts);
-  const wolves = counts.werewolf || 0;
+  const wolves = PACK_ROLES.reduce((sum, id) => sum + (counts[id] || 0), 0);
   const needed = cardsNeeded(counts, playerCount);
   const dup = UNIQUE_ROLES.find(id => (counts[id] || 0) > 1);
   if (dup) return `Chỉ được có 1 lá ${ROLES[dup].name}.`;
