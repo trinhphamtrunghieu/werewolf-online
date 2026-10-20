@@ -596,6 +596,20 @@ test('deaths are announced in seat order, never in the order they happened', () 
   assert.ok(!s.game.log.some(e => /Thần Tình Yêu|mũi tên/.test(e)), 'no public trace of Cupid');
 });
 
+test('only a moderator who does not play can read the game log', () => {
+  const { s, P } = setup(['werewolf', 'seer', 'villager', 'villager']);
+  assert.ok(s.game.log.length > 0);
+  assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.log, [], 'players see no log');
+  assert.deepEqual(viewFor(s, P[0].id, 0, 1).game.log, [], 'not even a playing host');
+  // A host who only moderates sees everything.
+  const { state, player: host } = createRoom({ code: 'MOD01', hostName: 'Host', now: 0 });
+  applyAction(state, host.id, 'config', { hostPlays: false }, 0);
+  applyAction(state, host.id, 'addBot', { count: 4 }, 0);
+  applyAction(state, host.id, 'start', {}, 0);
+  assert.ok(viewFor(state, host.id, 0, 1).game.log.length > 0);
+  assert.deepEqual(viewFor(state, state.players.find(p => p.isBot).id, 0, 1).game.log, []);
+});
+
 test('the elder dying to wolves does not cost the village its powers', () => {
   const { s, P, act, untilNightRole, untilPhase } = setup(['elder', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
   s.game.elderShield = false;

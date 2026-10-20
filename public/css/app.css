@@ -583,3 +583,8 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+.vote-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; font-size: 0.92rem; }
+.vote-list li { padding: 8px 10px; border-radius: 10px; background: var(--ink); }
+.card-button { flex-direction: column; gap: 2px; padding-top: 10px; padding-bottom: 10px; }
+.card-button-hint { font-size: 0.78rem; font-weight: 500; opacity: 0.8; }
