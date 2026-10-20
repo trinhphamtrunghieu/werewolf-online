@@ -9,7 +9,14 @@ Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của 
 
 ## Vai trò
 
-Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người): Thần Tình Yêu từ 7 người, Ăn Trộm từ 9 (kèm 2 lá dư), Người Thổi Sáo từ 11, Già Làng từ 12. Chủ phòng vẫn chỉnh tay được.
+Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn Trộm, Người Thổi Sáo, Già Làng, Mục Sư, Thầy Đồng, Thám Tử, Kẻ Cuồng Loạn, Sói Báo Thù, Dân Làng. Hệ thống tự gợi ý số lượng cân bằng theo số người chơi (4–18 người): Thần Tình Yêu từ 7 người, Ăn Trộm từ 9 (kèm 2 lá dư), Người Thổi Sáo từ 11. Từ 12 người dùng bộ bài chuẩn: 2 Sói thường + Sói Báo Thù, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thám Tử, Thầy Đồng, Mục Sư, 1 Dân Làng, Kẻ Cuồng Loạn (3 Sói · 8 Dân · 1 phe thứ ba); thêm người thì thêm Dân Làng, từ 15 người thêm 1 Sói thường. Chủ phòng vẫn chỉnh tay được (Sói Con, Già Làng… tự thêm).
+
+- **Sói Con** (phe Sói): thức dậy và cắn cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm sau đàn Sói được cắn 2 người.
+- **Mục Sư** (phe Dân): một lần mỗi ván, ban đêm vẩy nước thánh vào 1 người. Nếu đó là Sói (Sói thường, Sói Con, Sói Báo Thù) thì người đó chết vào sáng hôm sau; nếu là người phe Dân thì Mục Sư chết; người phe thứ ba thì không sao.
+- **Thám Tử** (phe Dân): mỗi đêm chọn 2 người, biết họ có cùng phe hay không.
+- **Thầy Đồng** (phe Dân): một lần mỗi ván, ban đêm hồi sinh 1 người đã chết; sáng hôm sau người đó sống lại với vai trò cũ.
+- **Kẻ Cuồng Loạn** (phe thứ ba): nếu bị dân làng treo cổ thì ván kết thúc và Kẻ Cuồng Loạn thắng một mình.
+- **Sói Báo Thù** (phe Sói): thức dậy và cắn cùng đàn Sói, rồi được gọi riêng để chọn 1 người. Nếu bị dân làng treo cổ, người đó chết theo ngay.
 
 **Mỗi lượt đêm gồm 3 khoảng cố định** (chủ phòng chỉnh được trong Cài đặt ván chơi): **gọi dậy** (vừa đủ để quản trò đọc câu gọi, rồi bắt đầu đếm giờ ngay), **thao tác 30 giây** (người được gọi chọn trên điện thoại), rồi **kêu đi ngủ**: quản trò đọc "… hãy nhắm mắt lại", nghỉ **1 giây** và gọi luôn vai tiếp theo trong cùng một mạch đọc. Lượt luôn chạy đủ thời gian, kể cả khi đã chọn xong hoặc người giữ vai đã chết, nên không ai đoán được gì từ độ dài của lượt.
 
@@ -18,12 +25,16 @@ Ma Sói, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình Yêu, Ăn 
 1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy.
 2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi. Cặp đôi không bị gọi dậy: quản trò báo rằng tên người kia đã hiện trên lá bài, và nhắc họ xem lá bài khi thức dậy.
 3. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
-4. **Ma Sói**: nhận diện đồng đội và thống nhất chọn nạn nhân.
-5. **Tiên Tri**: chọn 1 người để xem phe.
-6. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
-7. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên. Những người bị thôi miên không bị gọi dậy: quản trò báo rằng tên những người cùng cảnh ngộ đã hiện trên lá bài, và nhắc họ xem khi thức dậy.
-8. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), Tiên Tri, Bảo Vệ, Phù Thủy và Thợ Săn mất chức năng đến hết ván. Việc này không được thông báo công khai (sẽ lộ người vừa chết là Già Làng): chỉ những người mất chức năng thấy ghi chú trên lá bài của mình.
-9. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
+4. **Ma Sói** (cùng Sói Con và Sói Báo Thù): nhận diện đồng đội và thống nhất chọn nạn nhân (2 nạn nhân vào đêm sau khi Sói Con chết).
+5. **Sói Báo Thù**: chọn người sẽ chết theo nếu mình bị treo cổ.
+6. **Tiên Tri**: chọn 1 người để xem phe.
+7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không.
+8. **Mục Sư**: có muốn vẩy nước thánh không (1 lần mỗi ván).
+9. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
+10. **Thầy Đồng**: có muốn hồi sinh 1 người đã chết không (1 lần mỗi ván).
+11. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên. Những người bị thôi miên không bị gọi dậy: quản trò báo rằng tên những người cùng cảnh ngộ đã hiện trên lá bài, và nhắc họ xem khi thức dậy.
+12. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), mọi vai trò phe Dân (Tiên Tri, Thám Tử, Bảo Vệ, Phù Thủy, Mục Sư, Thầy Đồng, Thợ Săn) mất chức năng đến hết ván. Việc này không được thông báo công khai (sẽ lộ người vừa chết là Già Làng): chỉ những người mất chức năng thấy ghi chú trên lá bài của mình.
+13. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
 
 Quản trò không bao giờ nói lý do chết (bị cắn, trúng độc, chết theo người yêu hay trúng súng Thợ Săn) và luôn đọc người chết theo thứ tự số ghế, để không lộ vai trò.
 
@@ -68,7 +79,7 @@ Máy chủ phòng phát giọng theo thứ tự ưu tiên:
 1. **File MP3 có sẵn** trong `public/audio/` (liệt kê trong `manifest.json`). Giọng tự nhiên, giống nhau trên mọi máy.
 2. Nếu thiếu file: dùng **giọng tiếng Việt của trình duyệt** (Chrome/Edge có giọng “Online/Natural” khá tốt), có ngắt nghỉ theo dấu câu.
 
-Lời dẫn nằm trong `public/shared/voice-lines.js`. Mỗi đoạn có 5–6 phiên bản, mỗi lần đọc chọn ngẫu nhiên để không lặp nhàm chán. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
+Lời dẫn nằm trong `public/shared/voice-lines.js`. Lời dẫn được viết ngắn gọn: ai thức dậy, rồi làm gì. Mỗi đoạn có 3 phiên bản, mỗi lần đọc chọn ngẫu nhiên. Sửa lời thoại rồi chạy lại workflow "Tạo giọng quản trò": câu nào đổi chữ sẽ được thu âm lại, câu đã bỏ thì file cũng bị xoá. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
 
 **Nhịp đọc:** máy chủ biết độ dài từng câu (`public/shared/voice-durations.js`, do script tạo giọng ghi ra) và **không chuyển bước khi quản trò còn đang đọc**. Thời gian của mỗi bước (lượt ban đêm, thảo luận, bỏ phiếu…) chỉ bắt đầu tính sau khi đọc xong. Sau phán quyết ban ngày, quản trò báo “Màn đêm sẽ buông xuống sau mười giây nữa” rồi tự chuyển sang đêm. Trong 10 giây cuối của mỗi bước, máy chủ phòng phát tiếng tích tắc (tắt được trong phần Giọng quản trò). Script tạo giọng tự cắt khoảng lặng thừa ở đầu và cuối mỗi file (cần ffmpeg), để “người chơi số ba… và… người chơi số năm” đọc liền mạch.
 
