@@ -1269,7 +1269,7 @@ function nightTask(task) {
         <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : { piper: '🪈', fool: '🤡' }[task.result] || '🌾'}</p>
         ${task.complete ? '' : '<button class="btn btn-primary btn-block" data-act="seerDone">Đã nhớ, nhắm mắt lại</button>'}</div>`;
     }
-    return `<div class="panel">${head('seer', 'Soi ai đêm nay?', 'Bạn sẽ biết người đó thuộc phe Sói hay phe Dân.')}
+    return `<div class="panel">${head('seer', 'Soi ai đêm nay?', 'Bạn chỉ biết người đó là Sói hay Dân.')}
       ${pickGrid('night', { exclude: [m.id] })}</div>`;
   }
   if (task.role === 'witch') {

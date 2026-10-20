@@ -49,8 +49,8 @@ export const ROLES = {
     team: 'village',
     icon: '🔮',
     color: '#c39bff',
-    short: 'Mỗi đêm soi 1 người để xem thuộc phe nào.',
-    description: 'Mỗi đêm chọn 1 người để soi. Bạn sẽ biết người đó thuộc phe nào (Phe Sói, Phe Dân hoặc phe riêng của Người Thổi Sáo), không biết chức năng cụ thể.',
+    short: 'Mỗi đêm soi 1 người: biết là Sói hay Dân.',
+    description: 'Mỗi đêm chọn 1 người để soi. Bạn chỉ biết người đó là Sói hay Dân (phe thứ ba cũng hiện là Dân), không biết chức năng cụ thể.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="46" r="28" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M26 50C34 38 66 38 74 50C66 62 34 62 26 50Z" stroke="#fde047" stroke-width="2.5"/>

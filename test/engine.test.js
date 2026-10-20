@@ -710,7 +710,7 @@ test('the madman (third party) wins alone when the village hangs them', () => {
   const { s, P, act, untilNightRole, untilPhase } = setup(['fool', 'werewolf', 'seer', 'villager', 'villager']);
   untilNightRole('seer');
   act(P[2], 'night', { target: P[0].id });
-  assert.equal(s.game.night.seerResult, 'fool', 'the seer sees a third party');
+  assert.equal(s.game.night.seerResult, 'village', 'the seer only tells wolf from not-wolf');
   untilPhase('VOTE');
   const voters = P.filter(p => p.alive && p.id !== P[0].id);
   voters.forEach(v => act(v, 'vote', { target: P[0].id }));
@@ -767,6 +767,17 @@ test('detective: picks two players and learns whether they are on the same side'
   g.act(g.P[0], 'night', { target: g.P[2].id });
   g.act(g.P[0], 'night', { target: g.P[3].id });
   assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.task.result, 'different', 'villager and madman differ');
+});
+
+test('the seer only learns wolf or villager', () => {
+  const { s, P, act, untilNightRole } = setup(['seer', 'piper', 'wolf_cub', 'villager', 'villager']);
+  untilNightRole('seer');
+  act(P[0], 'night', { target: P[1].id });
+  assert.equal(s.game.night.seerResult, 'village', 'the piper reads as a villager');
+  const g = setup(['seer', 'wolf_cub', 'villager', 'villager', 'villager']);
+  g.untilNightRole('seer');
+  g.act(g.P[0], 'night', { target: g.P[1].id });
+  assert.equal(g.s.game.night.seerResult, 'werewolf');
 });
 
 test('the elder dying to wolves does not cost the village its powers', () => {
