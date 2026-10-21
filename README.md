@@ -20,7 +20,7 @@ Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình 
 
 **Mỗi lượt đêm gồm 3 khoảng**: **gọi dậy** (quản trò đọc câu gọi; bảng lựa chọn chỉ hiện khi đọc xong), **thao tác** theo thời gian riêng của từng vai (mặc định: Bầy Sói 30 giây, cộng 5 giây cho mỗi lá Sói thêm; Già Làng 10 giây; các vai khác 15–25 giây), rồi **kêu đi ngủ** và gọi luôn vai tiếp theo. Làm xong thì bấm **✅ Xong lượt** để sang lượt tiếp, không cần đợi hết giờ. Lượt của vai không ai chơi được (người giữ đã chết hoặc lá bài nằm trong 2 lá dư) kết thúc vào một thời điểm ngẫu nhiên, như thể có người bấm Xong, nên độ dài lượt không tiết lộ gì. Chủ phòng chỉnh được thời gian từng lượt, cả trong lúc đang chơi (mục ⏱️ Chỉnh thời gian).
 
-Ban đêm mọi người đều hiện là "đang kết nối" (người đang cầm điện thoại thường là vai vừa được gọi), và việc bầu máy chủ phòng mới đợi tới sáng. Phù Thủy chỉ được dùng một bình mỗi đêm.
+Ban đêm mọi người đều hiện là "đang kết nối" (người đang cầm điện thoại thường là vai vừa được gọi), và việc bầu máy chủ phòng mới đợi tới sáng.
 
 **Thứ tự thức dậy mỗi đêm** (vai trò nào không có trong ván thì bỏ qua; vai trò có trong ván mà người giữ đã chết thì vẫn được gọi, để không lộ ai còn sống):
 

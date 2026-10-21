@@ -799,20 +799,21 @@ test('at night nobody can see who is connected, and the host vote waits for the 
   assert.ok(d.hostOffline);
 });
 
-test('the witch uses at most one potion per night', () => {
+test('the witch may use both bottles in the same night, each once per game', () => {
   const g = setup(['witch', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[2].id });
   g.untilNightRole('witch');
   g.act(g.P[0], 'witch', { use: 'heal' });
-  assert.throws(() => g.act(g.P[0], 'witch', { use: 'poison', target: g.P[2].id }), /một bình/);
-  assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.task.poisonAvailable, false, 'the other bottle is locked tonight');
-  const h = setup(['witch', 'werewolf', 'villager', 'villager', 'villager']);
-  h.untilNightRole('witch');
-  h.act(h.P[0], 'witch', { use: 'poison', target: h.P[2].id });
-  assert.throws(() => h.act(h.P[0], 'witch', { use: 'heal' }), /một bình/);
-  // Next night the unused bottle is still there.
-  h.untilPhase('MORNING');
-  h.untilNightRole('witch');
-  assert.equal(viewFor(h.s, h.P[0].id, 0, 1).me.task.healAvailable, true);
+  g.act(g.P[0], 'witch', { use: 'poison', target: g.P[3].id });
+  assert.throws(() => g.act(g.P[0], 'witch', { use: 'heal' }), /hết|đêm nay/);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[2].alive, true, 'healed');
+  assert.equal(g.P[3].alive, false, 'poisoned');
+  g.untilNightRole('witch');
+  const task = viewFor(g.s, g.P[0].id, 0, 1).me.task;
+  assert.equal(task.healAvailable, false);
+  assert.equal(task.poisonAvailable, false);
 });
 
 test('a role only sees its choices once it has been called', () => {
