@@ -1074,7 +1074,9 @@ function hostBar() {
         ? `<button class="btn btn-ghost btn-small" data-act="replay">Đọc lại</button>`
         : `<button class="btn btn-primary btn-small" data-act="unlock">Bật giọng quản trò</button>`}
       <button class="btn btn-ghost btn-small" data-act="toggleAmbience" aria-pressed="${ambienceOn}">${ambienceOn ? 'Tắt nhạc nền' : 'Bật nhạc nền'}</button>
-      ${over ? '' : '<button class="btn btn-ghost btn-small" data-act="skip">Sang bước tiếp</button>'}
+      ${over ? '' : view.phase === 'NIGHT' && view.game.nightStage === 'call'
+        ? '<button class="btn btn-ghost btn-small" disabled title="Đợi quản trò gọi xong">Đang gọi vai…</button>'
+        : '<button class="btn btn-ghost btn-small" data-act="skip">Sang bước tiếp</button>'}
       <button class="btn btn-ghost btn-small" data-act="endGame">Kết thúc ván</button>
     </div>`;
 }
