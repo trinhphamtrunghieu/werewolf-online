@@ -104,12 +104,12 @@ test('players only see their own role (wolves also see wolves)', () => {
   assert.ok(!JSON.stringify(seerView).includes(P[1].token), 'tokens never leak');
 });
 
-test('only the active role may act at night and wolves cannot bite wolves', () => {
+test('only the active role may act at night and a wolf cannot bite itself', () => {
   const { P, act, untilNightRole } = setup(['guard', 'werewolf', 'seer', 'villager', 'villager']);
   untilNightRole('guard');
   assert.throws(() => act(P[1], 'night', { target: P[0].id }), /Chưa đến lượt/);
   untilNightRole('werewolf');
-  assert.throws(() => act(P[1], 'night', { target: P[1].id }), /đồng bọn/);
+  assert.throws(() => act(P[1], 'night', { target: P[1].id }), /chính mình/);
 });
 
 test('wolf kill, guard save and witch potions resolve correctly', () => {
@@ -1118,8 +1118,11 @@ const lynch = (g, target) => {
   g.endPhase();
 };
 
-test('rules: guard may protect themselves; protection stops bites only, not poison or holy water', () => {
+test('rules: guard may protect themselves from night two; protection stops bites only, not poison', () => {
   const g = setup(['guard', 'werewolf', 'witch', 'villager', 'villager', 'villager']);
+  g.untilNightRole('guard');
+  assert.throws(() => g.act(g.P[0], 'night', { target: g.P[0].id }), /Đêm đầu/);
+  g.untilPhase('DISCUSSION');
   g.untilNightRole('guard');
   g.act(g.P[0], 'night', { target: g.P[0].id });
   g.untilNightRole('werewolf');
@@ -1148,13 +1151,37 @@ test('rules: guard can protect again after skipping a night', () => {
   assert.equal(g.s.game.night.guard, g.P[2].id);
 });
 
-test('rules: wolves cannot bite any pack member, and the pack counts every wolf card for the win', () => {
-  const g = setup(['werewolf', 'wolf_cub', 'avenger', 'villager', 'villager', 'villager', 'villager']);
+test('rules: wolves may bite a pack mate, or agree to bite nobody', () => {
+  const g = setup(['werewolf', 'werewolf', 'wolf_cub', 'villager', 'villager', 'villager', 'villager']);
   g.untilNightRole('werewolf');
-  assert.throws(() => g.act(g.P[0], 'night', { target: g.P[1].id }), /đồng bọn/);
-  assert.throws(() => g.act(g.P[0], 'night', { target: g.P[2].id }), /đồng bọn/);
-  // 3 wolves against 3 others: the wolves win.
-  g.P[6].alive = false;
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.act(g.P[1], 'night', { target: g.P[2].id });
+  g.act(g.P[2], 'night', { target: g.P[0].id }); // the cub disagrees
+  g.untilPhase('MORNING');
+  assert.equal(g.P[2].alive, false, 'the pack bit its own cub');
+
+  const h = setup(['werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  h.untilNightRole('werewolf');
+  h.act(h.P[0], 'night', { noKill: true });
+  h.act(h.P[1], 'night', { noKill: true });
+  assert.equal(h.s.game.night.complete, true, 'agreed on nobody');
+  h.untilPhase('MORNING');
+  assert.ok(h.P.every(p => p.alive), 'nobody was bitten');
+  assert.ok(h.s.narration.clips.some(c => c.k === 'morning_peace'));
+
+  // "Nobody" can also win the vote when time runs out.
+  const k = setup(['werewolf', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  k.untilNightRole('werewolf');
+  k.act(k.P[0], 'night', { noKill: true });
+  k.act(k.P[1], 'night', { noKill: true });
+  k.act(k.P[2], 'night', { target: k.P[3].id });
+  k.untilPhase('MORNING');
+  assert.ok(k.P.every(p => p.alive));
+});
+
+test('rules: every wolf card counts for the wolves\' win', () => {
+  const g = setup(['werewolf', 'wolf_cub', 'avenger', 'villager', 'villager', 'villager', 'villager']);
+  g.P[6].alive = false; // 3 wolves against 3 others
   assert.equal(checkWin(g.s)?.winner, 'werewolf');
 });
 

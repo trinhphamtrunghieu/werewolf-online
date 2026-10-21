@@ -1229,10 +1229,13 @@ function nightTask(task) {
   }
   if (task.role === 'guard') {
     const subs = task.lastGuarded ? { [task.lastGuarded]: 'Đã bảo vệ đêm trước' } : {};
+    const firstNight = view.game.day === 1;
+    if (firstNight) subs[m.id] = 'Đêm đầu không tự bảo vệ';
+    const disabled = [task.lastGuarded, firstNight ? m.id : null].filter(Boolean);
     return `<div class="panel">${head('guard', 'Bảo vệ ai đêm nay?', 'Người được bảo vệ sẽ không chết nếu bị Sói cắn.')}
       ${task.complete
         ? `<p class="result" style="margin-top:12px">Bạn đang bảo vệ ${esc(seatName(task.pick))}.</p>`
-        : pickGrid('night', { disabled: task.lastGuarded ? [task.lastGuarded] : [], subs })}</div>`;
+        : pickGrid('night', { disabled, subs })}</div>`;
   }
   if (task.role === 'hunter') {
     const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
@@ -1246,16 +1249,21 @@ function nightTask(task) {
   }
   if (task.role === 'werewolf') {
     const counts = {};
-    Object.values(task.votes).flat().forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+    Object.values(task.votes).flat().filter(t => t !== 'none').forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+    const noKillVotes = Object.values(task.votes).filter(v => v[0] === 'none').length;
+    const mineNone = task.votes[m.id]?.[0] === 'none';
     const mates = view.me.wolves.filter(id => player(id)?.alive).map(seatName);
     const two = task.kills === 2;
     const what = two ? 'cùng hai người' : 'cùng một người';
     return `<div class="panel">${head('werewolf', two ? 'Sói Con đã chết: đêm nay cắn 2 người' : 'Chọn con mồi', mates.length
-      ? `Cả đàn phải chọn ${what}. Đồng bọn: ${esc(mates.join(', '))}.`
+      ? `Cả đàn phải chọn ${what} (cắn cả đồng bọn cũng được), hoặc cùng chọn không cắn ai. Đồng bọn: ${esc(mates.join(', '))}.`
       : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn.`)}
-      ${task.targets.length
+      ${task.noKill
+        ? '<p class="result" style="margin-top:12px">Đàn Sói đã chốt: đêm nay không cắn ai.</p>'
+        : task.targets.length
         ? `<p class="result result-wolf" style="margin-top:12px">Đàn Sói đã chốt: ${esc(task.targets.map(seatName).join(' và '))}.</p>`
-        : pickGrid('night', { exclude: [m.id, ...view.me.wolves], selected: task.votes[m.id] || [], counts })}</div>`;
+        : `${pickGrid('night', { exclude: [m.id], selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])) })}
+          <button class="btn ${mineNone ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:12px" data-act="noKill" aria-pressed="${mineNone}">🚫 Không cắn ai${noKillVotes ? ` (${noKillVotes})` : ''}</button>`}</div>`;
   }
   if (task.role === 'detective') {
     if (task.result) {
@@ -1533,12 +1541,13 @@ document.addEventListener('click', async (e) => {
       return document.getElementById('cardSheet').showModal();
     case 'flip': return el.classList.toggle('revealed');
     case 'night': return act('night', { target: id });
+    case 'noKill': return act('night', { noKill: true });
     case 'seerDone': return act('seerDone').then(() => act('endTurn'));
     case 'detectiveDone': return act('detectiveDone').then(() => act('endTurn'));
     case 'ack': return act('ack').then(() => act('endTurn'));
     case 'endTurn': {
       const t = view?.me?.task;
-      if (t?.role === 'werewolf' && !t.targets?.length && !confirm('Đàn Sói chưa chốt nạn nhân. Vẫn kết thúc lượt? (Sẽ lấy người được chọn nhiều nhất)')) return;
+      if (t?.role === 'werewolf' && !t.targets?.length && !t.noKill && !confirm('Đàn Sói chưa chốt nạn nhân. Vẫn kết thúc lượt? (Sẽ lấy người được chọn nhiều nhất)')) return;
       return act('endTurn');
     }
     case 'thiefPick': {

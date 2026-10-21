@@ -26,8 +26,8 @@ Ban đêm mọi người đều hiện là "đang kết nối" (người đang c
 
 1. **Ăn Trộm** (đêm đầu): xem 2 lá bài dư, có thể đổi lấy 1 lá. Nếu cả 2 lá đều là Sói (Ma Sói, Sói Con, Sói Báo Thù) thì bắt buộc phải lấy; hết giờ mà chưa chọn thì giữ nguyên lá Ăn Trộm.
 2. **Thần Tình Yêu** (đêm đầu): chọn 2 người làm cặp đôi. Cặp đôi không bị gọi dậy: quản trò báo rằng tên người kia đã hiện trên lá bài, và nhắc họ xem lá bài khi thức dậy.
-3. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước).
-4. **Ma Sói** (cùng Sói Con và Sói Báo Thù): nhận diện đồng đội và thống nhất chọn nạn nhân (2 nạn nhân vào đêm sau khi Sói Con chết).
+3. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước; đêm đầu không được tự bảo vệ mình).
+4. **Ma Sói** (cùng Sói Con và Sói Báo Thù): nhận diện đồng đội và thống nhất chọn nạn nhân (cắn cả đồng bọn cũng được), hoặc cùng chọn không cắn ai (2 nạn nhân vào đêm sau khi Sói Con chết).
 5. **Sói Báo Thù**: chọn người sẽ chết theo nếu mình bị treo cổ.
 6. **Tiên Tri**: chọn 1 người, chỉ biết người đó là Sói hay Dân (phe thứ ba cũng hiện là Dân).
 7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không.

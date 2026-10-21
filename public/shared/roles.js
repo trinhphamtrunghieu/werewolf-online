@@ -34,7 +34,7 @@ export const ROLES = {
     icon: '🐺',
     color: '#ff6b6b',
     short: 'Mỗi đêm cùng đàn Sói chọn 1 người để cắn.',
-    description: 'Mỗi đêm thức dậy cùng đàn Sói và thống nhất chọn 1 người để cắn (không cắn được đồng bọn). Nếu cả đàn chọn khác nhau, người được chọn nhiều nhất bị cắn; bằng phiếu thì bốc ngẫu nhiên. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.',
+    description: 'Mỗi đêm thức dậy cùng đàn Sói và thống nhất chọn 1 người để cắn (cắn cả đồng bọn cũng được), hoặc cùng chọn không cắn ai. Nếu cả đàn chọn khác nhau, người được chọn nhiều nhất bị cắn; bằng phiếu thì bốc ngẫu nhiên. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3" opacity="0.5"/>
       <path d="M26 78L32 45L22 20L42 34L50 26L58 34L78 20L68 45L74 78H26Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
@@ -65,7 +65,7 @@ export const ROLES = {
     icon: '🛡️',
     color: '#5cc8ff',
     short: 'Mỗi đêm bảo vệ 1 người khỏi bị Sói cắn.',
-    description: 'Mỗi đêm chọn 1 người (có thể là chính mình) để bảo vệ khỏi Sói. Không được bảo vệ cùng một người 2 đêm liên tiếp.',
+    description: 'Mỗi đêm chọn 1 người để bảo vệ khỏi Sói. Từ đêm thứ hai được tự bảo vệ mình (đêm đầu thì không). Không được bảo vệ cùng một người 2 đêm liên tiếp.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M50 16L80 28V52C80 70 67 82 50 88C33 82 20 70 20 52V28L50 16Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M50 30V72M34 48H66" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
