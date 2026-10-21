@@ -757,9 +757,35 @@ const SLIDERS = [
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
   ['judgeTime', 'Phán quyết treo cổ', 10, 90, 5],
-  ['nightStepTime', 'Ban đêm: thời gian thao tác', 10, 90, 5],
   ['nightPauseTime', 'Ban đêm: nghỉ giữa hai lượt', 0, 5, 1]
 ];
+
+// One action-time slider per night step whose card is in the deck.
+function stepSliders() {
+  const counts = view.roleCounts || {};
+  return NIGHT_STEPS
+    .filter(st => [st.role, ...(st.also || [])].some(id => counts[id] > 0))
+    .map(st => [`step_${st.id}`, `Lượt ${stepInfo(st.id).name}${st.id === 'werewolf' ? ' (+5 giây mỗi lá Sói thêm)' : ''}`, 5, 120, 5]);
+}
+
+function timeSliders() {
+  const c = view.config;
+  return [...SLIDERS, ...stepSliders()].map(([key, label, min, max, step]) => `
+    <div class="slider">
+      <div class="row-between"><label for="cfg-${key}">${label}</label><span class="slider-value" id="val-${key}">${fmtSeconds(c[key])}</span></div>
+      <input type="range" id="cfg-${key}" data-config="${key}" min="${min}" max="${max}" step="${step}" value="${c[key]}" />
+    </div>`).join('');
+}
+
+// During the game the host can still retime every step.
+let timersOpen = false;
+function hostTimers() {
+  return `<details class="panel section" id="timersBox" ${timersOpen ? 'open' : ''}>
+    <summary><h3>⏱️ Chỉnh thời gian</h3></summary>
+    <p class="muted small">Áp dụng từ lượt tiếp theo.</p>
+    ${timeSliders()}
+  </details>`;
+}
 
 const fmtSeconds = (s) => s >= 60 ? `${Math.floor(s / 60)} phút${s % 60 ? ` ${s % 60} giây` : ''}` : `${s} giây`;
 
@@ -776,11 +802,8 @@ function settingsPanel() {
         <input type="checkbox" data-config="revealRoleOnDeath" ${c.revealRoleOnDeath ? 'checked' : ''} />
         <span><strong>Lật bài người chết</strong><span class="muted small">Cả làng thấy vai trò của người vừa bị loại.</span></span>
       </label>
-      ${SLIDERS.map(([key, label, min, max, step]) => `
-        <div class="slider">
-          <div class="row-between"><label for="cfg-${key}">${label}</label><span class="slider-value" id="val-${key}">${fmtSeconds(c[key])}</span></div>
-          <input type="range" id="cfg-${key}" data-config="${key}" min="${min}" max="${max}" step="${step}" value="${c[key]}" />
-        </div>`).join('')}
+      <p class="field-label" style="margin-top:8px">Thời gian thao tác của từng lượt đêm tính theo các lá bài trong ván.</p>
+      ${timeSliders()}
     </details>`;
 }
 
@@ -862,6 +885,7 @@ function renderGame() {
         <div id="hostAlert"></div>
         <div id="narration"></div>
         <div id="hostBar"></div>
+        <div id="hostTimers"></div>
         <section class="stage" id="stage"></section>
         <section>
           <div class="row-between" style="margin-bottom:10px"><h3>Người chơi</h3><span class="muted small" id="aliveCount"></span></div>
@@ -886,6 +910,8 @@ function renderGame() {
 
   renderNarration();
   document.getElementById('hostBar').innerHTML = (isHost() ? hostBar() : '') + playerAudioBar();
+  const timers = document.getElementById('hostTimers');
+  if (!timers.contains(document.activeElement)) timers.innerHTML = isHost() && view.phase !== 'GAME_OVER' ? hostTimers() : '';
   renderHostAlert();
   document.getElementById('stage').innerHTML = stage();
 
@@ -898,8 +924,13 @@ function renderGame() {
   document.getElementById('log').innerHTML = g.log.map(l => `<li>${esc(l)}</li>`).join('');
 
   const m = view.me;
+  const myTurn = view.phase === 'NIGHT' && m.task;
   document.getElementById('gameFooter').innerHTML = m.inGame
-    ? `<button class="btn btn-primary btn-block card-button" data-act="card">
+    ? `${myTurn ? `<button class="btn btn-good btn-block end-turn" data-act="endTurn">
+        <span>✅ Xong lượt</span>
+        <span class="card-button-hint">${m.task.role === 'werewolf' ? 'Cả đàn sang lượt tiếp, không cần đợi hết giờ' : 'Sang lượt tiếp, không cần đợi hết giờ'}</span>
+      </button>` : ''}
+      <button class="btn ${myTurn ? 'btn-ghost' : 'btn-primary'} btn-block card-button" data-act="card">
         <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
         <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
       </button>`
@@ -1277,9 +1308,11 @@ function nightTask(task) {
     return `<div class="panel stack">${head('witch', 'Bình cứu hay bình độc?', 'Bạn không biết ai bị Sói cắn. Bình Cứu sẽ cứu người bị cắn đêm nay, nếu có.')}
       ${task.healed ? '<p class="result result-village">Bạn đã dùng bình Cứu đêm nay.</p>'
         : task.healAvailable ? '<button class="btn btn-good btn-block" data-act="heal">Dùng bình Cứu</button>'
+        : task.poisoned ? '<p class="muted small">Mỗi đêm chỉ dùng được một bình. Bình Cứu để dành cho đêm khác.</p>'
         : '<p class="muted small">Bình Cứu đã dùng hết.</p>'}
       ${task.poisoned ? `<p class="result result-wolf">Bạn đã đầu độc ${esc(seatName(task.poisoned))}.</p>`
         : task.poisonAvailable ? `<div><p class="field-label">Hoặc chọn người để dùng bình Độc</p>${pickGrid('poison', { exclude: [m.id] })}</div>`
+        : task.healed ? '<p class="muted small">Mỗi đêm chỉ dùng được một bình. Bình Độc để dành cho đêm khác.</p>'
         : '<p class="muted small">Bình Độc đã dùng hết.</p>'}
       <button class="btn btn-primary btn-block" data-act="witchDone">Xong, nhắm mắt lại</button></div>`;
   }
@@ -1500,9 +1533,14 @@ document.addEventListener('click', async (e) => {
       return document.getElementById('cardSheet').showModal();
     case 'flip': return el.classList.toggle('revealed');
     case 'night': return act('night', { target: id });
-    case 'seerDone': return act('seerDone');
-    case 'detectiveDone': return act('detectiveDone');
-    case 'ack': return act('ack');
+    case 'seerDone': return act('seerDone').then(() => act('endTurn'));
+    case 'detectiveDone': return act('detectiveDone').then(() => act('endTurn'));
+    case 'ack': return act('ack').then(() => act('endTurn'));
+    case 'endTurn': {
+      const t = view?.me?.task;
+      if (t?.role === 'werewolf' && !t.targets?.length && !confirm('Đàn Sói chưa chốt nạn nhân. Vẫn kết thúc lượt? (Sẽ lấy người được chọn nhiều nhất)')) return;
+      return act('endTurn');
+    }
     case 'thiefPick': {
       const card = view.me.task?.extras?.[Number(el.dataset.pick)];
       if (card && confirm(`Đổi sang lá ${ROLES[card].name}?`)) act('thief', { pick: Number(el.dataset.pick) });
@@ -1517,7 +1555,7 @@ document.addEventListener('click', async (e) => {
       if (p && confirm(`Dùng bình Độc lên ${p.name}? Bình này chỉ dùng được 1 lần.`)) act('witch', { use: 'poison', target: id });
       return;
     }
-    case 'witchDone': return act('witch', { use: 'done' });
+    case 'witchDone': return act('witch', { use: 'done' }).then(() => act('endTurn'));
     case 'vote': return act('vote', { target: id });
     case 'judge': return act('judge', { choice: el.dataset.choice });
   }
@@ -1547,6 +1585,7 @@ document.addEventListener('visibilitychange', () => {
 // Remember whether the host left the settings panel open across re-renders.
 document.addEventListener('toggle', (e) => {
   if (e.target.id === 'settingsBox') settingsOpen = e.target.open;
+  if (e.target.id === 'timersBox') timersOpen = e.target.open;
 }, true);
 
 // Close dialogs by tapping the backdrop.

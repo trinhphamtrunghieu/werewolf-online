@@ -54,7 +54,7 @@ button, input { font: inherit; color: inherit; }
 .app {
   max-width: 34rem;
   margin: 0 auto;
-  padding: 12px var(--gutter) 120px;
+  padding: 12px var(--gutter) 200px;
 }
 
 h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.15; margin: 0; }
@@ -588,3 +588,7 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .vote-list li { padding: 8px 10px; border-radius: 10px; background: var(--ink); }
 .card-button { flex-direction: column; gap: 2px; padding-top: 10px; padding-bottom: 10px; }
 .card-button-hint { font-size: 0.78rem; font-weight: 500; opacity: 0.8; }
+
+.end-turn { flex-direction: column; gap: 2px; min-height: 60px; font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; box-shadow: 0 0 0 0 rgba(79, 224, 166, 0.6); animation: end-turn-pulse 1.8s ease-out infinite; }
+@keyframes end-turn-pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 224, 166, 0.55); } 70% { box-shadow: 0 0 0 12px rgba(79, 224, 166, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 224, 166, 0); } }
+@media (prefers-reduced-motion: reduce) { .end-turn { animation: none; } }
