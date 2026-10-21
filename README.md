@@ -20,7 +20,7 @@ Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình 
 
 **Mỗi lượt đêm gồm 3 khoảng**: **gọi dậy** (quản trò đọc câu gọi; bảng lựa chọn chỉ hiện khi đọc xong), **thao tác** theo thời gian riêng của từng vai (mặc định: Bầy Sói 30 giây, cộng 5 giây cho mỗi lá Sói thêm; Già Làng 10 giây; các vai khác 15–25 giây), rồi **kêu đi ngủ** và gọi luôn vai tiếp theo. Làm xong thì bấm **✅ Xong lượt** để sang lượt tiếp, không cần đợi hết giờ. Lượt của vai không ai chơi được (người giữ đã chết hoặc lá bài nằm trong 2 lá dư) kết thúc vào một thời điểm ngẫu nhiên, như thể có người bấm Xong, nên độ dài lượt không tiết lộ gì. Chủ phòng chỉnh được thời gian từng lượt, cả trong lúc đang chơi (mục ⏱️ Chỉnh thời gian).
 
-Ban đêm mọi người đều hiện là "đang kết nối" (người đang cầm điện thoại thường là vai vừa được gọi), và việc bầu máy chủ phòng mới đợi tới sáng.
+Trạng thái kết nối chỉ hiện cho chủ phòng. Nếu chủ phòng cũng chơi thì ban đêm cũng không thấy, vì người đang cầm điện thoại thường là vai vừa được gọi. Những người khác chỉ được báo khi máy chủ phòng mất kết nối quá lâu. Ban đêm đó chỉ là một thông báo, việc bầu máy làm loa mới đợi tới sáng.
 
 **Thứ tự thức dậy mỗi đêm** (vai trò nào không có trong ván thì bỏ qua; vai trò có trong ván mà người giữ đã chết thì vẫn được gọi, để không lộ ai còn sống):
 
@@ -40,7 +40,7 @@ Ban đêm mọi người đều hiện là "đang kết nối" (người đang c
 
 Quản trò không bao giờ nói lý do chết (bị cắn, trúng độc, chết theo người yêu hay trúng súng Thợ Săn) và luôn đọc người chết theo thứ tự số ghế, để không lộ vai trò.
 
-Bỏ phiếu công khai: mọi người thấy ai bầu ai, và ai chọn treo cổ hay tha. Nhật ký ván chơi chỉ hiện cho chủ phòng làm quản trò (không tham gia chơi).
+Bỏ phiếu công khai: mọi người thấy ai bầu ai, và ai chọn treo cổ hay tha. Nhật ký ván chơi ghi lại mọi chuyện: mỗi đêm vai nào làm gì (Sói cắn ai, Bảo Vệ che ai, Tiên Tri soi ai…), ai chết và vì sao. Chủ phòng làm quản trò (không chơi) xem được suốt ván; nếu chủ phòng cũng chơi thì nhật ký hiện ra khi ván kết thúc. Người chơi khác không xem được.
 
 Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
 

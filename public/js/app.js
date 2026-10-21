@@ -712,6 +712,15 @@ function renderHostAlert() {
     return;
   }
   const oldHost = player(view.hostId);
+  if (h.night) {
+    // At night only a notice: voting would show who is awake.
+    box.innerHTML = `
+      <section class="panel stack" style="border-color:rgba(233,162,59,.6)">
+        <h3>Máy chủ phòng mất kết nối</h3>
+        <p class="small">${esc(oldHost?.name || 'Máy chủ phòng')} không còn kết nối, nên tạm thời không có tiếng quản trò. Ván vẫn tiếp tục; khi trời sáng cả làng sẽ chọn máy làm loa mới.</p>
+      </section>`;
+    return;
+  }
   const counts = {};
   Object.values(h.votes).forEach(c => { counts[c] = (counts[c] || 0) + 1; });
   const mine = h.votes[view.me.id];
@@ -919,8 +928,14 @@ function renderGame() {
   const total = view.players.filter(p => p.inGame).length;
   document.getElementById('aliveCount').textContent = `Còn sống ${alive}/${total}`;
   document.getElementById('village').innerHTML = view.players.filter(p => p.inGame).map(p => seat(p)).join('');
-  // Only a moderator who does not play receives the log.
-  document.getElementById('logBox').hidden = !g.log.length;
+  // The log reaches a moderator who does not play, or the host once the game
+  // is over (then it opens by itself).
+  const logBox = document.getElementById('logBox');
+  logBox.hidden = !g.log.length;
+  if (view.phase === 'GAME_OVER' && g.log.length && !logBox.dataset.opened) {
+    logBox.open = true;
+    logBox.dataset.opened = '1';
+  }
   document.getElementById('log').innerHTML = g.log.map(l => `<li>${esc(l)}</li>`).join('');
 
   const m = view.me;

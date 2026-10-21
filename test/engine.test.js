@@ -192,7 +192,6 @@ test('a bitten hunter takes his target along, announced as plain deaths', () => 
   assert.deepEqual(keys.filter(k => k.startsWith('seat_')).sort(), [`seat_${P[0].seat}`, `seat_${P[2].seat}`].sort());
   assert.ok(keys.includes('morning_deaths'));
   assert.ok(!keys.includes('hunter_fire'));
-  assert.ok(!s.game.log.some(e => /Thợ Săn|súng/.test(e)), 'the public log does not say it either');
 });
 
 test('witch heal is blind: saves the bitten player, and is spent on a quiet night', () => {
@@ -276,7 +275,6 @@ test('lynching one lover takes the other one too', () => {
   const keys = s.narration.clips.map(c => c.k);
   assert.ok(keys.includes('also_died') && keys.includes(`seat_${P[4].seat}`));
   assert.ok(!keys.includes('lover_death'));
-  assert.ok(!s.game.log.some(e => /chết theo|người yêu/i.test(e)), 'the public log does not say it either');
   assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.lovers, [], 'nor the view');
 });
 
@@ -582,7 +580,6 @@ test('lynching the elder strips every village power for the rest of the game', (
   assert.equal(s.game.powersLost, true);
   // Kept secret: announcing it would tell everyone the hanged player was the Elder.
   assert.ok(!s.narration.clips.some(c => c.k === 'elder_betrayed'));
-  assert.ok(!s.game.log.some(e => /Già Làng|mất chức năng/.test(e)));
   assert.ok(!viewFor(s, P[4].id, 0, 1).game.powersLost, 'a villager is not told');
   assert.ok(!viewFor(s, P[4].id, 0, 1).me.powerless);
   assert.equal(viewFor(s, P[2].id, 0, 1).me.powerless, true, 'the seer learns it on their own card');
@@ -615,21 +612,33 @@ test('deaths are announced in seat order, never in the order they happened', () 
   const seats = s.narration.clips.filter(c => c.k.startsWith('seat_')).map(c => Number(c.k.slice(5)));
   assert.deepEqual(seats, [P[0].seat, P[3].seat, P[6].seat], 'bitten, poisoned and heartbroken all read by seat');
   assert.deepEqual(s.game.lastNightDeaths, [P[0].id, P[3].id, P[6].id]);
-  assert.ok(!s.game.log.some(e => /Thần Tình Yêu|mũi tên/.test(e)), 'no public trace of Cupid');
 });
 
-test('only a moderator who does not play can read the game log', () => {
-  const { s, P } = setup(['werewolf', 'seer', 'villager', 'villager']);
-  assert.ok(s.game.log.length > 0);
+test('the log is for the moderator, or for a playing host once the game is over', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['werewolf', 'seer', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[0], 'night', { target: P[2].id });
+  untilNightRole('seer');
+  act(P[1], 'night', { target: P[0].id });
+  untilPhase('MORNING');
   assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.log, [], 'players see no log');
-  assert.deepEqual(viewFor(s, P[0].id, 0, 1).game.log, [], 'not even a playing host');
-  // A host who only moderates sees everything.
+  assert.deepEqual(viewFor(s, P[0].id, 0, 1).game.log, [], 'nor the playing host during the game');
+  // The log says who did what.
+  const text = s.game.log.join('\n');
+  assert.match(text, /Bầy Sói .*cắn .*P3/);
+  assert.match(text, /Tiên Tri .*soi .*Chủ.*Sói/);
+  assert.match(text, /P3 .*bị Sói cắn/);
+  P[1].alive = false;
+  P[3].alive = false;
+  untilPhase('GAME_OVER');
+  assert.ok(viewFor(s, P[0].id, 0, 1).game.log.length > 0, 'the host reads it after the game');
+  assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.log, [], 'other players still do not');
+  // A host who only moderates sees it all along.
   const { state, player: host } = createRoom({ code: 'MOD01', hostName: 'Host', now: 0 });
   applyAction(state, host.id, 'config', { hostPlays: false }, 0);
   applyAction(state, host.id, 'addBot', { count: 4 }, 0);
   applyAction(state, host.id, 'start', {}, 0);
   assert.ok(viewFor(state, host.id, 0, 1).game.log.length > 0);
-  assert.deepEqual(viewFor(state, state.players.find(p => p.isBot).id, 0, 1).game.log, []);
 });
 
 test('wolf cub wakes with the pack; once it dies the wolves bite two the next night', () => {
@@ -782,21 +791,38 @@ test('the seer only learns wolf or villager', () => {
   assert.equal(g.s.game.night.seerResult, 'werewolf');
 });
 
-test('at night nobody can see who is connected, and the host vote waits for the day', () => {
+test('only the host sees who is connected; others learn only when the host is gone', () => {
   const { s, P, clock, untilNightRole, untilPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  untilPhase('DISCUSSION');
+  P.forEach(p => { p.lastSeen = clock.now; });
+  P[3].lastSeen = clock.now - 120_000;
+  assert.equal(viewFor(s, P[0].id, clock.now, 1).players[3].online, false, 'the host sees it');
+  assert.ok(viewFor(s, P[2].id, clock.now, 1).players.every(p => p.online), 'players do not');
+  // A playing host does not see it at night either (it would show who is awake).
   untilNightRole('werewolf');
   P.forEach(p => { p.lastSeen = clock.now; });
-  P[3].lastSeen = clock.now - 120_000; // a locked phone
-  P[0].lastSeen = clock.now - 120_000; // the host's phone too
-  const v = viewFor(s, P[2].id, clock.now, 1);
-  assert.ok(v.players.every(p => p.online), 'connection status is hidden at night');
-  assert.equal(v.hostOffline, null, 'no host vote during the night');
-  untilPhase('MORNING');
-  P[0].lastSeen = clock.now - 120_000;
   P[3].lastSeen = clock.now - 120_000;
-  const d = viewFor(s, P[2].id, clock.now, 1);
-  assert.equal(d.players[3].online, false, 'shown again by day');
-  assert.ok(d.hostOffline);
+  assert.ok(viewFor(s, P[0].id, clock.now, 1).players.every(p => p.online));
+  // The host's phone goes quiet at night: everyone is told, the vote waits for day.
+  P[0].lastSeen = clock.now - 120_000;
+  const night = viewFor(s, P[2].id, clock.now, 1).hostOffline;
+  assert.deepEqual(night, { night: true }, 'a notice only, no candidates at night');
+  untilPhase('MORNING');
+  P.forEach(p => { p.lastSeen = clock.now; });
+  P[0].lastSeen = clock.now - 120_000;
+  const day = viewFor(s, P[2].id, clock.now, 1).hostOffline;
+  assert.ok(day.candidates.length > 0, 'by day the vote opens');
+});
+
+test('a non-playing host sees connections at any time', () => {
+  const { state: s, player: host } = createRoom({ code: 'MOD02', hostName: 'Host', now: 0 });
+  const lan = joinRoom(s, 'Lan', 0);
+  applyAction(s, host.id, 'config', { hostPlays: false }, 0);
+  applyAction(s, host.id, 'addBot', { count: 3 }, 0);
+  applyAction(s, host.id, 'start', {}, 0);
+  assert.equal(s.phase, 'NIGHT');
+  lan.lastSeen = -120_000;
+  assert.equal(viewFor(s, host.id, 1000, 1).players.find(p => p.id === lan.id).online, false);
 });
 
 test('the witch may use both bottles in the same night, each once per game', () => {
