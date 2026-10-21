@@ -1316,11 +1316,9 @@ function nightTask(task) {
     return `<div class="panel stack">${head('witch', 'Bình cứu hay bình độc?', 'Bạn không biết ai bị Sói cắn. Bình Cứu sẽ cứu người bị cắn đêm nay, nếu có.')}
       ${task.healed ? '<p class="result result-village">Bạn đã dùng bình Cứu đêm nay.</p>'
         : task.healAvailable ? '<button class="btn btn-good btn-block" data-act="heal">Dùng bình Cứu</button>'
-        : task.poisoned ? '<p class="muted small">Mỗi đêm chỉ dùng được một bình. Bình Cứu để dành cho đêm khác.</p>'
         : '<p class="muted small">Bình Cứu đã dùng hết.</p>'}
       ${task.poisoned ? `<p class="result result-wolf">Bạn đã đầu độc ${esc(seatName(task.poisoned))}.</p>`
         : task.poisonAvailable ? `<div><p class="field-label">Hoặc chọn người để dùng bình Độc</p>${pickGrid('poison', { exclude: [m.id] })}</div>`
-        : task.healed ? '<p class="muted small">Mỗi đêm chỉ dùng được một bình. Bình Độc để dành cho đêm khác.</p>'
         : '<p class="muted small">Bình Độc đã dùng hết.</p>'}
       <button class="btn btn-primary btn-block" data-act="witchDone">Xong, nhắm mắt lại</button></div>`;
   }
