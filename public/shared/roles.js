@@ -77,8 +77,8 @@ export const ROLES = {
     team: 'village',
     icon: '🧪',
     color: '#4fe0a6',
-    short: 'Có 1 bình cứu và 1 bình độc cho cả ván, mỗi đêm dùng tối đa 1 bình.',
-    description: 'Có 1 bình Cứu và 1 bình Độc, mỗi bình dùng 1 lần trong cả ván, và mỗi đêm chỉ được dùng 1 bình. Bạn không biết ai bị Sói cắn: bình Cứu sẽ cứu người bị cắn đêm đó (nếu có, kể cả 2 người vào đêm Sói cắn đôi) và vẫn mất nếu đêm đó không ai bị cắn. Bình Độc giết 1 người bạn chọn.',
+    short: 'Có 1 bình cứu và 1 bình độc cho cả ván.',
+    description: 'Có 1 bình Cứu và 1 bình Độc, mỗi bình dùng 1 lần trong cả ván (còn cả 2 bình thì được dùng cả 2 trong cùng một đêm). Bạn không biết ai bị Sói cắn: bình Cứu sẽ cứu người bị cắn đêm đó (nếu có, kể cả 2 người vào đêm Sói cắn đôi) và vẫn mất nếu đêm đó không ai bị cắn. Bình Độc giết 1 người bạn chọn.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M42 20H58M46 20V34L26 68C23 74 27 82 34 82H66C73 82 77 74 74 68L54 34V20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M31 62H69" stroke="#6ee7b7" stroke-width="2.5"/>
