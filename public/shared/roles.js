@@ -34,7 +34,7 @@ export const ROLES = {
     icon: '🐺',
     color: '#ff6b6b',
     short: 'Mỗi đêm cùng đàn Sói chọn 1 người để cắn.',
-    description: 'Mỗi đêm thức dậy cùng đàn Sói và thống nhất chọn 1 người để cắn. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.',
+    description: 'Mỗi đêm thức dậy cùng đàn Sói và thống nhất chọn 1 người để cắn (cắn cả đồng bọn cũng được), hoặc chọn không cắn ai. "Không cắn ai" không tính là phiếu: nếu cả đàn chọn khác nhau, người được chọn nhiều nhất bị cắn (bằng phiếu thì bốc ngẫu nhiên); chỉ khi không con nào chọn ai thì đêm đó không ai bị cắn. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3" opacity="0.5"/>
       <path d="M26 78L32 45L22 20L42 34L50 26L58 34L78 20L68 45L74 78H26Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
@@ -65,7 +65,7 @@ export const ROLES = {
     icon: '🛡️',
     color: '#5cc8ff',
     short: 'Mỗi đêm bảo vệ 1 người khỏi bị Sói cắn.',
-    description: 'Mỗi đêm chọn 1 người (có thể là chính mình) để bảo vệ khỏi Sói. Không được bảo vệ cùng một người 2 đêm liên tiếp.',
+    description: 'Mỗi đêm chọn 1 người để bảo vệ khỏi Sói. Từ đêm thứ hai được tự bảo vệ mình (đêm đầu thì không). Không được bảo vệ cùng một người 2 đêm liên tiếp.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M50 16L80 28V52C80 70 67 82 50 88C33 82 20 70 20 52V28L50 16Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M50 30V72M34 48H66" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
@@ -78,7 +78,7 @@ export const ROLES = {
     icon: '🧪',
     color: '#4fe0a6',
     short: 'Có 1 bình cứu và 1 bình độc cho cả ván.',
-    description: 'Có 1 bình Cứu và 1 bình Độc, mỗi bình dùng 1 lần trong cả ván. Bạn không biết ai bị Sói cắn: bình Cứu sẽ cứu người bị cắn đêm đó (nếu có). Bình Độc giết 1 người bạn chọn.',
+    description: 'Có 1 bình Cứu và 1 bình Độc, mỗi bình dùng 1 lần trong cả ván (còn cả 2 bình thì được dùng cả 2 trong cùng một đêm). Bạn không biết ai bị Sói cắn: bình Cứu sẽ cứu người bị cắn đêm đó (nếu có, kể cả 2 người vào đêm Sói cắn đôi) và vẫn mất nếu đêm đó không ai bị cắn. Bình Độc giết 1 người bạn chọn.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M42 20H58M46 20V34L26 68C23 74 27 82 34 82H66C73 82 77 74 74 68L54 34V20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M31 62H69" stroke="#6ee7b7" stroke-width="2.5"/>
@@ -108,7 +108,7 @@ export const ROLES = {
     icon: '🦝',
     color: '#d7b48a',
     short: 'Đêm đầu được đổi lấy 1 trong 2 lá bài dư.',
-    description: 'Có Ăn Trộm thì chia dư 2 lá. Đêm đầu bạn xem 2 lá dư và có thể đổi lấy 1 lá, rồi chơi theo vai trò mới ngay đêm đó. Nếu cả 2 lá đều là Ma Sói thì bắt buộc phải lấy 1 lá. Giữ nguyên thì bạn là Dân Làng.',
+    description: 'Có Ăn Trộm thì chia dư 2 lá. Đêm đầu bạn xem 2 lá dư và có thể đổi lấy 1 lá, rồi chơi theo vai trò mới ngay đêm đó. Nếu cả 2 lá đều là Sói (Ma Sói, Sói Con, Sói Báo Thù) thì bắt buộc phải lấy 1 lá. Giữ nguyên, hoặc hết giờ mà chưa chọn, thì bạn chơi như Dân Làng.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M22 44C22 30 34 22 50 22C66 22 78 30 78 44V48H22V44Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <rect x="18" y="46" width="64" height="14" rx="7" fill="currentColor" fill-opacity="0.85"/>
@@ -123,7 +123,7 @@ export const ROLES = {
     icon: '💘',
     color: '#ff8cc6',
     short: 'Đêm đầu ghép đôi 2 người thành Tình Nhân.',
-    description: 'Đêm đầu tiên chọn 2 người làm Tình Nhân. Nếu 1 người chết, người kia chết theo. Nếu cặp đôi khác phe và là 2 người cuối cùng còn sống, họ cùng thắng.',
+    description: 'Đêm đầu tiên chọn 2 người làm Tình Nhân (có thể chọn chính mình). Cặp đôi không bị gọi dậy: tên người kia hiện trên lá bài của họ. Nếu 1 người chết, người kia chết theo. Nếu cặp đôi khác phe và là 2 người cuối cùng còn sống, họ cùng thắng.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M50 78C50 78 22 58 22 38C22 27 31 20 40 20C46 20 50 25 50 28C50 25 54 20 60 20C69 20 78 27 78 38C78 58 50 78 50 78Z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/>
       <path d="M22 76L78 24M78 24H64M78 24V38" stroke="#fbcfe8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -136,7 +136,7 @@ export const ROLES = {
     icon: '🪈',
     color: '#9fd3ff',
     short: 'Mỗi đêm thôi miên 2 người. Phe riêng.',
-    description: 'Bạn chơi một mình. Mỗi đêm thôi miên 2 người chưa bị thôi miên. Bạn thắng khi tất cả những người còn sống (trừ bạn) đều đã bị thôi miên.',
+    description: 'Bạn chơi một mình. Mỗi đêm thôi miên 2 người chưa bị thôi miên. Người bị thôi miên không bị gọi dậy: họ thấy tên nhau trên lá bài. Bạn thắng khi tất cả những người còn sống (trừ bạn) đều đã bị thôi miên.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M18 70L74 22" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
       <circle cx="38" cy="53" r="2.5" fill="#161b36"/><circle cx="48" cy="44" r="2.5" fill="#161b36"/><circle cx="58" cy="36" r="2.5" fill="#161b36"/>

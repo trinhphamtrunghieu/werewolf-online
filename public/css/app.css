@@ -599,3 +599,4 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .end-turn { flex-direction: column; gap: 2px; min-height: 60px; font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; box-shadow: 0 0 0 0 rgba(79, 224, 166, 0.6); animation: end-turn-pulse 1.8s ease-out infinite; }
 @keyframes end-turn-pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 224, 166, 0.55); } 70% { box-shadow: 0 0 0 12px rgba(79, 224, 166, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 224, 166, 0); } }
 @media (prefers-reduced-motion: reduce) { .end-turn { animation: none; } }
+.end-turn.waiting { animation: none; opacity: 0.85; }

@@ -712,6 +712,15 @@ function renderHostAlert() {
     return;
   }
   const oldHost = player(view.hostId);
+  if (h.night) {
+    // At night only a notice: voting would show who is awake.
+    box.innerHTML = `
+      <section class="panel stack" style="border-color:rgba(233,162,59,.6)">
+        <h3>Máy chủ phòng mất kết nối</h3>
+        <p class="small">${esc(oldHost?.name || 'Máy chủ phòng')} không còn kết nối, nên tạm thời không có tiếng quản trò. Ván vẫn tiếp tục; khi trời sáng cả làng sẽ chọn máy làm loa mới.</p>
+      </section>`;
+    return;
+  }
   const counts = {};
   Object.values(h.votes).forEach(c => { counts[c] = (counts[c] || 0) + 1; });
   const mine = h.votes[view.me.id];
@@ -884,6 +893,30 @@ function judgeList(judge) {
   </ul>`;
 }
 
+// The one "done" button. For the pack it marks this wolf as ready; the turn
+// ends when every living wolf is.
+function endTurnButton(m) {
+  const t = m.task;
+  if (t.role === 'werewolf') {
+    const pack = [m.id, ...m.wolves].filter(id => player(id)?.alive);
+    const ready = t.ready.filter(id => pack.includes(id)).length;
+    if (t.ready.includes(m.id)) {
+      return `<button class="btn btn-ghost btn-block end-turn waiting" disabled>
+        <span>✅ Bạn đã xong</span>
+        <span class="card-button-hint">Chờ cả đàn (${ready}/${pack.length}). Đổi lựa chọn thì bấm lại Xong.</span>
+      </button>`;
+    }
+    return `<button class="btn btn-good btn-block end-turn" data-act="endTurn">
+      <span>✅ Xong lượt</span>
+      <span class="card-button-hint">${pack.length > 1 ? `Sang lượt tiếp khi cả đàn đều xong (${ready}/${pack.length})` : 'Sang lượt tiếp, không cần đợi hết giờ'}</span>
+    </button>`;
+  }
+  return `<button class="btn btn-good btn-block end-turn" data-act="endTurn">
+    <span>✅ Xong lượt</span>
+    <span class="card-button-hint">Sang lượt tiếp, không cần đợi hết giờ</span>
+  </button>`;
+}
+
 function renderGame() {
   if (!document.getElementById('gameRoot')) {
     app.innerHTML = `
@@ -927,17 +960,20 @@ function renderGame() {
   const total = view.players.filter(p => p.inGame).length;
   document.getElementById('aliveCount').textContent = `Còn sống ${alive}/${total}`;
   document.getElementById('village').innerHTML = view.players.filter(p => p.inGame).map(p => seat(p)).join('');
-  // Only a moderator who does not play receives the log.
-  document.getElementById('logBox').hidden = !g.log.length;
+  // The log reaches a moderator who does not play, or the host once the game
+  // is over (then it opens by itself).
+  const logBox = document.getElementById('logBox');
+  logBox.hidden = !g.log.length;
+  if (view.phase === 'GAME_OVER' && g.log.length && !logBox.dataset.opened) {
+    logBox.open = true;
+    logBox.dataset.opened = '1';
+  }
   document.getElementById('log').innerHTML = g.log.map(l => `<li>${esc(l)}</li>`).join('');
 
   const m = view.me;
   const myTurn = view.phase === 'NIGHT' && m.task;
   document.getElementById('gameFooter').innerHTML = m.inGame
-    ? `${myTurn ? `<button class="btn btn-good btn-block end-turn" data-act="endTurn">
-        <span>✅ Xong lượt</span>
-        <span class="card-button-hint">${m.task.role === 'werewolf' ? 'Cả đàn sang lượt tiếp, không cần đợi hết giờ' : 'Sang lượt tiếp, không cần đợi hết giờ'}</span>
-      </button>` : ''}
+    ? `${myTurn ? endTurnButton(m) : ''}
       <button class="btn ${myTurn ? 'btn-ghost' : 'btn-primary'} btn-block card-button" data-act="card">
         <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
         <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
@@ -1200,9 +1236,8 @@ function nightTask(task) {
     <h2 style="margin-top:10px">${title}</h2>
     <p class="lead">${lead}</p>`;
   };
-  const ackButton = (label) => task.acked
-    ? '<p class="result" style="margin-top:12px">Đã xong. Nhắm mắt lại nhé.</p>'
-    : `<button class="btn btn-primary btn-block" style="margin-top:14px" data-act="ack">${label}</button>`;
+  // Every role finishes with the one green "Xong lượt" button at the bottom.
+  const doneHint = '<p class="muted small" style="margin-top:12px">Xong thì bấm <strong>✅ Xong lượt</strong> ở dưới cùng.</p>';
 
   if (task.powerless) {
     return `<div class="panel">${head(task.role, 'Bạn đã mất chức năng', 'Già Làng đã chết dưới tay dân làng, nên từ giờ bạn không còn dùng được chức năng nữa. Hãy giữ im lặng và nhắm mắt.')}</div>`;
@@ -1222,7 +1257,7 @@ function nightTask(task) {
   }
   if (task.role === 'elder') {
     return `<div class="panel">${head('elder', 'Bạn là Già Làng', 'Quản trò đã biết bạn. Lần đầu bị Sói cắn bạn sẽ không chết.')}
-      ${ackButton('Đã hiểu, nhắm mắt lại')}</div>`;
+      ${doneHint}</div>`;
   }
   if (task.role === 'piper') {
     return `<div class="panel">${head('piper', 'Thôi miên 2 người', `Đã chọn ${task.picks.length}/2. Người đã bị thôi miên không chọn lại được.`)}
@@ -1237,10 +1272,13 @@ function nightTask(task) {
   }
   if (task.role === 'guard') {
     const subs = task.lastGuarded ? { [task.lastGuarded]: 'Đã bảo vệ đêm trước' } : {};
+    const firstNight = view.game.day === 1;
+    if (firstNight) subs[m.id] = 'Đêm đầu không tự bảo vệ';
+    const disabled = [task.lastGuarded, firstNight ? m.id : null].filter(Boolean);
     return `<div class="panel">${head('guard', 'Bảo vệ ai đêm nay?', 'Người được bảo vệ sẽ không chết nếu bị Sói cắn.')}
       ${task.complete
         ? `<p class="result" style="margin-top:12px">Bạn đang bảo vệ ${esc(seatName(task.pick))}.</p>`
-        : pickGrid('night', { disabled: task.lastGuarded ? [task.lastGuarded] : [], subs })}</div>`;
+        : pickGrid('night', { disabled, subs })}</div>`;
   }
   if (task.role === 'hunter') {
     const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
@@ -1254,23 +1292,38 @@ function nightTask(task) {
   }
   if (task.role === 'werewolf') {
     const counts = {};
-    Object.values(task.votes).flat().forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+    Object.values(task.votes).flat().filter(t => t !== 'none').forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+    const noKillVotes = Object.values(task.votes).filter(v => v[0] === 'none').length;
+    const mineNone = task.votes[m.id]?.[0] === 'none';
     const mates = view.me.wolves.filter(id => player(id)?.alive).map(seatName);
     const two = task.kills === 2;
-    const what = two ? 'cùng hai người' : 'cùng một người';
+    // What every living wolf picked so far, so the pack can agree.
+    const pack = [m.id, ...view.me.wolves].filter(id => player(id)?.alive);
+    const pickOf = (id) => {
+      const v = task.votes[id] || [];
+      return !v.length ? '<span class="muted">chưa chọn</span>'
+        : v[0] === 'none' ? '🚫 Không cắn ai'
+        : `🐺 ${esc(v.map(seatName).join(' và '))}`;
+    };
+    const packList = pack.length > 1 ? `<ul class="vote-list">${pack.map(id => `
+      <li><strong>${esc(seatName(id))}${id === m.id ? ' (bạn)' : ''}</strong> → ${pickOf(id)}${task.ready.includes(id) ? ' · ✅ xong' : ''}</li>`).join('')}</ul>` : '';
     return `<div class="panel">${head('werewolf', two ? 'Sói Con đã chết: đêm nay cắn 2 người' : 'Chọn con mồi', mates.length
-      ? `Cả đàn phải chọn ${what}. Đồng bọn: ${esc(mates.join(', '))}.`
-      : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn.`)}
-      ${task.targets.length
+      ? `Chọn ${two ? 'hai người' : 'một người'} để cắn (cắn cả đồng bọn cũng được). "Không cắn ai" không tính là phiếu: hết giờ, người được chọn nhiều nhất bị cắn; chỉ khi không ai chọn ai thì đêm nay không ai bị cắn.`
+      : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn, hoặc không cắn ai.`)}
+      ${packList}
+      ${task.noKill
+        ? '<p class="result" style="margin-top:12px">Đàn Sói đã chốt: đêm nay không cắn ai.</p>'
+        : task.targets.length
         ? `<p class="result result-wolf" style="margin-top:12px">Đàn Sói đã chốt: ${esc(task.targets.map(seatName).join(' và '))}.</p>`
-        : pickGrid('night', { exclude: [m.id, ...view.me.wolves], selected: task.votes[m.id] || [], counts })}</div>`;
+        : `${pickGrid('night', { exclude: [m.id], selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])) })}
+          <button class="btn ${mineNone ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:12px" data-act="noKill" aria-pressed="${mineNone}">🚫 Không cắn ai${noKillVotes ? ` (${noKillVotes})` : ''}</button>`}</div>`;
   }
   if (task.role === 'detective') {
     if (task.result) {
       const same = task.result === 'same';
       return `<div class="panel stack">${head('detective', 'Kết quả điều tra', 'Chỉ bạn nhìn thấy kết quả này.')}
         <p class="result ${same ? 'result-village' : 'result-wolf'}">${esc(task.picks.map(seatName).join(' và '))} ${same ? 'cùng phe 🤝' : 'khác phe ⚔️'}</p>
-        ${task.complete ? '' : '<button class="btn btn-primary btn-block" data-act="detectiveDone">Đã nhớ, nhắm mắt lại</button>'}</div>`;
+        ${doneHint}</div>`;
     }
     return `<div class="panel">${head('detective', 'Điều tra 2 người', `Đã chọn ${task.picks.length}/2. Bạn sẽ biết họ có cùng phe hay không.`)}
       ${pickGrid('night', { exclude: [m.id], selected: task.picks })}</div>`;
@@ -1306,7 +1359,7 @@ function nightTask(task) {
       const wolf = task.result === 'werewolf';
       return `<div class="panel stack">${head('seer', 'Kết quả soi', 'Chỉ bạn nhìn thấy kết quả này.')}
         <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : { piper: '🪈', fool: '🤡' }[task.result] || '🌾'}</p>
-        ${task.complete ? '' : '<button class="btn btn-primary btn-block" data-act="seerDone">Đã nhớ, nhắm mắt lại</button>'}</div>`;
+        ${doneHint}</div>`;
     }
     return `<div class="panel">${head('seer', 'Soi ai đêm nay?', 'Bạn chỉ biết người đó là Sói hay Dân.')}
       ${pickGrid('night', { exclude: [m.id] })}</div>`;
@@ -1320,7 +1373,7 @@ function nightTask(task) {
       ${task.poisoned ? `<p class="result result-wolf">Bạn đã đầu độc ${esc(seatName(task.poisoned))}.</p>`
         : task.poisonAvailable ? `<div><p class="field-label">Hoặc chọn người để dùng bình Độc</p>${pickGrid('poison', { exclude: [m.id] })}</div>`
         : '<p class="muted small">Bình Độc đã dùng hết.</p>'}
-      <button class="btn btn-primary btn-block" data-act="witchDone">Xong, nhắm mắt lại</button></div>`;
+      ${doneHint}</div>`;
   }
   return '';
 }
@@ -1539,12 +1592,13 @@ document.addEventListener('click', async (e) => {
       return document.getElementById('cardSheet').showModal();
     case 'flip': return el.classList.toggle('revealed');
     case 'night': return act('night', { target: id });
+    case 'noKill': return act('night', { noKill: true });
     case 'seerDone': return act('seerDone').then(() => act('endTurn'));
     case 'detectiveDone': return act('detectiveDone').then(() => act('endTurn'));
     case 'ack': return act('ack').then(() => act('endTurn'));
     case 'endTurn': {
       const t = view?.me?.task;
-      if (t?.role === 'werewolf' && !t.targets?.length && !confirm('Đàn Sói chưa chốt nạn nhân. Vẫn kết thúc lượt? (Sẽ lấy người được chọn nhiều nhất)')) return;
+      if (t?.role === 'werewolf' && !t.votes?.[view.me.id]?.length && !confirm('Bạn chưa chọn ai. Vẫn bấm Xong?')) return;
       return act('endTurn');
     }
     case 'thiefPick': {

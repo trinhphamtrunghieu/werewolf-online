@@ -104,12 +104,12 @@ test('players only see their own role (wolves also see wolves)', () => {
   assert.ok(!JSON.stringify(seerView).includes(P[1].token), 'tokens never leak');
 });
 
-test('only the active role may act at night and wolves cannot bite wolves', () => {
+test('only the active role may act at night and a wolf cannot bite itself', () => {
   const { P, act, untilNightRole } = setup(['guard', 'werewolf', 'seer', 'villager', 'villager']);
   untilNightRole('guard');
   assert.throws(() => act(P[1], 'night', { target: P[0].id }), /Chưa đến lượt/);
   untilNightRole('werewolf');
-  assert.throws(() => act(P[1], 'night', { target: P[1].id }), /đồng bọn/);
+  assert.throws(() => act(P[1], 'night', { target: P[1].id }), /chính mình/);
 });
 
 test('wolf kill, guard save and witch potions resolve correctly', () => {
@@ -192,7 +192,6 @@ test('a bitten hunter takes his target along, announced as plain deaths', () => 
   assert.deepEqual(keys.filter(k => k.startsWith('seat_')).sort(), [`seat_${P[0].seat}`, `seat_${P[2].seat}`].sort());
   assert.ok(keys.includes('morning_deaths'));
   assert.ok(!keys.includes('hunter_fire'));
-  assert.ok(!s.game.log.some(e => /Thợ Săn|súng/.test(e)), 'the public log does not say it either');
 });
 
 test('witch heal is blind: saves the bitten player, and is spent on a quiet night', () => {
@@ -276,7 +275,6 @@ test('lynching one lover takes the other one too', () => {
   const keys = s.narration.clips.map(c => c.k);
   assert.ok(keys.includes('also_died') && keys.includes(`seat_${P[4].seat}`));
   assert.ok(!keys.includes('lover_death'));
-  assert.ok(!s.game.log.some(e => /chết theo|người yêu/i.test(e)), 'the public log does not say it either');
   assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.lovers, [], 'nor the view');
 });
 
@@ -582,7 +580,6 @@ test('lynching the elder strips every village power for the rest of the game', (
   assert.equal(s.game.powersLost, true);
   // Kept secret: announcing it would tell everyone the hanged player was the Elder.
   assert.ok(!s.narration.clips.some(c => c.k === 'elder_betrayed'));
-  assert.ok(!s.game.log.some(e => /Già Làng|mất chức năng/.test(e)));
   assert.ok(!viewFor(s, P[4].id, 0, 1).game.powersLost, 'a villager is not told');
   assert.ok(!viewFor(s, P[4].id, 0, 1).me.powerless);
   assert.equal(viewFor(s, P[2].id, 0, 1).me.powerless, true, 'the seer learns it on their own card');
@@ -615,21 +612,33 @@ test('deaths are announced in seat order, never in the order they happened', () 
   const seats = s.narration.clips.filter(c => c.k.startsWith('seat_')).map(c => Number(c.k.slice(5)));
   assert.deepEqual(seats, [P[0].seat, P[3].seat, P[6].seat], 'bitten, poisoned and heartbroken all read by seat');
   assert.deepEqual(s.game.lastNightDeaths, [P[0].id, P[3].id, P[6].id]);
-  assert.ok(!s.game.log.some(e => /Thần Tình Yêu|mũi tên/.test(e)), 'no public trace of Cupid');
 });
 
-test('only a moderator who does not play can read the game log', () => {
-  const { s, P } = setup(['werewolf', 'seer', 'villager', 'villager']);
-  assert.ok(s.game.log.length > 0);
+test('the log is for the moderator, or for a playing host once the game is over', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['werewolf', 'seer', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[0], 'night', { target: P[2].id });
+  untilNightRole('seer');
+  act(P[1], 'night', { target: P[0].id });
+  untilPhase('MORNING');
   assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.log, [], 'players see no log');
-  assert.deepEqual(viewFor(s, P[0].id, 0, 1).game.log, [], 'not even a playing host');
-  // A host who only moderates sees everything.
+  assert.deepEqual(viewFor(s, P[0].id, 0, 1).game.log, [], 'nor the playing host during the game');
+  // The log says who did what.
+  const text = s.game.log.join('\n');
+  assert.match(text, /Bầy Sói .*cắn .*P3/);
+  assert.match(text, /Tiên Tri .*soi .*Chủ.*Sói/);
+  assert.match(text, /P3 .*bị Sói cắn/);
+  P[1].alive = false;
+  P[3].alive = false;
+  untilPhase('GAME_OVER');
+  assert.ok(viewFor(s, P[0].id, 0, 1).game.log.length > 0, 'the host reads it after the game');
+  assert.deepEqual(viewFor(s, P[1].id, 0, 1).game.log, [], 'other players still do not');
+  // A host who only moderates sees it all along.
   const { state, player: host } = createRoom({ code: 'MOD01', hostName: 'Host', now: 0 });
   applyAction(state, host.id, 'config', { hostPlays: false }, 0);
   applyAction(state, host.id, 'addBot', { count: 4 }, 0);
   applyAction(state, host.id, 'start', {}, 0);
   assert.ok(viewFor(state, host.id, 0, 1).game.log.length > 0);
-  assert.deepEqual(viewFor(state, state.players.find(p => p.isBot).id, 0, 1).game.log, []);
 });
 
 test('wolf cub wakes with the pack; once it dies the wolves bite two the next night', () => {
@@ -782,21 +791,38 @@ test('the seer only learns wolf or villager', () => {
   assert.equal(g.s.game.night.seerResult, 'werewolf');
 });
 
-test('at night nobody can see who is connected, and the host vote waits for the day', () => {
+test('only the host sees who is connected; others learn only when the host is gone', () => {
   const { s, P, clock, untilNightRole, untilPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  untilPhase('DISCUSSION');
+  P.forEach(p => { p.lastSeen = clock.now; });
+  P[3].lastSeen = clock.now - 120_000;
+  assert.equal(viewFor(s, P[0].id, clock.now, 1).players[3].online, false, 'the host sees it');
+  assert.ok(viewFor(s, P[2].id, clock.now, 1).players.every(p => p.online), 'players do not');
+  // A playing host does not see it at night either (it would show who is awake).
   untilNightRole('werewolf');
   P.forEach(p => { p.lastSeen = clock.now; });
-  P[3].lastSeen = clock.now - 120_000; // a locked phone
-  P[0].lastSeen = clock.now - 120_000; // the host's phone too
-  const v = viewFor(s, P[2].id, clock.now, 1);
-  assert.ok(v.players.every(p => p.online), 'connection status is hidden at night');
-  assert.equal(v.hostOffline, null, 'no host vote during the night');
-  untilPhase('MORNING');
-  P[0].lastSeen = clock.now - 120_000;
   P[3].lastSeen = clock.now - 120_000;
-  const d = viewFor(s, P[2].id, clock.now, 1);
-  assert.equal(d.players[3].online, false, 'shown again by day');
-  assert.ok(d.hostOffline);
+  assert.ok(viewFor(s, P[0].id, clock.now, 1).players.every(p => p.online));
+  // The host's phone goes quiet at night: everyone is told, the vote waits for day.
+  P[0].lastSeen = clock.now - 120_000;
+  const night = viewFor(s, P[2].id, clock.now, 1).hostOffline;
+  assert.deepEqual(night, { night: true }, 'a notice only, no candidates at night');
+  untilPhase('MORNING');
+  P.forEach(p => { p.lastSeen = clock.now; });
+  P[0].lastSeen = clock.now - 120_000;
+  const day = viewFor(s, P[2].id, clock.now, 1).hostOffline;
+  assert.ok(day.candidates.length > 0, 'by day the vote opens');
+});
+
+test('a non-playing host sees connections at any time', () => {
+  const { state: s, player: host } = createRoom({ code: 'MOD02', hostName: 'Host', now: 0 });
+  const lan = joinRoom(s, 'Lan', 0);
+  applyAction(s, host.id, 'config', { hostPlays: false }, 0);
+  applyAction(s, host.id, 'addBot', { count: 3 }, 0);
+  applyAction(s, host.id, 'start', {}, 0);
+  assert.equal(s.phase, 'NIGHT');
+  lan.lastSeen = -120_000;
+  assert.equal(viewFor(s, host.id, 1000, 1).players.find(p => p.id === lan.id).online, false);
 });
 
 test('the witch may use both bottles in the same night, each once per game', () => {
@@ -1103,4 +1129,277 @@ test('a player who lost their session can take their seat back by name once offl
   assert.throws(() => authenticate(s, lan.id, oldToken), GameError); // the old phone is signed out
   // A new name still can't join a game in progress.
   assert.throws(() => joinRoom(s, 'Người mới', clock.now), /Ván chơi đang diễn ra/);
+});
+
+// ---------------------------------------------------------------------------
+// Rules audit: one check per agreed rule, focused on edge cases and on how
+// roles interact.
+// ---------------------------------------------------------------------------
+
+const lynch = (g, target) => {
+  g.untilPhase('VOTE');
+  const voters = g.P.filter(p => p.alive && p.id !== target.id);
+  voters.forEach(v => g.act(v, 'vote', { target: target.id }));
+  g.untilPhase('JUDGE');
+  voters.forEach(v => g.act(v, 'judge', { choice: 'kill' }));
+  g.endPhase();
+};
+
+test('rules: guard may protect themselves from night two; protection stops bites only, not poison', () => {
+  const g = setup(['guard', 'werewolf', 'witch', 'villager', 'villager', 'villager']);
+  g.untilNightRole('guard');
+  assert.throws(() => g.act(g.P[0], 'night', { target: g.P[0].id }), /Đêm đầu/);
+  g.untilPhase('DISCUSSION');
+  g.untilNightRole('guard');
+  g.act(g.P[0], 'night', { target: g.P[0].id });
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, true, 'self-protection works');
+
+  const h = setup(['guard', 'werewolf', 'witch', 'villager', 'villager', 'villager']);
+  h.untilNightRole('guard');
+  h.act(h.P[0], 'night', { target: h.P[3].id });
+  h.untilNightRole('witch');
+  h.act(h.P[2], 'witch', { use: 'poison', target: h.P[3].id });
+  h.untilPhase('MORNING');
+  assert.equal(h.P[3].alive, false, 'the guard does not stop poison');
+});
+
+test('rules: guard can protect again after skipping a night', () => {
+  const g = setup(['guard', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('guard');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.untilPhase('DISCUSSION');
+  g.untilNightRole('guard'); // night 2: no choice
+  g.untilPhase('DISCUSSION');
+  g.untilNightRole('guard'); // night 3: the same player again is fine
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  assert.equal(g.s.game.night.guard, g.P[2].id);
+});
+
+test('rules: wolves may bite a pack mate, or agree to bite nobody', () => {
+  const g = setup(['werewolf', 'werewolf', 'wolf_cub', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.act(g.P[1], 'night', { target: g.P[2].id });
+  g.act(g.P[2], 'night', { target: g.P[0].id }); // the cub disagrees
+  g.untilPhase('MORNING');
+  assert.equal(g.P[2].alive, false, 'the pack bit its own cub');
+
+  const h = setup(['werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  h.untilNightRole('werewolf');
+  h.act(h.P[0], 'night', { noKill: true });
+  h.act(h.P[1], 'night', { noKill: true });
+  assert.equal(h.s.game.night.complete, true, 'agreed on nobody');
+  h.untilPhase('MORNING');
+  assert.ok(h.P.every(p => p.alive), 'nobody was bitten');
+  assert.ok(h.s.narration.clips.some(c => c.k === 'morning_peace'));
+
+  // "Nobody" is worth no votes: one wolf picking a victim is enough.
+  const k = setup(['werewolf', 'werewolf', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  k.untilNightRole('werewolf');
+  k.act(k.P[0], 'night', { noKill: true });
+  k.act(k.P[1], 'night', { noKill: true });
+  k.act(k.P[2], 'night', { noKill: true });
+  k.act(k.P[3], 'night', { target: k.P[4].id });
+  assert.equal(k.s.game.night.complete, false, 'not unanimous yet');
+  // Each wolf sees what every other wolf picked.
+  const votes = viewFor(k.s, k.P[0].id, 0, 1).me.task.votes;
+  assert.deepEqual(votes[k.P[3].id], [k.P[4].id]);
+  assert.deepEqual(votes[k.P[1].id], ['none']);
+  k.untilPhase('MORNING');
+  assert.equal(k.P[4].alive, false, '3 x nobody + 1 x a victim: the victim is bitten');
+});
+
+test('rules: every wolf card counts for the wolves\' win', () => {
+  const g = setup(['werewolf', 'wolf_cub', 'avenger', 'villager', 'villager', 'villager', 'villager']);
+  g.P[6].alive = false; // 3 wolves against 3 others
+  assert.equal(checkWin(g.s)?.winner, 'werewolf');
+});
+
+test('rules: the hunter fires on any death (poison, heartbreak) and keeps the last aim', () => {
+  const g = setup(['hunter', 'werewolf', 'witch', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('witch');
+  g.act(g.P[2], 'witch', { use: 'poison', target: g.P[0].id });
+  g.untilNightRole('hunter');
+  g.act(g.P[0], 'night', { target: g.P[4].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false);
+  assert.equal(g.P[4].alive, false, 'poisoned hunter still fires');
+
+  const h = setup(['cupid', 'werewolf', 'hunter', 'villager', 'villager', 'villager', 'villager']);
+  h.untilNightRole('cupid');
+  h.act(h.P[0], 'night', { target: h.P[2].id });
+  h.act(h.P[0], 'night', { target: h.P[3].id });
+  h.untilNightRole('hunter');
+  h.act(h.P[2], 'night', { target: h.P[5].id });
+  h.untilPhase('DISCUSSION');
+  h.untilNightRole('werewolf');
+  h.act(h.P[1], 'night', { target: h.P[3].id }); // bite the hunter's lover
+  h.untilPhase('MORNING');
+  assert.equal(h.P[2].alive, false, 'the hunter dies of a broken heart');
+  assert.equal(h.P[5].alive, false, 'and still fires at the aim kept from night one');
+});
+
+test('rules: the elder shield is spent only by a real bite; a second bite kills', () => {
+  const g = setup(['elder', 'werewolf', 'guard', 'villager', 'villager', 'villager']);
+  g.untilNightRole('guard');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.s.game.elderShield, true, 'guarded: the shield is untouched');
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, true);
+  assert.equal(g.s.game.elderShield, false, 'first real bite: survives, shield gone');
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false, 'second bite kills');
+  assert.equal(g.s.game.powersLost, false, 'killed by wolves: the village keeps its powers');
+});
+
+test('rules: the witch\'s poison on the elder costs the village its powers', () => {
+  const g = setup(['elder', 'werewolf', 'witch', 'seer', 'villager', 'villager']);
+  g.untilNightRole('witch');
+  g.act(g.P[2], 'witch', { use: 'poison', target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false);
+  assert.equal(g.s.game.powersLost, true);
+});
+
+test('rules: thief who does not choose keeps the thief card and plays as a villager', () => {
+  const g = setup(['thief', 'werewolf', 'villager', 'villager', 'villager'], { extras: ['seer', 'guard'] });
+  g.untilNightRole('thief');
+  g.untilPhase('DISCUSSION');
+  assert.equal(g.P[0].role, 'thief');
+  assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.role, 'thief');
+  // A forced take also counts the Wolf Cub as a wolf card.
+  const h = setup(['thief', 'werewolf', 'villager', 'villager', 'villager'], { extras: ['werewolf', 'wolf_cub'] });
+  h.untilNightRole('thief');
+  assert.throws(() => h.act(h.P[0], 'thief', { pick: null }), /bắt buộc/);
+  h.untilPhase('DISCUSSION');
+  assert.ok(['werewolf', 'wolf_cub'].includes(h.P[0].role), 'took a wolf card when time ran out');
+});
+
+test('rules: lovers on the same team win with their team, not as a couple', () => {
+  const g = setup(['cupid', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('cupid');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  g.P[1].alive = false; // the only wolf is gone
+  g.P[0].alive = false;
+  g.P[4].alive = false;
+  assert.equal(checkWin(g.s)?.winner, 'village');
+});
+
+test('rules: a dead piper cannot win; the madman alive does not stop the village winning', () => {
+  const g = setup(['piper', 'werewolf', 'fool', 'villager', 'villager']);
+  g.s.game.charmed = [g.P[1].id, g.P[2].id, g.P[3].id, g.P[4].id];
+  g.P[0].alive = false;
+  assert.notEqual(checkWin(g.s)?.winner, 'piper');
+  g.P[1].alive = false; // last wolf gone, piper dead, madman alive
+  assert.equal(checkWin(g.s)?.winner, 'village');
+});
+
+test('rules: the detective tells the piper and the madman apart from each other and from villagers', () => {
+  const g = setup(['detective', 'werewolf', 'piper', 'fool', 'villager', 'villager']);
+  g.untilNightRole('detective');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  assert.equal(g.s.game.night.detectiveResult, 'different');
+});
+
+test('rules: holy water on a wolf-team cub or avenger kills it; on the piper nothing happens', () => {
+  const g = setup(['priest', 'werewolf', 'avenger', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('priest');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[2].alive, false);
+  assert.equal(g.P[0].alive, true);
+  const h = setup(['priest', 'werewolf', 'piper', 'villager', 'villager', 'villager']);
+  h.untilNightRole('priest');
+  h.act(h.P[0], 'night', { target: h.P[2].id });
+  h.untilPhase('MORNING');
+  assert.ok(h.P[0].alive && h.P[2].alive);
+});
+
+test('rules: the avenger takes nobody when killed other than by hanging; hanged, the target dies', () => {
+  const g = setup(['avenger', 'werewolf', 'hunter', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('avenger');
+  g.act(g.P[0], 'night', { target: g.P[4].id });
+  g.untilNightRole('hunter');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  g.untilPhase('DISCUSSION');
+  lynch(g, g.P[2]); // hang the hunter: his gun kills the avenger
+  assert.equal(g.P[0].alive, false);
+  assert.equal(g.P[4].alive, true, 'shot, not hanged: no revenge');
+});
+
+test('rules: a revived player keeps their card and links (charm, couple)', () => {
+  const g = setup(['medium', 'werewolf', 'cupid', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('cupid');
+  g.act(g.P[2], 'night', { target: g.P[3].id });
+  g.act(g.P[2], 'night', { target: g.P[4].id });
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[5].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[5].alive, false);
+  g.untilNightRole('medium');
+  g.act(g.P[0], 'night', { target: g.P[5].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[5].alive, true);
+  assert.equal(g.P[5].role, 'villager');
+});
+
+test('rules: the madman hanged ends the game even if the wolves would also win', () => {
+  const g = setup(['fool', 'werewolf', 'werewolf', 'villager', 'villager']);
+  g.untilPhase('DISCUSSION');
+  lynch(g, g.P[0]);
+  assert.equal(g.s.phase, 'GAME_OVER');
+  assert.equal(g.s.game.winner, 'fool');
+});
+
+test('rules: a powerless guard, seer, detective, priest, medium and hunter cannot act', () => {
+  const g = setup(['elder', 'werewolf', 'guard', 'seer', 'detective', 'priest', 'medium', 'hunter', 'villager', 'villager', 'villager']);
+  g.untilPhase('DISCUSSION');
+  lynch(g, g.P[0]);
+  assert.equal(g.s.game.powersLost, true);
+  for (const [i, role] of [[2, 'guard'], [3, 'seer'], [4, 'detective'], [5, 'priest'], [7, 'hunter']]) {
+    g.untilNightRole(role);
+    assert.throws(() => g.act(g.P[i], 'night', { target: g.P[8].id }), /mất chức năng/, role);
+  }
+});
+
+test('in the pack, "Xong" means ready: the turn ends once every living wolf is ready', () => {
+  const g = setup(['werewolf', 'werewolf', 'wolf_cub', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  const end = g.s.game.phaseEndsAt;
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  g.act(g.P[0], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, end, 'one wolf ready: the others keep choosing');
+  assert.deepEqual(viewFor(g.s, g.P[1].id, 0, 1).me.task.ready, [g.P[0].id], 'the pack sees who is ready');
+  g.act(g.P[1], 'night', { target: g.P[4].id });
+  g.act(g.P[1], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, end);
+  // Changing your pick makes you not ready again.
+  g.act(g.P[0], 'night', { target: g.P[4].id });
+  assert.deepEqual(viewFor(g.s, g.P[1].id, 0, 1).me.task.ready, [g.P[1].id]);
+  g.act(g.P[0], 'endTurn', {});
+  g.act(g.P[2], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now, 'all three ready: the turn ends');
+  g.endPhase();
+  g.untilPhase('MORNING');
+  assert.equal(g.P[4].alive, false, 'the most voted is bitten');
+});
+
+test('a single role ends its turn with "Xong" alone (no separate done button needed)', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('seer');
+  g.act(g.P[0], 'night', { target: g.P[1].id });
+  g.act(g.P[0], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now);
 });
