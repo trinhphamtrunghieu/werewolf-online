@@ -1196,14 +1196,20 @@ test('rules: wolves may bite a pack mate, or agree to bite nobody', () => {
   assert.ok(h.P.every(p => p.alive), 'nobody was bitten');
   assert.ok(h.s.narration.clips.some(c => c.k === 'morning_peace'));
 
-  // "Nobody" can also win the vote when time runs out.
-  const k = setup(['werewolf', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  // "Nobody" is worth no votes: one wolf picking a victim is enough.
+  const k = setup(['werewolf', 'werewolf', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager']);
   k.untilNightRole('werewolf');
   k.act(k.P[0], 'night', { noKill: true });
   k.act(k.P[1], 'night', { noKill: true });
-  k.act(k.P[2], 'night', { target: k.P[3].id });
+  k.act(k.P[2], 'night', { noKill: true });
+  k.act(k.P[3], 'night', { target: k.P[4].id });
+  assert.equal(k.s.game.night.complete, false, 'not unanimous yet');
+  // Each wolf sees what every other wolf picked.
+  const votes = viewFor(k.s, k.P[0].id, 0, 1).me.task.votes;
+  assert.deepEqual(votes[k.P[3].id], [k.P[4].id]);
+  assert.deepEqual(votes[k.P[1].id], ['none']);
   k.untilPhase('MORNING');
-  assert.ok(k.P.every(p => p.alive));
+  assert.equal(k.P[4].alive, false, '3 x nobody + 1 x a victim: the victim is bitten');
 });
 
 test('rules: every wolf card counts for the wolves\' win', () => {

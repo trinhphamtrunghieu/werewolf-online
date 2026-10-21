@@ -34,7 +34,7 @@ export const ROLES = {
     icon: '🐺',
     color: '#ff6b6b',
     short: 'Mỗi đêm cùng đàn Sói chọn 1 người để cắn.',
-    description: 'Mỗi đêm thức dậy cùng đàn Sói và thống nhất chọn 1 người để cắn (cắn cả đồng bọn cũng được), hoặc cùng chọn không cắn ai. Nếu cả đàn chọn khác nhau, người được chọn nhiều nhất bị cắn; bằng phiếu thì bốc ngẫu nhiên. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.',
+    description: 'Mỗi đêm thức dậy cùng đàn Sói và thống nhất chọn 1 người để cắn (cắn cả đồng bọn cũng được), hoặc chọn không cắn ai. "Không cắn ai" không tính là phiếu: nếu cả đàn chọn khác nhau, người được chọn nhiều nhất bị cắn (bằng phiếu thì bốc ngẫu nhiên); chỉ khi không con nào chọn ai thì đêm đó không ai bị cắn. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3" opacity="0.5"/>
       <path d="M26 78L32 45L22 20L42 34L50 26L58 34L78 20L68 45L74 78H26Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>

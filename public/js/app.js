@@ -1269,10 +1269,20 @@ function nightTask(task) {
     const mineNone = task.votes[m.id]?.[0] === 'none';
     const mates = view.me.wolves.filter(id => player(id)?.alive).map(seatName);
     const two = task.kills === 2;
-    const what = two ? 'cùng hai người' : 'cùng một người';
+    // What every living wolf picked so far, so the pack can agree.
+    const pack = [m.id, ...view.me.wolves].filter(id => player(id)?.alive);
+    const pickOf = (id) => {
+      const v = task.votes[id] || [];
+      return !v.length ? '<span class="muted">chưa chọn</span>'
+        : v[0] === 'none' ? '🚫 Không cắn ai'
+        : `🐺 ${esc(v.map(seatName).join(' và '))}`;
+    };
+    const packList = pack.length > 1 ? `<ul class="vote-list">${pack.map(id => `
+      <li><strong>${esc(seatName(id))}${id === m.id ? ' (bạn)' : ''}</strong> → ${pickOf(id)}</li>`).join('')}</ul>` : '';
     return `<div class="panel">${head('werewolf', two ? 'Sói Con đã chết: đêm nay cắn 2 người' : 'Chọn con mồi', mates.length
-      ? `Cả đàn phải chọn ${what} (cắn cả đồng bọn cũng được), hoặc cùng chọn không cắn ai. Đồng bọn: ${esc(mates.join(', '))}.`
-      : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn.`)}
+      ? `Chọn ${two ? 'hai người' : 'một người'} để cắn (cắn cả đồng bọn cũng được). "Không cắn ai" không tính là phiếu: hết giờ, người được chọn nhiều nhất bị cắn; chỉ khi không ai chọn ai thì đêm nay không ai bị cắn.`
+      : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn, hoặc không cắn ai.`)}
+      ${packList}
       ${task.noKill
         ? '<p class="result" style="margin-top:12px">Đàn Sói đã chốt: đêm nay không cắn ai.</p>'
         : task.targets.length
