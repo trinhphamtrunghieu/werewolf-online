@@ -13,6 +13,7 @@
   --lantern-ink: #2a1a05;
   --wolf: #d65a52;
   --village: #86b89a;
+  --third: #b48ce6;
   --love: #ff8cc6;
   --sky-top: #232a57;
   --sky-bottom: #161b36;
@@ -273,6 +274,12 @@ p { margin: 0; }
 .balance span { display: block; height: 100%; transition: width 0.3s ease; }
 .balance .v { background: var(--village); }
 .balance .w { background: var(--wolf); }
+.balance .t { background: var(--third); }
+.team-counts { color: var(--muted); }
+.team-counts .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.team-counts .dot.v { background: var(--village); }
+.team-counts .dot.w { background: var(--wolf); }
+.team-counts .dot.t { background: var(--third); }
 
 .bottom-bar {
   position: fixed;
