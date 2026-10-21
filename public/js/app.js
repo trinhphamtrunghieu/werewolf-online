@@ -787,8 +787,14 @@ function settingsPanel() {
 function rolesPanel(count, host) {
   const counts = view.roleCounts;
   const total = totalRoles(counts);
-  const wolves = counts.werewolf || 0;
-  const wolfPct = total ? Math.round((wolves / total) * 100) : 0;
+  // Count every card by its team: wolves (Ma Sói, Sói Con, Sói Báo Thù),
+  // village, and the third parties (Người Thổi Sáo, Kẻ Cuồng Loạn).
+  const teams = { village: 0, werewolf: 0, third: 0 };
+  ROLE_IDS.forEach(id => {
+    const team = ROLES[id].team;
+    teams[team === 'village' || team === 'werewolf' ? team : 'third'] += counts[id] || 0;
+  });
+  const pct = (n) => (total ? (n / total) * 100 : 0);
   return `
     <div class="row-between" style="margin-bottom:4px">
       <h3>Vai trò trong ván</h3>
@@ -797,11 +803,13 @@ function rolesPanel(count, host) {
     <p class="muted small">${view.roleMode === 'auto'
       ? 'Tự động cân bằng theo số người chơi.'
       : 'Chủ phòng đang tự chọn số lượng.'} ${total}/${cardsNeeded(counts, count)} lá bài cho ${count} người${counts.thief ? ' (có Ăn Trộm nên chia dư 2 lá)' : ''}.</p>
-    <div class="balance" style="margin:12px 0 4px" aria-label="Tỉ lệ phe Dân và phe Sói">
-      <span class="v" style="width:${100 - wolfPct}%"></span><span class="w" style="width:${wolfPct}%"></span>
+    <div class="balance" style="margin:12px 0 4px" role="img" aria-label="Phe Dân ${teams.village}, phe Sói ${teams.werewolf}, phe thứ ba ${teams.third}">
+      <span class="v" style="width:${pct(teams.village)}%"></span><span class="t" style="width:${pct(teams.third)}%"></span><span class="w" style="width:${pct(teams.werewolf)}%"></span>
     </div>
-    <div class="row-between small muted" style="margin-bottom:8px">
-      <span>Phe Dân: ${total - wolves - (counts.piper || 0)}</span>${counts.piper ? `<span>Phe riêng: ${counts.piper}</span>` : ''}<span>Phe Sói: ${wolves}</span>
+    <div class="row-between small team-counts" style="margin-bottom:8px">
+      <span><i class="dot v"></i>Phe Dân: ${teams.village}</span>
+      ${teams.third ? `<span><i class="dot t"></i>Phe thứ ba: ${teams.third}</span>` : ''}
+      <span><i class="dot w"></i>Phe Sói: ${teams.werewolf}</span>
     </div>
     ${ROLE_IDS.filter(id => host || counts[id] > 0).map(id => {
       const r = ROLES[id];
