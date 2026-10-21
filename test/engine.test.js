@@ -47,9 +47,11 @@ function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
     for (let i = 0; i < limit && s.phase !== phase; i++) endPhase();
     assert.equal(s.phase, phase);
   };
+  // Stops once the role has been called and its action slot is open.
   const untilNightRole = (role) => {
-    for (let i = 0; i < 20 && !(s.phase === 'NIGHT' && s.game.queue[s.game.step] === role); i++) endPhase();
+    for (let i = 0; i < 30 && !(s.phase === 'NIGHT' && s.game.queue[s.game.step] === role && s.game.nightStage === 'act'); i++) endPhase();
     assert.equal(s.game.queue[s.game.step], role);
+    assert.equal(s.game.nightStage, 'act');
   };
   return { s, P, host, clock, act, endPhase, untilPhase, untilNightRole, rng };
 }
@@ -780,6 +782,102 @@ test('the seer only learns wolf or villager', () => {
   assert.equal(g.s.game.night.seerResult, 'werewolf');
 });
 
+test('at night nobody can see who is connected, and the host vote waits for the day', () => {
+  const { s, P, clock, untilNightRole, untilPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  P.forEach(p => { p.lastSeen = clock.now; });
+  P[3].lastSeen = clock.now - 120_000; // a locked phone
+  P[0].lastSeen = clock.now - 120_000; // the host's phone too
+  const v = viewFor(s, P[2].id, clock.now, 1);
+  assert.ok(v.players.every(p => p.online), 'connection status is hidden at night');
+  assert.equal(v.hostOffline, null, 'no host vote during the night');
+  untilPhase('MORNING');
+  P[0].lastSeen = clock.now - 120_000;
+  P[3].lastSeen = clock.now - 120_000;
+  const d = viewFor(s, P[2].id, clock.now, 1);
+  assert.equal(d.players[3].online, false, 'shown again by day');
+  assert.ok(d.hostOffline);
+});
+
+test('the witch may use both bottles in the same night, each once per game', () => {
+  const g = setup(['witch', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[2].id });
+  g.untilNightRole('witch');
+  g.act(g.P[0], 'witch', { use: 'heal' });
+  g.act(g.P[0], 'witch', { use: 'poison', target: g.P[3].id });
+  assert.throws(() => g.act(g.P[0], 'witch', { use: 'heal' }), /hết|đêm nay/);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[2].alive, true, 'healed');
+  assert.equal(g.P[3].alive, false, 'poisoned');
+  g.untilNightRole('witch');
+  const task = viewFor(g.s, g.P[0].id, 0, 1).me.task;
+  assert.equal(task.healAvailable, false);
+  assert.equal(task.poisonAvailable, false);
+});
+
+test('a role only sees its choices once it has been called', () => {
+  const { s, P, endPhase } = setup(['guard', 'werewolf', 'villager', 'villager', 'villager']);
+  // Night one opens with the welcome, "night falls" and the guard's call.
+  assert.equal(s.game.queue[s.game.step], 'guard');
+  assert.equal(s.game.nightStage, 'call');
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task, null, 'nothing while the narrator is still talking');
+  endPhase();
+  assert.equal(s.game.nightStage, 'act');
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.role, 'guard');
+});
+
+test('each role has its own action time; the pack gets longer with more wolves; the host can change it mid-game', () => {
+  const { s, P, host, clock, act, endPhase, untilNightRole } = setup(['seer', 'werewolf', 'wolf_cub', 'avenger', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  assert.equal(s.game.phaseEndsAt - clock.now, (s.config.step_werewolf + 10) * 1000, '3 pack cards: +5 s for each extra one');
+  untilNightRole('seer');
+  assert.equal(s.game.phaseEndsAt - clock.now, s.config.step_seer * 1000);
+  // Mid-game, the host may retime steps but not change who plays.
+  applyAction(s, P[0].id, 'config', { step_seer: 45 }, clock.now);
+  assert.equal(s.config.step_seer, 45);
+  assert.throws(() => applyAction(s, P[0].id, 'config', { hostPlays: false }, clock.now), /phòng chờ/);
+  untilNightRole('werewolf');
+  untilNightRole('seer');
+  assert.equal(s.game.phaseEndsAt - clock.now, 45_000);
+});
+
+test('when the pack is split, the victim is drawn among the most voted', () => {
+  const seen = new Set();
+  for (let seed = 1; seed <= 12; seed++) {
+    const { s, P, act, untilNightRole, untilPhase } = setup(['werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager'], { rng: seeded(seed) });
+    untilNightRole('werewolf');
+    act(P[0], 'night', { target: P[2].id });
+    act(P[1], 'night', { target: P[3].id });
+    untilPhase('MORNING');
+    const dead = [P[2], P[3]].filter(p => !p.alive);
+    assert.equal(dead.length, 1, `seed ${seed}: exactly one of the tied targets dies`);
+    assert.ok(P.slice(4).every(p => p.alive));
+    seen.add(dead[0] === P[2] ? 'first' : 'second');
+  }
+  assert.equal(seen.size, 2, 'either one can be drawn');
+});
+
+test('a role can end its turn early with "Xong"; a step nobody can play ends at a random time', () => {
+  const { s, P, clock, act, untilNightRole, endPhase } = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  untilNightRole('seer');
+  assert.throws(() => act(P[2], 'endTurn', {}), /lượt của bạn/);
+  act(P[0], 'night', { target: P[1].id });
+  act(P[0], 'endTurn', {});
+  assert.equal(s.game.phaseEndsAt, clock.now, 'the action slot closes now');
+  // A dead seer cannot press it: the slot ends early anyway, at a random time.
+  const lengths = new Set();
+  for (let seed = 1; seed <= 6; seed++) {
+    const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager'], { rng: seeded(seed) });
+    g.P[0].alive = false;
+    g.untilNightRole('seer');
+    const len = g.s.game.phaseEndsAt - g.clock.now;
+    assert.ok(len >= 5000 && len <= g.s.config.step_seer * 1000, `seed ${seed}: ${len}`);
+    lengths.add(len);
+  }
+  assert.ok(lengths.size > 1, 'not always the same length');
+});
+
 test('the elder dying to wolves does not cost the village its powers', () => {
   const { s, P, act, untilNightRole, untilPhase } = setup(['elder', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
   s.game.elderShield = false;
@@ -830,7 +928,7 @@ test('each night step is call, then act, then sleep, with fixed lengths', () => 
   assert.ok(s.game.phaseEndsAt - s.narration.endsAt < 1000, 'action timer starts right after the call');
   endPhase();
   assert.equal(s.game.nightStage, 'act');
-  assert.equal(s.game.phaseEndsAt - clock.now, cfg.nightStepTime * 1000);
+  assert.equal(s.game.phaseEndsAt - clock.now, cfg.step_werewolf * 1000, 'the first step here is the pack');
   // Acting early does not shorten the slot (timing gives nothing away).
   const before = s.game.phaseEndsAt;
   act(P[1], 'night', { target: P[3].id });
@@ -850,7 +948,7 @@ test('each night step is call, then act, then sleep, with fixed lengths', () => 
   assert.ok(s.game.phaseEndsAt - chained.endsAt < 1000);
 });
 
-test('a dead role\'s step takes exactly as long as a live one', () => {
+test('a dead role\'s step never runs longer than a live one', () => {
   const run = (killSeer) => {
     const g = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
     if (killSeer) g.P[2].alive = false;
@@ -860,7 +958,8 @@ test('a dead role\'s step takes exactly as long as a live one', () => {
     for (let i = 0; i < 5 && g.s.game.queue[g.s.game.step] === 'seer'; i++) g.endPhase();
     return g.clock.now - start;
   };
-  assert.equal(run(true), run(false));
+  // The live seer never presses "Xong" here, so their step runs to the end.
+  assert.ok(run(true) <= run(false));
 });
 
 test('after the verdict the narrator announces the night and counts down 10 s', () => {
@@ -874,7 +973,8 @@ test('after the verdict the narrator announces the night and counts down 10 s', 
 
 test('rooms saved before the night slot settings existed still work', () => {
   const { s, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
-  delete s.config.nightStepTime;
+  delete s.config.step_werewolf;
+  delete s.config.step_seer;
   delete s.config.nightPauseTime;
   for (let i = 0; i < 10; i++) {
     clock.advance(Math.max(0, s.game.phaseEndsAt - clock.now));
@@ -891,7 +991,8 @@ test('the game opens with three lines 5 s apart: welcome, night falls, first cal
 });
 
 test('a silent host phone is replaced by a majority vote, with no new secrets', () => {
-  const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager'], { config: { hostPlays: true } });
+  const { untilPhase, s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager'], { config: { hostPlays: true } });
+  untilPhase('DISCUSSION'); // host votes happen by day
   const t = clock.now;
   const host = P[0];
   P.forEach(p => { p.lastSeen = t; });
@@ -935,7 +1036,8 @@ test('when the host leaves the lobby, the next player hosts and also plays', () 
 test('a tied host vote is settled by drawing one of the tied players', () => {
   const picks = new Set();
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
-    const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager'], { rng: seeded(seed) });
+    const { untilPhase, s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager'], { rng: seeded(seed) });
+  untilPhase('DISCUSSION'); // host votes happen by day
     const later = clock.now + 13000;
     P.forEach(p => { p.lastSeen = p === P[0] ? clock.now : later; });
     // 4 players left: two votes each for P[1] and P[2], everyone has voted.
@@ -953,7 +1055,8 @@ test('a tied host vote is settled by drawing one of the tied players', () => {
 });
 
 test('a host vote closes after 20 s even if some players never vote', () => {
-  const { s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  const { untilPhase, s, P, clock } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  untilPhase('DISCUSSION'); // host votes happen by day
   const later = clock.now + 13000;
   P.forEach(p => { p.lastSeen = p === P[0] ? clock.now : later; });
   applyAction(s, P[1].id, 'hostVote', { candidate: P[3].id }, later);
