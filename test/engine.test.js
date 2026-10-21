@@ -1373,3 +1373,33 @@ test('rules: a powerless guard, seer, detective, priest, medium and hunter canno
     assert.throws(() => g.act(g.P[i], 'night', { target: g.P[8].id }), /mất chức năng/, role);
   }
 });
+
+test('in the pack, "Xong" means ready: the turn ends once every living wolf is ready', () => {
+  const g = setup(['werewolf', 'werewolf', 'wolf_cub', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  const end = g.s.game.phaseEndsAt;
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  g.act(g.P[0], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, end, 'one wolf ready: the others keep choosing');
+  assert.deepEqual(viewFor(g.s, g.P[1].id, 0, 1).me.task.ready, [g.P[0].id], 'the pack sees who is ready');
+  g.act(g.P[1], 'night', { target: g.P[4].id });
+  g.act(g.P[1], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, end);
+  // Changing your pick makes you not ready again.
+  g.act(g.P[0], 'night', { target: g.P[4].id });
+  assert.deepEqual(viewFor(g.s, g.P[1].id, 0, 1).me.task.ready, [g.P[1].id]);
+  g.act(g.P[0], 'endTurn', {});
+  g.act(g.P[2], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now, 'all three ready: the turn ends');
+  g.endPhase();
+  g.untilPhase('MORNING');
+  assert.equal(g.P[4].alive, false, 'the most voted is bitten');
+});
+
+test('a single role ends its turn with "Xong" alone (no separate done button needed)', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('seer');
+  g.act(g.P[0], 'night', { target: g.P[1].id });
+  g.act(g.P[0], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now);
+});
