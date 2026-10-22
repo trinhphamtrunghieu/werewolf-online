@@ -1403,3 +1403,21 @@ test('a single role ends its turn with "Xong" alone (no separate done button nee
   g.act(g.P[0], 'endTurn', {});
   assert.equal(g.s.game.phaseEndsAt, g.clock.now);
 });
+
+test('the host skipping at night never shows a role its choices before the narrator is done', () => {
+  const { s, P, host, clock, endPhase } = setup(['guard', 'werewolf', 'villager', 'villager', 'villager']);
+  assert.equal(s.game.nightStage, 'call');
+  // The host taps "Sang bước tiếp" during the opening narration.
+  applyAction(s, P[0].id, 'skip', {}, clock.now);
+  clock.advance(0);
+  assert.notEqual(s.game.nightStage, 'act', 'still calling: the narrator has not finished');
+  assert.equal(viewFor(s, P[0].id, clock.now, 1).me.task, null);
+  clock.advance(Math.max(0, s.narration.endsAt - clock.now) + 400);
+  assert.equal(s.game.nightStage, 'act');
+  assert.equal(viewFor(s, P[0].id, clock.now, 1).me.task.role, 'guard');
+  // Skipping during the action slot still ends it right away.
+  applyAction(s, P[0].id, 'skip', {}, clock.now);
+  clock.advance(0);
+  assert.equal(s.game.nightStage, 'sleep');
+  void host; void endPhase;
+});
