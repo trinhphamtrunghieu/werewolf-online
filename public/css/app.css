@@ -398,12 +398,13 @@ button.seat:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--ink);
   position: relative;
 }
-.seat .disc .role-badge {
-  position: absolute;
-  right: -6px; bottom: -4px;
-  font-size: 1.05rem;
-  line-height: 1;
+.seat .disc-role {
+  font-family: inherit;
+  font-size: 1.7rem;
+  background: color-mix(in srgb, var(--role) 22%, var(--ink-2, #161b36));
+  box-shadow: inset 0 0 0 2px var(--role);
 }
+.seat.dead .disc-role { background: color-mix(in srgb, var(--role) 10%, var(--ink-3)); filter: grayscale(0.5); }
 .seat .label { font-size: 0.85rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .seat .sub { font-size: 0.75rem; color: var(--muted); }
 .seat.dead .disc { background: var(--ink-3); color: var(--faint); }
@@ -595,6 +596,12 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .vote-list li { padding: 8px 10px; border-radius: 10px; background: var(--ink); }
 .card-button { flex-direction: column; gap: 2px; padding-top: 10px; padding-bottom: 10px; }
 .card-button-hint { font-size: 0.78rem; font-weight: 500; opacity: 0.8; }
+.footer-row { display: flex; gap: 8px; }
+.footer-row .card-button { flex: 1; }
+.notes-button { flex-direction: column; gap: 2px; padding: 8px 14px; font-size: 0.8rem; }
+.notes-button span:first-child { font-size: 1.2rem; }
+.notes-night { margin: 14px 0 6px; font-size: 0.9rem; color: var(--lantern); }
+.notes-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 
 .end-turn { flex-direction: column; gap: 2px; min-height: 60px; font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; box-shadow: 0 0 0 0 rgba(79, 224, 166, 0.6); animation: end-turn-pulse 1.8s ease-out infinite; }
 @keyframes end-turn-pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 224, 166, 0.55); } 70% { box-shadow: 0 0 0 12px rgba(79, 224, 166, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 224, 166, 0); } }
