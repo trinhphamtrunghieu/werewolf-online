@@ -96,6 +96,8 @@ const seatName = (id) => {
   const p = player(id);
   return p ? `${p.name} (số ${p.seat})` : '';
 };
+// Just the name, for lists where seat numbers would only add clutter.
+const nameOnly = (id) => player(id)?.name || '';
 const shareUrl = () => `${location.origin}/?room=${view?.code || ''}`;
 
 // ---------------------------------------------------------------------------
@@ -882,11 +884,11 @@ function voteList(votes) {
   const rows = Object.entries(byTarget).sort((a, b) => b[1].length - a[1].length);
   if (!rows.length) return '';
   return `<ul class="vote-list">${rows.map(([target, voters]) => `
-    <li><strong>${esc(seatName(target))}</strong> <span class="muted">(${voters.length})</span> ← ${esc(voters.map(seatName).join(', '))}</li>`).join('')}</ul>`;
+    <li><strong>${esc(nameOnly(target))}</strong> ← ${esc(voters.map(nameOnly).join(', '))}</li>`).join('')}</ul>`;
 }
 
 function judgeList(judge) {
-  const names = (choice) => Object.keys(judge || {}).filter(id => judge[id] === choice).map(seatName).join(', ');
+  const names = (choice) => Object.keys(judge || {}).filter(id => judge[id] === choice).map(nameOnly).join(', ');
   const kill = names('kill');
   const spare = names('spare');
   if (!kill && !spare) return '';
@@ -977,12 +979,16 @@ function renderGame() {
   const myTurn = view.phase === 'NIGHT' && m.task;
   document.getElementById('gameFooter').innerHTML = m.inGame
     ? `${myTurn ? endTurnButton(m) : ''}
-      <button class="btn ${myTurn ? 'btn-ghost' : 'btn-primary'} btn-block card-button" data-act="card">
-        <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
-        <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
-      </button>`
+      <div class="footer-row">
+        <button class="btn ${myTurn ? 'btn-ghost' : 'btn-primary'} btn-block card-button" data-act="card">
+          <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
+          <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
+        </button>
+        ${m.notes.length ? '<button class="btn btn-ghost notes-button" data-act="notes"><span aria-hidden="true">📜</span><span>Nhật ký</span></button>' : ''}
+      </div>`
     : '';
   if (document.getElementById('cardSheet').open) renderCard(false);
+  if (document.getElementById('notesSheet').open) renderNotes();
 }
 
 // Seat clips ("Người chơi số ba") have no punctuation of their own; end the
@@ -1086,17 +1092,23 @@ function hostBar() {
 
 function seat(p, opts = {}) {
   const { selectable = false, pressed = false, disabled = false, count = 0, sub = '', act = '' } = opts;
-  // Keep roles off the always-visible village grid (a neighbour could glance at
-  // it); your own role and wolf mates live in the card sheet and night panel.
-  const showRole = view.phase === 'GAME_OVER' || !p.alive || !view.me?.inGame;
+  // Keep roles off the village grid while playing, even a wolf's dead pack
+  // mates (a neighbour could glance at it): your own role and wolf mates live
+  // in the card sheet and night panel. Shown at the end, to a moderator who
+  // is not playing, and for the dead when the host turned that on.
+  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || (!p.alive && view.config.revealRoleOnDeath);
   const role = p.role && showRole ? ROLES[p.role] : null;
+  const roleName = role && (p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name);
   const isMe = p.id === view.me?.id;
   const lover = view.me?.lover === p.id || (view.game.lovers || []).includes(p.id);
+  // Connection status lives in the lobby list only, never on this board.
   const inner = `
     ${count ? `<span class="count">${count}</span>` : ''}
-    <span class="disc">${p.seat ?? ''}${role ? `<span class="role-badge" title="${p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name}">${p.turned ? ROLES.cursed.icon : role.icon}</span>` : ''}</span>
+    ${role
+      ? `<span class="disc disc-role" title="${esc(roleName)}" style="--role:${role.color}">${p.turned ? ROLES.cursed.icon : role.icon}</span>`
+      : `<span class="disc">${p.seat ?? ''}</span>`}
     <span class="label">${esc(p.name)}</span>
-    <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', !p.alive ? 'Đã chết' : '', p.alive && !isOnline(p) ? 'Mất kết nối' : ''].filter(Boolean).join(' ')}</span>`;
+    <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', role ? roleName : '', !p.alive ? 'Đã chết' : ''].filter(Boolean).join(' · ')}</span>`;
   const cls = `seat ${p.alive ? '' : 'dead'} ${isMe ? 'me' : ''}`;
   if (!selectable) return `<div class="${cls}">${inner}</div>`;
   return `<button class="${cls}" data-act="${act}" data-id="${esc(p.id)}" aria-pressed="${pressed}" ${disabled ? 'disabled' : ''}>${inner}</button>`;
@@ -1454,6 +1466,19 @@ function renderCard(reset = true) {
 
 // The cards in this game, by team. Everyone saw these counts in the lobby,
 // so showing them again reveals nothing about who holds what.
+// What you did each night and what you learned, newest first.
+function renderNotes() {
+  const notes = view.me?.notes || [];
+  const nights = [...new Set(notes.map(n => n.night))].sort((a, b) => b - a);
+  document.getElementById('notesBody').innerHTML = `
+    <div class="sheet-head"><h3 id="notesTitle">Nhật ký đêm của bạn</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
+    ${nights.length ? nights.map(night => `
+      <h4 class="notes-night">Đêm ${night}</h4>
+      <ul class="notes-list">${notes.filter(n => n.night === night).map(n => `<li>${esc(n.text)}</li>`).join('')}</ul>`).join('')
+      : '<p class="muted">Chưa có gì. Những việc bạn làm ban đêm sẽ được ghi lại ở đây.</p>'}
+    <p class="muted small" style="margin-top:12px">Chỉ mình bạn xem được. Che màn hình khỏi người bên cạnh.</p>`;
+}
+
 function renderDeck() {
   const counts = view.roleCounts || {};
   const teamOfRole = (id) => (['village', 'werewolf'].includes(ROLES[id].team) ? ROLES[id].team : 'third');
@@ -1560,6 +1585,7 @@ document.addEventListener('click', async (e) => {
       return renderHome();
     case 'rules': renderRules(); return document.getElementById('rulesSheet').showModal();
     case 'deck': renderDeck(); return document.getElementById('deckSheet').showModal();
+    case 'notes': renderNotes(); return document.getElementById('notesSheet').showModal();
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
     case 'share': return share();

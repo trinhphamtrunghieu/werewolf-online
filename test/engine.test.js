@@ -1521,3 +1521,46 @@ test('turning the Cursed can hand the wolves the game', () => {
   assert.equal(s.game.winner, 'werewolf');
   assert.equal(viewFor(s, P[0].id, 0, 1).players.find(p => p.id === P[2].id).turned, true, 'revealed at the end');
 });
+
+test('each player keeps private notes of what they did at night', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['seer', 'werewolf', 'detective', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[3].id });
+  untilNightRole('seer');
+  act(P[0], 'night', { target: P[1].id });
+  untilNightRole('detective');
+  act(P[2], 'night', { target: P[1].id });
+  act(P[2], 'night', { target: P[4].id });
+  untilPhase('MORNING');
+  const notes = (p) => viewFor(s, p.id, 0, 1).me.notes;
+  assert.deepEqual(notes(P[0]), [{ night: 1, text: `Bạn soi ${P[1].name}: Sói 🐺` }]);
+  assert.deepEqual(notes(P[1]), [{ night: 1, text: `Đàn Sói cắn ${P[3].name}` }]);
+  assert.deepEqual(notes(P[2]), [{ night: 1, text: `Bạn điều tra ${P[1].name} và ${P[4].name}: khác phe` }]);
+  assert.deepEqual(notes(P[4]), [], 'villagers have nothing to note');
+});
+
+test('nobody is dealt the same card two games running when it can be avoided', () => {
+  const { s, host, clock, rng } = setup(['seer', 'werewolf', 'guard', 'witch', 'hunter', 'villager']);
+  const deal = () => {
+    applyAction(s, host.id, 'endGame', {}, clock.now, rng);
+    applyAction(s, host.id, 'start', {}, clock.now, rng);
+    return Object.fromEntries(s.players.filter(p => p.inGame).map(p => [p.id, p.role]));
+  };
+  let last = deal();
+  for (let i = 0; i < 50; i++) {
+    const next = deal();
+    for (const id of Object.keys(next)) assert.notEqual(next[id], last[id], `game ${i}: ${id} got ${next[id]} again`);
+    last = next;
+  }
+});
+
+test('the no-repeat deal still gives every player every card over time', () => {
+  const { s, host, clock, rng } = setup(['seer', 'werewolf', 'guard', 'villager', 'villager']);
+  const seen = {};
+  for (let i = 0; i < 200; i++) {
+    applyAction(s, host.id, 'endGame', {}, clock.now, rng);
+    applyAction(s, host.id, 'start', {}, clock.now, rng);
+    s.players.filter(p => p.inGame).forEach(p => { (seen[p.id] ||= new Set()).add(p.role); });
+  }
+  Object.values(seen).forEach(roles => assert.equal(roles.size, 4));
+});
