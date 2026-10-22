@@ -777,7 +777,12 @@ test('detective: picks two players and learns whether they are on the same side'
   g.untilNightRole('detective');
   g.act(g.P[0], 'night', { target: g.P[2].id });
   g.act(g.P[0], 'night', { target: g.P[3].id });
-  assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.task.result, 'different', 'villager and madman differ');
+  assert.equal(viewFor(g.s, g.P[0].id, 0, 1).me.task.result, 'same', 'like the seer, the madman reads as a villager');
+  const h = setup(['detective', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  h.untilNightRole('detective');
+  h.act(h.P[0], 'night', { target: h.P[1].id });
+  h.act(h.P[0], 'night', { target: h.P[2].id });
+  assert.equal(viewFor(h.s, h.P[0].id, 0, 1).me.task.result, 'different', 'wolf and villager differ');
 });
 
 test('the seer only learns wolf or villager', () => {
@@ -1305,12 +1310,12 @@ test('rules: a dead piper cannot win; the madman alive does not stop the village
   assert.equal(checkWin(g.s)?.winner, 'village');
 });
 
-test('rules: the detective tells the piper and the madman apart from each other and from villagers', () => {
+test('rules: the detective only tells wolves from everyone else (third parties read as villagers)', () => {
   const g = setup(['detective', 'werewolf', 'piper', 'fool', 'villager', 'villager']);
   g.untilNightRole('detective');
   g.act(g.P[0], 'night', { target: g.P[2].id });
   g.act(g.P[0], 'night', { target: g.P[3].id });
-  assert.equal(g.s.game.night.detectiveResult, 'different');
+  assert.equal(g.s.game.night.detectiveResult, 'same', 'piper and madman: both "not a wolf"');
 });
 
 test('rules: holy water on a wolf-team cub or avenger kills it; on the piper nothing happens', () => {
