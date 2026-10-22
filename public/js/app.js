@@ -289,7 +289,10 @@ function stopRealtime() {
 }
 
 // Online if Realtime presence says so; otherwise trust the server's last-seen.
-const isOnline = (p) => p.isBot || (presence?.size ? presence.has(p.id) : p.online);
+// Connection status is shown only where the server allows it (the host);
+// everyone else always sees players as connected. Live presence only makes
+// it fresher for the host, it never decides on its own.
+const isOnline = (p) => p.isBot || !view?.seesConnections || (presence?.size ? presence.has(p.id) : p.online);
 
 let connected = true;
 

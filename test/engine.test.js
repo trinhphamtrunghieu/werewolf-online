@@ -1465,3 +1465,12 @@ test('the default random source is cryptographic and stays in [0, 1)', async () 
     assert.ok(x >= 0 && x < 1);
   }
 });
+
+test('the view tells each phone whether it may show connection status', () => {
+  const { s, P, untilNightRole, untilPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  untilPhase('DISCUSSION');
+  assert.equal(viewFor(s, P[0].id, 0, 1).seesConnections, true, 'the host, by day');
+  assert.equal(viewFor(s, P[2].id, 0, 1).seesConnections, false, 'a player, never');
+  untilNightRole('werewolf');
+  assert.equal(viewFor(s, P[0].id, 0, 1).seesConnections, false, 'a playing host, not at night');
+});
