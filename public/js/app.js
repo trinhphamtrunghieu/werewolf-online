@@ -1094,7 +1094,7 @@ function seat(p, opts = {}) {
   const lover = view.me?.lover === p.id || (view.game.lovers || []).includes(p.id);
   const inner = `
     ${count ? `<span class="count">${count}</span>` : ''}
-    <span class="disc">${p.seat ?? ''}${role ? `<span class="role-badge" title="${role.name}">${role.icon}</span>` : ''}</span>
+    <span class="disc">${p.seat ?? ''}${role ? `<span class="role-badge" title="${p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name}">${p.turned ? ROLES.cursed.icon : role.icon}</span>` : ''}</span>
     <span class="label">${esc(p.name)}</span>
     <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', !p.alive ? 'Đã chết' : '', p.alive && !isOnline(p) ? 'Mất kết nối' : ''].filter(Boolean).join(' ')}</span>`;
   const cls = `seat ${p.alive ? '' : 'dead'} ${isMe ? 'me' : ''}`;
@@ -1420,9 +1420,10 @@ function renderCard(reset = true) {
   const card = body.querySelector('.card');
   const revealed = !reset && card?.classList.contains('revealed');
   const extra = [];
-  if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(id => `${seatName(id)}${['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
+  if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(id => `${seatName(id)}${player(id)?.turned ? ' (Sói Nguyền)' : ['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
   if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
+  if (m.turned) extra.push('🌑 Bạn là Sói Nguyền và đã bị Sói cắn: giờ bạn là Ma Sói, thức dậy và thắng cùng đàn Sói.');
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);
   if (m.charmed) {
     extra.push(m.charmedWith?.length

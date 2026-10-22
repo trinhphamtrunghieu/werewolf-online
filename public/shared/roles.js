@@ -240,6 +240,21 @@ export const ROLES = {
       <path d="M26 64L36 74M22 78L30 70" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
     </svg>`
   },
+  cursed: {
+    id: 'cursed',
+    name: 'Sói Nguyền',
+    team: 'village',
+    icon: '🌑',
+    color: '#b8a4d9',
+    short: 'Phe Dân. Bị Sói cắn thì không chết mà hoá Sói.',
+    description: 'Bạn bắt đầu ở phe Dân và không có chức năng ban đêm (Tiên Tri soi ra Dân). Nếu bị Sói cắn, bạn không chết mà hoá thành Ma Sói: từ đêm sau bạn thức dậy, cắn cùng đàn Sói và thắng cùng phe Sói. Được Bảo Vệ che chở hoặc Phù Thủy cứu thì bạn vẫn là Dân.',
+    art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle cx="50" cy="50" r="30" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
+      <path d="M62 24C48 30 42 46 48 60C53 72 66 78 78 74C72 82 62 86 50 86" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <polygon points="40,46 47,50 40,52" fill="#fef08a"/>
+      <path d="M34 66L38 70L41 66L44 70L48 66" stroke="#fecaca" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`
+  },
   villager: {
     id: 'villager',
     name: 'Dân Làng',
@@ -269,7 +284,7 @@ export function stepInfo(stepId) {
   return ROLES[stepId] || null;
 }
 
-const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter', 'wolf_cub', 'priest', 'medium', 'fool', 'avenger', 'detective'];
+const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter', 'wolf_cub', 'priest', 'medium', 'fool', 'avenger', 'detective', 'cursed'];
 
 // Cards that belong to the wolf pack (they wake together and know each other).
 export const PACK_ROLES = ['werewolf', 'wolf_cub', 'avenger'];
