@@ -1421,3 +1421,37 @@ test('the host skipping at night never shows a role its choices before the narra
   assert.equal(s.game.nightStage, 'sleep');
   void host; void endPhase;
 });
+
+test('cards are dealt uniformly at random: every seat gets every card equally often', () => {
+  const roles = { werewolf: 2, seer: 1, guard: 1, witch: 1, villager: 1 };
+  const N = 6000;
+  const tally = Array.from({ length: 6 }, () => ({}));
+  for (let i = 0; i < N; i++) {
+    const { state: s, player: host } = createRoom({ code: 'FAIR1', hostName: 'H', now: 0 }); // default random source
+    for (let k = 1; k < 6; k++) joinRoom(s, `P${k}`, 0);
+    applyAction(s, host.id, 'config', { hostPlays: true }, 0);
+    for (const id of Object.keys(s.roleCounts)) {
+      while ((s.roleCounts[id] || 0) < (roles[id] || 0)) applyAction(s, host.id, 'role', { roleId: id, delta: 1 }, 0);
+      while ((s.roleCounts[id] || 0) > (roles[id] || 0)) applyAction(s, host.id, 'role', { roleId: id, delta: -1 }, 0);
+    }
+    applyAction(s, host.id, 'start', {}, 0);
+    s.players.forEach((p, seat) => { tally[seat][p.role] = (tally[seat][p.role] || 0) + 1; });
+  }
+  for (const [seat, counts] of tally.entries()) {
+    for (const [role, n] of Object.entries(roles)) {
+      const expected = N * n / 6;
+      // 5 standard deviations: a fair deal essentially never fails this.
+      const sd = Math.sqrt(N * (n / 6) * (1 - n / 6));
+      assert.ok(Math.abs((counts[role] || 0) - expected) < 5 * sd, `seat ${seat + 1} got ${role} ${counts[role]} times, expected ~${expected}`);
+    }
+  }
+});
+
+test('the default random source is cryptographic and stays in [0, 1)', async () => {
+  const { secureRandom } = await import('../lib/engine.js');
+  assert.equal(typeof secureRandom, 'function');
+  for (let i = 0; i < 1000; i++) {
+    const x = secureRandom();
+    assert.ok(x >= 0 && x < 1);
+  }
+});

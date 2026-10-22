@@ -8,7 +8,7 @@
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
 
 import {
-  GameError, createRoom, joinRoom, authenticate, applyAction, tick, viewFor, resolveHostVote
+  GameError, createRoom, joinRoom, authenticate, applyAction, tick, viewFor, resolveHostVote, secureRandom
 } from '../lib/engine.js';
 import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
@@ -29,7 +29,7 @@ function normalizeCode(raw) {
 
 function newCode() {
   let code = '';
-  for (let i = 0; i < 5; i++) code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  for (let i = 0; i < 5; i++) code += CODE_ALPHABET[Math.floor(secureRandom() * CODE_ALPHABET.length)];
   return code;
 }
 
