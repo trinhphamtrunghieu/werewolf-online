@@ -920,7 +920,7 @@ function endTurnButton(m) {
 function renderGame() {
   if (!document.getElementById('gameRoot')) {
     app.innerHTML = `
-      ${topbar('<button class="btn btn-ghost btn-small" data-act="leave">Rời</button>')}
+      ${topbar('<button class="btn btn-ghost btn-small" data-act="deck">📋 Vai trò</button><button class="btn btn-ghost btn-small" data-act="leave">Rời</button>')}
       <div id="gameRoot" class="stack-lg">
         <section class="sky" id="sky"></section>
         <div id="hostAlert"></div>
@@ -1448,6 +1448,36 @@ function renderCard(reset = true) {
     ${extra.map(t => `<p class="small" style="margin-top:12px">${esc(t)}</p>`).join('')}`;
 }
 
+// The cards in this game, by team. Everyone saw these counts in the lobby,
+// so showing them again reveals nothing about who holds what.
+function renderDeck() {
+  const counts = view.roleCounts || {};
+  const teamOfRole = (id) => (['village', 'werewolf'].includes(ROLES[id].team) ? ROLES[id].team : 'third');
+  const groups = [
+    ['werewolf', '🐺 Phe Sói', 'w'],
+    ['village', '🌾 Phe Dân', 'v'],
+    ['third', '🎭 Phe thứ ba', 't']
+  ];
+  const total = ROLE_IDS.reduce((n, id) => n + (counts[id] || 0), 0);
+  const players = view.players.filter(p => p.inGame).length;
+  document.getElementById('deckBody').innerHTML = `
+    <div class="sheet-head"><h3 id="deckTitle">Vai trò trong ván</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
+    <p class="muted small">${total} lá bài cho ${players} người${counts.thief ? ' (có Ăn Trộm nên chia dư 2 lá; 2 lá dư không thuộc về ai)' : ''}.</p>
+    ${groups.map(([team, label, cls]) => {
+      const ids = ROLE_IDS.filter(id => counts[id] > 0 && teamOfRole(id) === team);
+      if (!ids.length) return '';
+      const n = ids.reduce((sum, id) => sum + counts[id], 0);
+      return `<section class="deck-group">
+        <h3 class="deck-team"><i class="dot ${cls}"></i>${label}: ${n}</h3>
+        ${ids.map(id => `<div class="deck-row">
+          <span class="deck-icon" aria-hidden="true">${ROLES[id].icon}</span>
+          <span class="deck-name"><strong>${ROLES[id].name}</strong><span class="muted small">${ROLES[id].short}</span></span>
+          <span class="deck-count">×${counts[id]}</span>
+        </div>`).join('')}
+      </section>`;
+    }).join('')}`;
+}
+
 function renderRules() {
   document.getElementById('rulesBody').innerHTML = `
     <div class="sheet-head"><h3 id="rulesTitle">Luật chơi</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
@@ -1525,6 +1555,7 @@ document.addEventListener('click', async (e) => {
       saveSession(null);
       return renderHome();
     case 'rules': renderRules(); return document.getElementById('rulesSheet').showModal();
+    case 'deck': renderDeck(); return document.getElementById('deckSheet').showModal();
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
     case 'share': return share();

@@ -30,7 +30,7 @@ Trạng thái kết nối chỉ hiện cho chủ phòng. Nếu chủ phòng cũn
 4. **Ma Sói** (cùng Sói Con và Sói Báo Thù): nhận diện đồng đội và thống nhất chọn nạn nhân (cắn cả đồng bọn cũng được), hoặc chọn không cắn ai. "Không cắn ai" không tính là phiếu: hết giờ thì người được chọn nhiều nhất bị cắn, chỉ khi không con nào chọn ai mới không ai bị cắn. Mỗi con Sói thấy các con khác đang chọn gì (2 nạn nhân vào đêm sau khi Sói Con chết).
 5. **Sói Báo Thù**: chọn người sẽ chết theo nếu mình bị treo cổ.
 6. **Tiên Tri**: chọn 1 người, chỉ biết người đó là Sói hay Dân (phe thứ ba cũng hiện là Dân).
-7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không.
+7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không (phân biệt 3 phe: Sói, Dân và phe thứ ba).
 8. **Mục Sư**: có muốn vẩy nước thánh không (1 lần mỗi ván).
 9. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
 10. **Thầy Đồng**: có muốn hồi sinh 1 người đã chết không (1 lần mỗi ván).
