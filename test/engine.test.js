@@ -1474,3 +1474,50 @@ test('the view tells each phone whether it may show connection status', () => {
   untilNightRole('werewolf');
   assert.equal(viewFor(s, P[0].id, 0, 1).seesConnections, false, 'a playing host, not at night');
 });
+
+test('a bitten Cursed does not die but joins the pack', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['seer', 'werewolf', 'cursed', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[2].id });
+  untilNightRole('seer');
+  act(P[0], 'night', { target: P[2].id });
+  assert.equal(s.game.night.seerResult, 'village', 'still a villager while the night lasts');
+  untilPhase('MORNING');
+  assert.equal(P[2].alive, true);
+  assert.deepEqual(s.game.lastNightDeaths, [], 'the village only hears that nobody died');
+  assert.equal(P[2].role, 'werewolf');
+  const own = viewFor(s, P[2].id, 0, 1);
+  assert.equal(own.me.turned, true);
+  assert.deepEqual(own.me.wolves, [P[1].id]);
+  assert.ok(viewFor(s, P[1].id, 0, 1).me.wolves.includes(P[2].id), 'the pack sees its new member');
+  const outsider = viewFor(s, P[3].id, 0, 1).players.find(p => p.id === P[2].id);
+  assert.equal(outsider.role, null);
+  assert.equal(outsider.turned, false);
+  untilPhase('DISCUSSION');
+  untilNightRole('werewolf');
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.task?.role, 'werewolf', 'wakes with the pack');
+  untilNightRole('seer');
+  act(P[0], 'night', { target: P[2].id });
+  assert.equal(s.game.night.seerResult, 'werewolf');
+});
+
+test('a Cursed saved from the bite stays a villager', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['guard', 'werewolf', 'cursed', 'villager', 'villager', 'villager']);
+  untilNightRole('guard');
+  act(P[0], 'night', { target: P[2].id });
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[2].id });
+  untilPhase('MORNING');
+  assert.equal(P[2].alive, true);
+  assert.equal(P[2].role, 'cursed');
+  assert.ok(!P[2].turned);
+});
+
+test('turning the Cursed can hand the wolves the game', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['villager', 'werewolf', 'cursed', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[2].id });
+  untilPhase('GAME_OVER');
+  assert.equal(s.game.winner, 'werewolf');
+  assert.equal(viewFor(s, P[0].id, 0, 1).players.find(p => p.id === P[2].id).turned, true, 'revealed at the end');
+});
