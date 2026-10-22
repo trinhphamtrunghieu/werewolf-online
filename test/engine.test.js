@@ -1465,3 +1465,19 @@ test('the default random source is cryptographic and stays in [0, 1)', async () 
     assert.ok(x >= 0 && x < 1);
   }
 });
+
+test('the role sheet cannot tell what the thief took: counts never change and spare cards stay hidden', () => {
+  const g = setup(['thief', 'werewolf', 'villager', 'villager', 'villager'], { extras: ['seer', 'guard'] });
+  const before = JSON.stringify(viewFor(g.s, g.P[2].id, 0, 1).roleCounts);
+  g.untilNightRole('thief');
+  g.act(g.P[0], 'thief', { pick: 0 }); // takes the Seer
+  assert.equal(g.P[0].role, 'seer');
+  g.untilPhase('DISCUSSION');
+  for (const p of g.P.slice(1)) {
+    const v = viewFor(g.s, p.id, 0, 1);
+    assert.equal(JSON.stringify(v.roleCounts), before, 'the counts everyone sees are the lobby\'s');
+    const json = JSON.stringify(v);
+    assert.ok(!/extras|thiefExtras|thiefTook|"took"/.test(json), 'the spare cards and the swap are nowhere in other players\' views');
+    assert.equal(v.players[0].role, null, 'nor is the thief\'s new card');
+  }
+});
