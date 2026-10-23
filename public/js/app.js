@@ -1394,14 +1394,14 @@ function moderatorNight() {
   const g = view.game;
   const n = view.me.moderatorNight;
   const r = stepInfo(g.activeRole);
-  const line = (label, id) => id ? `<p class="small">${label}: <strong>${esc(seatName(id))}</strong></p>` : '';
-  const names = (ids) => esc(ids.map(seatName).join(', '));
+  const line = (label, id) => id ? `<p class="small">${label}: <strong>${esc(nameOnly(id))}</strong></p>` : '';
+  const names = (ids) => esc(ids.map(nameOnly).join(', '));
   return `
     <div class="panel stack">
       <h2>Bảng quản trò</h2>
       <p class="lead">${r ? `Đang gọi ${r.name}.` : ''} Chỉ bạn thấy được bảng này.</p>
       ${n.thiefExtras?.length ? `<p class="small">Lá dư: <strong>${n.thiefExtras.map(id => ROLES[id].name).join(', ')}</strong>${n.thiefTook ? `. Ăn Trộm đã lấy ${ROLES[n.thiefTook].name}` : ''}</p>` : ''}
-      ${n.lovers.length ? `<p class="small">Tình Nhân: <strong>${esc(n.lovers.map(seatName).join(' và '))}</strong></p>` : ''}
+      ${n.lovers.length ? `<p class="small">Tình Nhân: <strong>${esc(n.lovers.map(nameOnly).join(' và '))}</strong></p>` : ''}
       ${n.piperPicks.length ? `<p class="small">Thổi Sáo chọn đêm nay: <strong>${names(n.piperPicks)}</strong></p>` : ''}
       ${n.charmed.length ? `<p class="small">Đã bị thôi miên: <strong>${names(n.charmed)}</strong></p>` : ''}
       ${line('Bảo Vệ chọn', n.guard)}
