@@ -274,6 +274,7 @@ export class Narrator {
     if (!ctx) return;
     if (on) {
       if (!this.ambience) this.ambience = new Ambience(ctx);
+      this.ambience.setTheme(this.ambienceTheme);
       this.ambience.setVolume(this.ambienceVolume ?? 0.6);
       this.ambience.start(this.mood);
       this.ambience.duck(this.speaking);
@@ -285,6 +286,11 @@ export class Narrator {
   setMood(mood) {
     this.mood = mood;
     this.ambience?.setMood(mood);
+  }
+
+  setAmbienceTheme(theme) {
+    this.ambienceTheme = theme;
+    this.ambience?.setTheme(theme);
   }
 
   setAmbienceVolume(v) {

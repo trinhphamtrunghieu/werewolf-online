@@ -3,7 +3,7 @@ import {
 } from '/shared/roles.js';
 import { Narrator } from './narrator.js';
 import { connectRealtime } from './realtime.js';
-import { moodForPhase } from './ambience.js';
+import { moodForPhase, THEMES, THEME_IDS } from './ambience.js';
 import { clipMs, gapAfter, lineText } from '/shared/voice-lines.js';
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,7 @@ let lastPhaseKey = null;
 let wakeLock = null;
 let ambienceOn = read('masoi_ambience') === 'on';
 let ambienceVolume = Number(read('masoi_ambience_volume') || 60);
+let ambienceTheme = THEME_IDS.includes(read('masoi_ambience_theme')) ? read('masoi_ambience_theme') : 'village';
 let ticksOn = read('masoi_ticks') !== 'off';
 let lastTick = null;
 let settingsOpen = false;
@@ -445,7 +446,6 @@ function onTransitions(prev, next) {
       : 'Máy bạn giờ là máy chủ phòng. Bấm “Bật giọng quản trò” để phát âm thanh.');
   }
   if (wasHost && !next.me?.isHost) {
-    narrator.setAmbience(false);
     toast('Một máy khác đã trở thành máy chủ phòng.');
   }
 
@@ -460,11 +460,11 @@ function onTransitions(prev, next) {
   watchHostPresence();
   if (phaseChanged) noticeCardNews(next);
 
-  if (next.me?.isHost) {
-    narrator.setAmbienceVolume(ambienceVolume / 100);
-    narrator.setAmbience(ambienceOn, moodForPhase(next.phase));
-    if (next.phase !== 'LOBBY') requestWakeLock();
-  }
+  // Background music is a per-phone choice: any player can turn it on.
+  narrator.setAmbienceTheme(ambienceTheme);
+  narrator.setAmbienceVolume(ambienceVolume / 100);
+  narrator.setAmbience(ambienceOn, moodForPhase(next.phase));
+  if (next.me?.isHost && next.phase !== 'LOBBY') requestWakeLock();
 
   const task = next.me?.task;
   const taskKey = task ? `${phaseKey}:${task.role}` : null;
@@ -681,7 +681,7 @@ function renderLobby() {
 // Don't redraw under the host's finger (e.g. while dragging the volume).
 function renderVoicePanel(host) {
   const el = document.getElementById('hostVoice');
-  if (!el || document.activeElement?.matches?.('#hostVoice input[type=range]')) return;
+  if (!el || document.activeElement?.matches?.('#hostVoice input[type=range], #hostVoice select')) return;
   el.innerHTML = host ? voicePanel() + deviceOptions() : deviceOptions(true);
 }
 
@@ -694,8 +694,7 @@ function deviceOptions(panel = false) {
   if (canVibrate) {
     items.push(`<label class="check" style="padding:0"><input type="checkbox" data-act="vibrate" ${vibrateOn ? 'checked' : ''} /> <span>Rung khi đến lượt</span></label>`);
   }
-  if (!items.length) return '';
-  const row = `<div class="row" style="flex-wrap:wrap;gap:16px">${items.join('')}</div>`;
+  const row = `<div class="row" style="flex-wrap:wrap;gap:16px">${items.join('')}</div>${musicControls()}`;
   return panel
     ? `<div class="panel stack"><h3>Trên máy này</h3><p class="muted small">Chỉ áp dụng cho điện thoại của bạn.</p>${row}</div>`
     : `<div class="panel stack" style="margin-top:12px"><h3>Trên máy này</h3>${row}</div>`;
@@ -704,7 +703,7 @@ function deviceOptions(panel = false) {
 // In game: the same per-phone options under the narration, for players.
 function playerAudioBar() {
   const opts = deviceOptions();
-  return opts ? `<details class="section"><summary class="muted small">Tuỳ chọn trên máy này</summary>${opts}</details>` : '';
+  return `<details class="section device-options"><summary class="muted small">Tuỳ chọn trên máy này (nhạc nền, âm thanh)</summary>${opts}</details>`;
 }
 
 // Shown to everyone while the host phone is unreachable.
@@ -756,8 +755,20 @@ function voicePanel() {
       <p class="small">${status}</p>
       <div class="row" style="flex-wrap:wrap">
         <button class="btn ${narrator.unlocked ? 'btn-ghost' : 'btn-primary'}" data-act="testVoice">${narrator.unlocked ? 'Nghe thử lại' : 'Bật âm thanh và nghe thử'}</button>
-        <label class="check" style="padding:0"><input type="checkbox" data-act="ambience" ${ambienceOn ? 'checked' : ''} /> <span>Nhạc nền</span></label>
         <label class="check" style="padding:0"><input type="checkbox" data-act="ticks" ${ticksOn ? 'checked' : ''} /> <span>Tích tắc 10 giây cuối</span></label>
+      </div>
+    </div>`;
+}
+
+// Background music: on/off, theme and volume, stored on this phone only.
+function musicControls() {
+  return `
+    <div class="stack music-controls">
+      <div class="row" style="flex-wrap:wrap;gap:16px;align-items:center">
+        <label class="check" style="padding:0"><input type="checkbox" data-act="ambience" ${ambienceOn ? 'checked' : ''} /> <span>Nhạc nền</span></label>
+        <label class="small" style="display:flex;gap:8px;align-items:center">Chủ đề
+          <select class="input input-small" id="ambienceTheme">${THEME_IDS.map(id => `<option value="${id}" ${id === ambienceTheme ? 'selected' : ''}>${THEMES[id].name}</option>`).join('')}</select>
+        </label>
       </div>
       <div class="slider">
         <div class="row-between"><label for="ambienceVolume">Âm lượng nhạc nền</label><span class="slider-value" id="ambienceVolumeValue">${ambienceVolume}%</span></div>
@@ -952,7 +963,14 @@ function renderGame() {
   updateClock();
 
   renderNarration();
-  document.getElementById('hostBar').innerHTML = (isHost() ? hostBar() : '') + playerAudioBar();
+  // Leave the bar alone while a control in it is in use (dragging the volume,
+  // choosing a theme), and keep the options open across redraws.
+  const bar = document.getElementById('hostBar');
+  if (!bar.contains(document.activeElement) || !document.activeElement.matches('input[type=range], select')) {
+    const open = bar.querySelector('details.device-options')?.open;
+    bar.innerHTML = (isHost() ? hostBar() : '') + playerAudioBar();
+    if (open) bar.querySelector('details.device-options').open = true;
+  }
   const timers = document.getElementById('hostTimers');
   if (!timers.contains(document.activeElement)) timers.innerHTML = isHost() && view.phase !== 'GAME_OVER' ? hostTimers() : '';
   renderHostAlert();
@@ -1712,6 +1730,23 @@ function setAmbience(on) {
   narrator.setAmbienceVolume(ambienceVolume / 100);
   narrator.setAmbience(on, moodForPhase(view?.phase || 'LOBBY'));
 }
+
+// Browsers only allow sound after a tap. After a reload, music (or the
+// narrator) that was on comes back with the first tap anywhere.
+document.addEventListener('pointerdown', () => {
+  if (ambienceOn || (view && audioOn())) narrator.unlock();
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'ambienceTheme') return;
+  ambienceTheme = e.target.value;
+  store('masoi_ambience_theme', ambienceTheme);
+  narrator.setAmbienceTheme(ambienceTheme);
+  // Picking a theme is a request to hear it.
+  if (!ambienceOn) setAmbience(true);
+  e.target.blur();
+  render();
+});
 
 document.addEventListener('input', (e) => {
   if (e.target.id !== 'ambienceVolume') return;
