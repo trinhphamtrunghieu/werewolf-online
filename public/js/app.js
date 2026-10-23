@@ -905,7 +905,10 @@ function judgeList(judge) {
 // is…). The pack has none: a wolf picks "Không cắn ai" instead.
 function endTurnButton(m) {
   const t = m.task;
-  if (t.role === 'werewolf' || t.complete || t.powerless) return '';
+  if (t.role === 'werewolf' || t.complete) return '';
+  // A role that lost its power passes like anyone else, so its turn is no
+  // longer than a normal one.
+  if (t.powerless) return '<button class="btn btn-ghost btn-block end-turn" data-act="endTurn">Đã hiểu</button>';
   const keepAim = ['hunter', 'avenger'].includes(t.role) && t.lastAim && player(t.lastAim)?.alive;
   const label = t.role === 'elder' ? 'Đã hiểu'
     : keepAim ? 'Giữ nguyên mục tiêu'
@@ -1251,7 +1254,7 @@ function nightTask(task) {
   const autoHint = '<p class="muted small" style="margin-top:12px">Tự sang lượt tiếp sau vài giây. Xem lại trong 📜 Nhật ký.</p>';
 
   if (task.powerless) {
-    return `<div class="panel">${head(task.role, 'Bạn đã mất chức năng', 'Già Làng đã chết dưới tay dân làng, nên từ giờ bạn không còn dùng được chức năng nữa. Hãy giữ im lặng và nhắm mắt.')}</div>`;
+    return `<div class="panel">${head(task.role, 'Bạn đã mất chức năng', 'Già Làng đã chết dưới tay dân làng, nên từ giờ bạn không còn dùng được chức năng nữa. Bấm "Đã hiểu" ở dưới cùng, giữ im lặng và nhắm mắt.')}</div>`;
   }
   if (task.role === 'thief') {
     if (task.done) {

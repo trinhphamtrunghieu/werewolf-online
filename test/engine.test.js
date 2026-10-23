@@ -1593,3 +1593,23 @@ test('a bot wolf whose human mate picks the bot itself votes nobody, so the pick
   g.untilPhase('MORNING');
   assert.equal(g.P[1].alive, false);
 });
+
+test('the thief\'s step lasts the same whether they swap or keep', () => {
+  const end = (pick) => {
+    const g = setup(['thief', 'werewolf', 'villager', 'villager', 'villager'], { extras: ['seer', 'villager'] });
+    g.untilNightRole('thief');
+    g.clock.advance(6000);
+    g.act(g.P[0], 'thief', { pick });
+    return g.s.game.phaseEndsAt - g.clock.now;
+  };
+  assert.equal(end(0), end(null));
+});
+
+test('a role that lost its power can pass, so its step is not longer', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  g.s.game.powersLost = true;
+  g.untilNightRole('seer');
+  g.clock.advance(6000);
+  g.act(g.P[0], 'endTurn', {});
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now);
+});
