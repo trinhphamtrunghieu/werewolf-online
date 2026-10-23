@@ -413,27 +413,6 @@ function screenFor(v) {
 }
 
 // Side effects when the game moves on: narrator, sounds, vibration.
-// The couple and the charmed are not woken at night: their partners' names
-// just appear on their cards. Point it out once day breaks (not during the
-// night, when a neighbour might glance at the screen).
-let cardSeen = { lover: null, charmed: '' };
-function noticeCardNews(next) {
-  const m = next.me;
-  if (!m || next.phase === 'LOBBY') {
-    cardSeen = { lover: null, charmed: '' };
-    return;
-  }
-  if (next.phase === 'NIGHT') return;
-  const charmed = m.charmed ? [...(m.charmedWith || [])].sort().join(',') || '-' : '';
-  if (m.lover && m.lover !== cardSeen.lover) {
-    toast(`💘 Thần Tình Yêu đã ghép đôi bạn với ${seatName(m.lover)}. Xem lại trong lá bài của bạn.`);
-  }
-  if (charmed && charmed !== cardSeen.charmed) {
-    toast('🎶 Bạn đã bị thôi miên. Tên những người cùng cảnh ngộ có trong lá bài của bạn.');
-  }
-  cardSeen = { lover: m.lover, charmed };
-}
-
 function onTransitions(prev, next) {
   const phaseKey = `${next.phase}:${next.game.day}:${next.game.step}`;
   const phaseChanged = phaseKey !== lastPhaseKey;
@@ -458,7 +437,6 @@ function onTransitions(prev, next) {
     narrator.handle(next.narration, { serverNow: serverNow() });
   }
   watchHostPresence();
-  if (phaseChanged) noticeCardNews(next);
 
   // Background music is a per-phone choice: any player can turn it on.
   narrator.setAmbienceTheme(ambienceTheme);
@@ -999,7 +977,7 @@ function renderGame() {
           <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
           <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
         </button>
-        ${m.notes.length ? '<button class="btn btn-ghost notes-button" data-act="notes"><span aria-hidden="true">📜</span><span>Nhật ký</span></button>' : ''}
+        <button class="btn btn-ghost notes-button" data-act="notes"><span aria-hidden="true">📜</span><span>Nhật ký</span></button>
       </div>`
     : '';
   if (document.getElementById('cardSheet').open) renderCard(false);
