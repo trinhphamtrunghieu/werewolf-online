@@ -908,7 +908,7 @@ test('a role\'s step ends by itself once it is done; a step nobody can play ends
     g.P[0].alive = false;
     g.untilNightRole('seer');
     const len = g.s.game.phaseEndsAt - g.clock.now;
-    assert.ok(len >= 5000 && len <= g.s.config.step_seer * 1000, `seed ${seed}: ${len}`);
+    assert.ok(len >= 5000 && len <= Math.min(15000, g.s.config.step_seer * 1000), `seed ${seed}: ${len}`);
     lengths.add(len);
   }
   assert.ok(lengths.size > 1, 'not always the same length');
@@ -1612,4 +1612,16 @@ test('a role that lost its power can pass, so its step is not longer', () => {
   g.clock.advance(6000);
   g.act(g.P[0], 'endTurn', {});
   assert.equal(g.s.game.phaseEndsAt, g.clock.now);
+});
+
+test('a step nobody can play ends between 5 and 15 s, even with a long role time', () => {
+  const lengths = [];
+  for (let seed = 1; seed <= 20; seed++) {
+    const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager'], { rng: seeded(seed), config: { step_seer: 60 } });
+    g.P[0].alive = false;
+    g.untilNightRole('seer');
+    lengths.push(g.s.game.phaseEndsAt - g.clock.now);
+  }
+  assert.ok(lengths.every(l => l >= 5000 && l <= 15000), lengths.join());
+  assert.ok(new Set(lengths).size > 1);
 });
