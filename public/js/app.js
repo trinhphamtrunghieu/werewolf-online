@@ -900,26 +900,20 @@ function judgeList(judge) {
 
 // The one "done" button. For the pack it marks this wolf as ready; the turn
 // ends when every living wolf is.
+// A turn ends by itself once the role has done its part. This button is only
+// for passing on what is left (not guarding anyone, keeping the gun where it
+// is…). The pack has none: a wolf picks "Không cắn ai" instead.
 function endTurnButton(m) {
   const t = m.task;
-  if (t.role === 'werewolf') {
-    const pack = [m.id, ...m.wolves].filter(id => player(id)?.alive);
-    const ready = t.ready.filter(id => pack.includes(id)).length;
-    if (t.ready.includes(m.id)) {
-      return `<button class="btn btn-ghost btn-block end-turn waiting" disabled>
-        <span>✅ Bạn đã xong</span>
-        <span class="card-button-hint">Chờ cả đàn (${ready}/${pack.length}). Đổi lựa chọn thì bấm lại Xong.</span>
-      </button>`;
-    }
-    return `<button class="btn btn-good btn-block end-turn" data-act="endTurn">
-      <span>✅ Xong lượt</span>
-      <span class="card-button-hint">${pack.length > 1 ? `Sang lượt tiếp khi cả đàn đều xong (${ready}/${pack.length})` : 'Sang lượt tiếp, không cần đợi hết giờ'}</span>
-    </button>`;
-  }
-  return `<button class="btn btn-good btn-block end-turn" data-act="endTurn">
-    <span>✅ Xong lượt</span>
-    <span class="card-button-hint">Sang lượt tiếp, không cần đợi hết giờ</span>
-  </button>`;
+  if (t.role === 'werewolf' || t.complete || t.powerless) return '';
+  const keepAim = ['hunter', 'avenger'].includes(t.role) && t.lastAim && player(t.lastAim)?.alive;
+  const label = t.role === 'elder' ? 'Đã hiểu'
+    : keepAim ? 'Giữ nguyên mục tiêu'
+    : t.role === 'witch' && (t.healed || t.poisoned) ? 'Xong, không dùng thêm'
+    : t.role === 'witch' ? 'Không dùng bình nào'
+    : t.role === 'thief' ? '' : 'Bỏ qua lượt này';
+  if (!label) return '';
+  return `<button class="btn btn-ghost btn-block end-turn" data-act="endTurn">${label}</button>`;
 }
 
 function renderGame() {
@@ -1254,7 +1248,7 @@ function nightTask(task) {
     <p class="lead">${lead}</p>`;
   };
   // Every role finishes with the one green "Xong lượt" button at the bottom.
-  const doneHint = '<p class="muted small" style="margin-top:12px">Xong thì bấm <strong>✅ Xong lượt</strong> ở dưới cùng.</p>';
+  const autoHint = '<p class="muted small" style="margin-top:12px">Tự sang lượt tiếp sau vài giây. Xem lại trong 📜 Nhật ký.</p>';
 
   if (task.powerless) {
     return `<div class="panel">${head(task.role, 'Bạn đã mất chức năng', 'Già Làng đã chết dưới tay dân làng, nên từ giờ bạn không còn dùng được chức năng nữa. Hãy giữ im lặng và nhắm mắt.')}</div>`;
@@ -1273,8 +1267,7 @@ function nightTask(task) {
       ${mustTake ? '' : '<button class="btn btn-ghost btn-block" data-act="thiefKeep">Giữ nguyên, không đổi</button>'}</div>`;
   }
   if (task.role === 'elder') {
-    return `<div class="panel">${head('elder', 'Bạn là Già Làng', 'Quản trò đã biết bạn. Lần đầu bị Sói cắn bạn sẽ không chết.')}
-      ${doneHint}</div>`;
+    return `<div class="panel">${head('elder', 'Bạn là Già Làng', 'Quản trò đã biết bạn. Lần đầu bị Sói cắn bạn sẽ không chết. Bấm "Đã hiểu" ở dưới cùng.')}</div>`;
   }
   if (task.role === 'piper') {
     return `<div class="panel">${head('piper', 'Thôi miên 2 người', `Đã chọn ${task.picks.length}/2. Người đã bị thôi miên không chọn lại được.`)}
@@ -1301,7 +1294,7 @@ function nightTask(task) {
     const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
     const subs = lastAim ? { [lastAim]: 'Đang chĩa súng' } : {};
     return `<div class="panel">${head('hunter', 'Chĩa súng vào ai đêm nay?', lastAim
-      ? `Súng đang chĩa vào ${esc(seatName(lastAim))}. Chọn lại, hoặc để nguyên khi hết giờ.`
+      ? `Súng đang chĩa vào ${esc(seatName(lastAim))}. Chọn lại, hoặc bấm “Giữ nguyên mục tiêu”.`
       : 'Nếu bạn chết, người này sẽ chết theo. Bạn không biết ai bị Sói cắn.')}
       ${task.complete
         ? `<p class="result" style="margin-top:12px">Súng đang chĩa vào ${esc(seatName(task.aim))}.</p>`
@@ -1323,16 +1316,13 @@ function nightTask(task) {
         : `🐺 ${esc(v.map(seatName).join(' và '))}`;
     };
     const packList = pack.length > 1 ? `<ul class="vote-list">${pack.map(id => `
-      <li><strong>${esc(seatName(id))}${id === m.id ? ' (bạn)' : ''}</strong> → ${pickOf(id)}${task.ready.includes(id) ? ' · ✅ xong' : ''}</li>`).join('')}</ul>` : '';
+      <li><strong>${esc(seatName(id))}${id === m.id ? ' (bạn)' : ''}</strong> → ${pickOf(id)}</li>`).join('')}</ul>` : '';
     return `<div class="panel">${head('werewolf', two ? 'Sói Con đã chết: đêm nay cắn 2 người' : 'Chọn con mồi', mates.length
-      ? `Chọn ${two ? 'hai người' : 'một người'} để cắn (cắn cả đồng bọn cũng được). "Không cắn ai" không tính là phiếu: hết giờ, người được chọn nhiều nhất bị cắn; chỉ khi không ai chọn ai thì đêm nay không ai bị cắn.`
+      ? `Chọn ${two ? 'hai người' : 'một người'} để cắn (cắn cả đồng bọn cũng được). Cả đàn chọn xong là sang lượt tiếp; người được chọn nhiều nhất bị cắn. "Không cắn ai" không tính là phiếu.`
       : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn, hoặc không cắn ai.`)}
       ${packList}
-      ${task.noKill
-        ? '<p class="result" style="margin-top:12px">Đàn Sói đã chốt: đêm nay không cắn ai.</p>'
-        : task.targets.length
-        ? `<p class="result result-wolf" style="margin-top:12px">Đàn Sói đã chốt: ${esc(task.targets.map(seatName).join(' và '))}.</p>`
-        : `${pickGrid('night', { exclude: [m.id], selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])) })}
+      ${task.complete ? '<p class="result" style="margin-top:12px">Cả đàn đã chọn xong. Chuẩn bị nhắm mắt…</p>' : ''}
+      ${`${pickGrid('night', { exclude: [m.id], selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])) })}
           <button class="btn ${mineNone ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:12px" data-act="noKill" aria-pressed="${mineNone}">🚫 Không cắn ai${noKillVotes ? ` (${noKillVotes})` : ''}</button>`}</div>`;
   }
   if (task.role === 'detective') {
@@ -1340,14 +1330,14 @@ function nightTask(task) {
       const same = task.result === 'same';
       return `<div class="panel stack">${head('detective', 'Kết quả điều tra', 'Chỉ bạn nhìn thấy kết quả này.')}
         <p class="result ${same ? 'result-village' : 'result-wolf'}">${esc(task.picks.map(seatName).join(' và '))} ${same ? 'cùng phe 🤝' : 'khác phe ⚔️'}</p>
-        ${doneHint}</div>`;
+        ${autoHint}</div>`;
     }
     return `<div class="panel">${head('detective', 'Điều tra 2 người', `Đã chọn ${task.picks.length}/2. Bạn sẽ biết họ có cùng phe hay không.`)}
       ${pickGrid('night', { exclude: [m.id], selected: task.picks })}</div>`;
   }
   if (task.role === 'priest') {
     if (task.used && !task.pick) return `<div class="panel">${head('priest', 'Nước thánh đã dùng hết', 'Bạn đã dùng nước thánh. Hãy nhắm mắt lại.')}</div>`;
-    return `<div class="panel">${head('priest', 'Vẩy nước thánh?', 'Chỉ được dùng 1 lần cả ván. Trúng Sói thì Sói chết vào sáng mai; trúng người phe Dân thì chính bạn chết. Không muốn dùng thì cứ để hết giờ.')}
+    return `<div class="panel">${head('priest', 'Vẩy nước thánh?', 'Chỉ được dùng 1 lần cả ván. Trúng Sói thì Sói chết vào sáng mai; trúng người phe Dân thì chính bạn chết. Không muốn dùng thì bấm “Bỏ qua lượt này”.')}
       ${task.pick
         ? `<p class="result" style="margin-top:12px">Bạn đã vẩy nước thánh vào ${esc(seatName(task.pick))}.</p>`
         : pickGrid('night', { exclude: [m.id] })}</div>`;
@@ -1357,7 +1347,7 @@ function nightTask(task) {
     if (task.pick) return `<div class="panel">${head('medium', 'Đã chọn', `${esc(seatName(task.pick))} sẽ sống lại vào sáng mai.`)}</div>`;
     const dead = task.dead.map(player).filter(Boolean);
     return `<div class="panel">${head('medium', 'Hồi sinh ai?', dead.length
-      ? 'Chỉ được dùng 1 lần cả ván. Người được chọn sẽ sống lại vào sáng mai. Không muốn dùng thì cứ để hết giờ.'
+      ? 'Chỉ được dùng 1 lần cả ván. Người được chọn sẽ sống lại vào sáng mai. Không muốn dùng thì bấm “Bỏ qua lượt này”.'
       : 'Chưa có ai chết. Hãy nhắm mắt lại.')}
       ${dead.length ? pickGrid('night', { pool: dead }) : ''}</div>`;
   }
@@ -1365,7 +1355,7 @@ function nightTask(task) {
     const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
     const subs = lastAim ? { [lastAim]: 'Mục tiêu hiện tại' } : {};
     return `<div class="panel">${head('avenger', 'Chọn người chết theo', lastAim
-      ? `Đang chọn ${esc(seatName(lastAim))}. Chọn lại, hoặc để nguyên khi hết giờ.`
+      ? `Đang chọn ${esc(seatName(lastAim))}. Chọn lại, hoặc bấm “Giữ nguyên mục tiêu”.`
       : 'Nếu bạn bị dân làng treo cổ, người này chết theo.')}
       ${task.aim
         ? `<p class="result" style="margin-top:12px">Mục tiêu: ${esc(seatName(task.aim))}.</p>`
@@ -1376,7 +1366,7 @@ function nightTask(task) {
       const wolf = task.result === 'werewolf';
       return `<div class="panel stack">${head('seer', 'Kết quả soi', 'Chỉ bạn nhìn thấy kết quả này.')}
         <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : { piper: '🪈', fool: '🤡' }[task.result] || '🌾'}</p>
-        ${doneHint}</div>`;
+        ${autoHint}</div>`;
     }
     return `<div class="panel">${head('seer', 'Soi ai đêm nay?', 'Bạn chỉ biết người đó là Sói hay Dân.')}
       ${pickGrid('night', { exclude: [m.id] })}</div>`;
@@ -1390,7 +1380,7 @@ function nightTask(task) {
       ${task.poisoned ? `<p class="result result-wolf">Bạn đã đầu độc ${esc(seatName(task.poisoned))}.</p>`
         : task.poisonAvailable ? `<div><p class="field-label">Hoặc chọn người để dùng bình Độc</p>${pickGrid('poison', { exclude: [m.id] })}</div>`
         : '<p class="muted small">Bình Độc đã dùng hết.</p>'}
-      ${doneHint}</div>`;
+    </div>`;
   }
   return '';
 }
@@ -1659,11 +1649,7 @@ document.addEventListener('click', async (e) => {
     case 'seerDone': return act('seerDone').then(() => act('endTurn'));
     case 'detectiveDone': return act('detectiveDone').then(() => act('endTurn'));
     case 'ack': return act('ack').then(() => act('endTurn'));
-    case 'endTurn': {
-      const t = view?.me?.task;
-      if (t?.role === 'werewolf' && !t.votes?.[view.me.id]?.length && !confirm('Bạn chưa chọn ai. Vẫn bấm Xong?')) return;
-      return act('endTurn');
-    }
+    case 'endTurn': return act('endTurn');
     case 'thiefPick': {
       const card = view.me.task?.extras?.[Number(el.dataset.pick)];
       if (card && confirm(`Đổi sang lá ${ROLES[card].name}?`)) act('thief', { pick: Number(el.dataset.pick) });
