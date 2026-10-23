@@ -1625,3 +1625,15 @@ test('a step nobody can play ends between 5 and 15 s, even with a long role time
   assert.ok(lengths.every(l => l >= 5000 && l <= 15000), lengths.join());
   assert.ok(new Set(lengths).size > 1);
 });
+
+test('the couple find the news in their own notes, not on screen', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['cupid', 'werewolf', 'villager', 'villager', 'villager']);
+  untilNightRole('cupid');
+  act(P[0], 'night', { target: P[2].id });
+  act(P[0], 'night', { target: P[3].id });
+  untilPhase('MORNING');
+  const notes = (p) => viewFor(s, p.id, 0, 1).me.notes.map(n => n.text);
+  assert.deepEqual(notes(P[2]), [`💘 Bạn và ${P[3].name} đã thành Tình Nhân.`]);
+  assert.deepEqual(notes(P[3]), [`💘 Bạn và ${P[2].name} đã thành Tình Nhân.`]);
+  assert.deepEqual(notes(P[4]), []);
+});
