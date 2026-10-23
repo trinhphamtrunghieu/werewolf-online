@@ -898,7 +898,7 @@ function endTurnButton(m) {
   // A role that lost its power passes like anyone else, so its turn is no
   // longer than a normal one.
   if (t.powerless) return '<button class="btn btn-ghost btn-block end-turn" data-act="endTurn">Đã hiểu</button>';
-  const keepAim = ['hunter', 'avenger'].includes(t.role) && t.lastAim && player(t.lastAim)?.alive;
+  const keepAim = ['hunter', 'avenger'].includes(t.role) && !t.spent && t.lastAim && player(t.lastAim)?.alive;
   const label = t.role === 'elder' ? 'Đã hiểu'
     : keepAim ? 'Giữ nguyên mục tiêu'
     : t.role === 'witch' && (t.healed || t.poisoned) ? 'Xong, không dùng thêm'
@@ -925,7 +925,8 @@ function renderGame() {
         </section>
         <details class="panel section" id="logBox">
           <summary><h3>Nhật ký ván chơi</h3></summary>
-          <ol class="log" id="log"></ol>
+          <button class="btn btn-ghost btn-small" style="margin-top:10px" data-act="exportLog">⬇️ Tải nhật ký (.txt)</button>
+          <ul class="log" id="log"></ul>
         </details>
         <p class="muted small" id="conn">${connectionHtml()}</p>
       </div>
@@ -966,7 +967,8 @@ function renderGame() {
     logBox.open = true;
     logBox.dataset.opened = '1';
   }
-  document.getElementById('log').innerHTML = g.log.map(l => `<li>${esc(l)}</li>`).join('');
+  // Nights and mornings start a new block, so the game reads in order.
+  document.getElementById('log').innerHTML = g.log.map(l => `<li class="${isLogHead(l) ? 'log-head' : ''}">${esc(l)}</li>`).join('');
 
   const m = view.me;
   const myTurn = view.phase === 'NIGHT' && m.task;
@@ -1289,6 +1291,10 @@ function nightTask(task) {
         ? `<p class="result" style="margin-top:12px">Bạn đang bảo vệ ${esc(seatName(task.pick))}.</p>`
         : pickGrid('night', { disabled, subs })}</div>`;
   }
+  if (task.spent && ['hunter', 'avenger'].includes(task.role)) {
+    return `<div class="panel">${head(task.role, task.role === 'hunter' ? 'Súng đã nổ' : 'Đã kéo theo một người',
+      'Bạn đã dùng kỹ năng này trước khi được hồi sinh, nên không dùng lại được. Bấm “Bỏ qua lượt này” ở dưới cùng.')}</div>`;
+  }
   if (task.role === 'hunter') {
     const lastAim = task.lastAim && player(task.lastAim)?.alive ? task.lastAim : null;
     const subs = lastAim ? { [lastAim]: 'Đang chĩa súng' } : {};
@@ -1388,14 +1394,14 @@ function moderatorNight() {
   const g = view.game;
   const n = view.me.moderatorNight;
   const r = stepInfo(g.activeRole);
-  const line = (label, id) => id ? `<p class="small">${label}: <strong>${esc(seatName(id))}</strong></p>` : '';
-  const names = (ids) => esc(ids.map(seatName).join(', '));
+  const line = (label, id) => id ? `<p class="small">${label}: <strong>${esc(nameOnly(id))}</strong></p>` : '';
+  const names = (ids) => esc(ids.map(nameOnly).join(', '));
   return `
     <div class="panel stack">
       <h2>Bảng quản trò</h2>
       <p class="lead">${r ? `Đang gọi ${r.name}.` : ''} Chỉ bạn thấy được bảng này.</p>
       ${n.thiefExtras?.length ? `<p class="small">Lá dư: <strong>${n.thiefExtras.map(id => ROLES[id].name).join(', ')}</strong>${n.thiefTook ? `. Ăn Trộm đã lấy ${ROLES[n.thiefTook].name}` : ''}</p>` : ''}
-      ${n.lovers.length ? `<p class="small">Tình Nhân: <strong>${esc(n.lovers.map(seatName).join(' và '))}</strong></p>` : ''}
+      ${n.lovers.length ? `<p class="small">Tình Nhân: <strong>${esc(n.lovers.map(nameOnly).join(' và '))}</strong></p>` : ''}
       ${n.piperPicks.length ? `<p class="small">Thổi Sáo chọn đêm nay: <strong>${names(n.piperPicks)}</strong></p>` : ''}
       ${n.charmed.length ? `<p class="small">Đã bị thôi miên: <strong>${names(n.charmed)}</strong></p>` : ''}
       ${line('Bảo Vệ chọn', n.guard)}
@@ -1574,6 +1580,7 @@ document.addEventListener('click', async (e) => {
       return renderHome();
     case 'rules': renderRules(); return document.getElementById('rulesSheet').showModal();
     case 'deck': renderDeck(); return document.getElementById('deckSheet').showModal();
+    case 'exportLog': return exportLog();
     case 'notes': renderNotes(); return document.getElementById('notesSheet').showModal();
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
@@ -1733,6 +1740,38 @@ document.addEventListener('input', (e) => {
   document.getElementById('ambienceVolumeValue').textContent = `${ambienceVolume}%`;
   narrator.setAmbienceVolume(ambienceVolume / 100);
 });
+
+const isLogHead = (line) => /^(🌙 Đêm|☀️ Sáng)/.test(line);
+
+// The whole game as a plain text file: result, everyone's role, then what
+// happened in order.
+function exportLog() {
+  const g = view.game;
+  const pad = (n) => String(n).padStart(2, '0');
+  const d = new Date();
+  const stamp = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const lines = ['MA SÓI – NHẬT KÝ VÁN CHƠI', `Phòng ${view.code} · ${stamp}`];
+  if (view.phase === 'GAME_OVER' && g.winReason) lines.push(`Kết quả: ${g.winReason}`);
+  const players = view.players.filter(p => p.inGame).sort((a, b) => a.seat - b.seat);
+  if (players.some(p => p.role)) {
+    lines.push('', 'VAI TRÒ');
+    players.forEach(p => {
+      const role = p.role ? (p.turned ? 'Sói Nguyền (đã hoá Sói)' : ROLES[p.role].name) : '?';
+      lines.push(`- ${p.name}: ${role}${p.alive ? '' : ' (đã chết)'}`);
+    });
+  }
+  lines.push('', 'DIỄN BIẾN');
+  g.log.forEach(l => lines.push(isLogHead(l) ? `\n${l}` : `  ${l}`));
+  // A byte-order mark so Windows Notepad reads the Vietnamese correctly.
+  const blob = new Blob(['\ufeff' + lines.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ma-soi-${view.code}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
 
 async function share() {
   const url = shareUrl();

@@ -476,7 +476,8 @@ button.seat:disabled { opacity: 0.4; cursor: not-allowed; }
 .winner .big { font-size: 3.5rem; line-height: 1; }
 .winner h2 { font-size: 2rem; margin-top: 10px; }
 
-.log { font-size: 0.9rem; color: var(--muted); padding-left: 18px; margin: 0; }
+.log { font-size: 0.9rem; color: var(--muted); list-style: none; padding-left: 0; margin: 10px 0 0; }
+.log li:not(.log-head) { padding-left: 14px; }
 .log li + li { margin-top: 6px; }
 
 /* ---------- Role card sheet ---------- */
@@ -619,3 +620,4 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .deck-icon { font-size: 1.5rem; width: 2rem; text-align: center; }
 .deck-name { flex: 1; display: flex; flex-direction: column; }
 .deck-count { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+.log li.log-head { margin-top: 10px; font-weight: 700; color: var(--lantern); }

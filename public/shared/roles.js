@@ -93,7 +93,7 @@ export const ROLES = {
     icon: '🎯',
     color: '#ffc861',
     short: 'Mỗi đêm chĩa súng vào 1 người; chết thì người đó chết theo.',
-    description: 'Mỗi đêm thức dậy (lượt cuối cùng) và chĩa súng vào 1 người. Nếu bạn chết vì bất kỳ lý do gì, người đang bị chĩa súng chết theo. Bạn không được biết ai bị Sói cắn. Nếu đêm nào không chọn, súng vẫn chĩa vào người của đêm trước.',
+    description: 'Mỗi đêm thức dậy (lượt cuối cùng) và chĩa súng vào 1 người. Nếu bạn chết vì bất kỳ lý do gì, người đang bị chĩa súng chết theo. Bạn không được biết ai bị Sói cắn. Nếu đêm nào không chọn, súng vẫn chĩa vào người của đêm trước. Súng chỉ nổ một lần cả ván, kể cả khi bạn được hồi sinh.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="50" r="32" stroke="currentColor" stroke-width="3"/>
       <circle cx="50" cy="50" r="16" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
@@ -166,7 +166,7 @@ export const ROLES = {
     icon: '🐺',
     color: '#ff9a8a',
     short: 'Thức dậy cùng Sói. Sói Con chết thì đêm sau Sói được cắn 2 người.',
-    description: 'Thuộc phe Sói, mỗi đêm thức dậy và chọn nạn nhân cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm tiếp theo đàn Sói được cắn 2 người.',
+    description: 'Thuộc phe Sói, mỗi đêm thức dậy và chọn nạn nhân cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm tiếp theo đàn Sói được cắn 2 người. Chỉ một lần cả ván, kể cả khi Sói Con được hồi sinh rồi chết lại.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M32 74L36 50L28 32L44 42L50 36L56 42L72 32L64 50L68 74H32Z" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
       <circle cx="43" cy="55" r="3" fill="#fef08a"/><circle cx="57" cy="55" r="3" fill="#fef08a"/>
@@ -207,7 +207,7 @@ export const ROLES = {
     icon: '🕯️',
     color: '#d6b4ff',
     short: 'Một lần mỗi ván hồi sinh 1 người đã chết.',
-    description: 'Một lần trong cả ván, ban đêm bạn chọn 1 người đã chết để hồi sinh. Sáng hôm sau người đó sống lại với vai trò cũ. Dùng xong thì mất năng lực.',
+    description: 'Một lần trong cả ván, ban đêm bạn chọn 1 người đã chết để hồi sinh. Sáng hôm sau người đó sống lại với vai trò cũ, nhưng kỹ năng nào đã dùng thì không dùng lại được (bình thuốc, nước thánh, phát súng của Thợ Săn…). Bạn chỉ được gọi dậy khi đã có người chết và chưa dùng năng lực.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <rect x="38" y="44" width="24" height="40" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M50 18C56 26 58 32 50 40C42 32 44 26 50 18Z" fill="#fde68a" stroke="#fbbf24" stroke-width="2"/>
@@ -234,7 +234,7 @@ export const ROLES = {
     icon: '🗡️',
     color: '#ff9f6b',
     short: 'Phe Sói. Bị treo cổ thì người đã chọn chết theo.',
-    description: 'Thuộc phe Sói: mỗi đêm thức dậy và cắn cùng đàn Sói. Sau đó bạn được gọi riêng để chọn 1 người (đêm nào không chọn thì giữ người cũ). Nếu bạn bị dân làng treo cổ, người đó chết theo ngay.',
+    description: 'Thuộc phe Sói: mỗi đêm thức dậy và cắn cùng đàn Sói. Sau đó bạn được gọi riêng để chọn 1 người (đêm nào không chọn thì giữ người cũ). Nếu bạn bị dân làng treo cổ, người đó chết theo ngay (chỉ một lần cả ván, kể cả khi được hồi sinh).',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M30 70L66 34L74 26L70 38L36 74Z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
       <path d="M26 64L36 74M22 78L30 70" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>

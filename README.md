@@ -14,7 +14,7 @@ Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình 
 - **Sói Con** (phe Sói): thức dậy và cắn cùng đàn Sói. Khi Sói Con chết (vì bất kỳ lý do gì), đêm sau đàn Sói được cắn 2 người.
 - **Mục Sư** (phe Dân): một lần mỗi ván, ban đêm vẩy nước thánh vào 1 người. Nếu đó là Sói (Sói thường, Sói Con, Sói Báo Thù) thì người đó chết vào sáng hôm sau; nếu là người phe Dân thì Mục Sư chết; người phe thứ ba thì không sao.
 - **Thám Tử** (phe Dân): mỗi đêm chọn 2 người, biết họ có cùng phe hay không.
-- **Thầy Đồng** (phe Dân): một lần mỗi ván, ban đêm hồi sinh 1 người đã chết; sáng hôm sau người đó sống lại với vai trò cũ.
+- **Thầy Đồng** (phe Dân): một lần mỗi ván, ban đêm hồi sinh 1 người đã chết; sáng hôm sau người đó sống lại với vai trò cũ, nhưng kỹ năng đã dùng thì không dùng lại được (bình thuốc, nước thánh, phát súng Thợ Săn, Sói Báo Thù kéo theo, cắn đôi của Sói Con).
 - **Kẻ Cuồng Loạn** (phe thứ ba): nếu bị dân làng treo cổ thì ván kết thúc và Kẻ Cuồng Loạn thắng một mình.
 - **Sói Báo Thù** (phe Sói): thức dậy và cắn cùng đàn Sói, rồi được gọi riêng để chọn 1 người. Nếu bị dân làng treo cổ, người đó chết theo ngay.
 
@@ -33,7 +33,7 @@ Trạng thái kết nối chỉ hiện cho chủ phòng. Nếu chủ phòng cũn
 7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không (phân biệt 3 phe: Sói, Dân và phe thứ ba).
 8. **Mục Sư**: có muốn vẩy nước thánh không (1 lần mỗi ván).
 9. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
-10. **Thầy Đồng**: có muốn hồi sinh 1 người đã chết không (1 lần mỗi ván).
+10. **Thầy Đồng**: có muốn hồi sinh 1 người đã chết không (1 lần mỗi ván). Chỉ được gọi khi đã có người chết và chưa dùng năng lực.
 11. **Người Thổi Sáo**: thôi miên 2 người chưa bị thôi miên. Những người bị thôi miên không bị gọi dậy: quản trò báo rằng tên những người cùng cảnh ngộ đã hiện trên lá bài, và nhắc họ xem khi thức dậy.
 12. **Già Làng** (đêm đầu): mở mắt để quản trò biết. Già Làng chịu được 1 lần bị Sói cắn. Nếu chính dân làng giết Già Làng (treo cổ, bình Độc, súng Thợ Săn), mọi vai trò phe Dân (Tiên Tri, Thám Tử, Bảo Vệ, Phù Thủy, Mục Sư, Thầy Đồng, Thợ Săn) mất chức năng đến hết ván. Việc này không được thông báo công khai (sẽ lộ người vừa chết là Già Làng): chỉ những người mất chức năng thấy ghi chú trên lá bài của mình.
 13. **Thợ Săn**: chĩa súng vào 1 người. Khi Thợ Săn chết vì bất kỳ lý do gì, người đó chết theo. Đêm nào không chọn thì súng vẫn chĩa vào người của đêm trước.
