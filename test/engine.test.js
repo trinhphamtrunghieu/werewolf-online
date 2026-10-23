@@ -700,12 +700,12 @@ test('priest: holy water once per game; a wolf dies, a villager costs the priest
 test('medium brings one dead player back, once per game', () => {
   const { s, P, act, untilNightRole, untilPhase } = setup(['medium', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
   untilNightRole('werewolf');
+  assert.ok(!s.game.queue.includes('medium'), 'not called while nobody has died');
   act(P[1], 'night', { target: P[2].id });
-  untilNightRole('medium');
-  assert.throws(() => act(P[0], 'night', { target: P[3].id }), /đã chết/, 'only the dead');
   untilPhase('MORNING');
   assert.equal(P[2].alive, false);
   untilNightRole('medium');
+  assert.throws(() => act(P[0], 'night', { target: P[3].id }), /đã chết/, 'only the dead');
   assert.deepEqual(viewFor(s, P[0].id, 0, 1).me.task.dead, [P[2].id]);
   act(P[0], 'night', { target: P[2].id });
   untilPhase('MORNING');
@@ -713,8 +713,8 @@ test('medium brings one dead player back, once per game', () => {
   assert.equal(P[2].role, 'seer', 'back with the same card');
   const keys = s.narration.clips.map(c => c.k);
   assert.ok(keys.includes('revived') && keys.includes(`seat_${P[2].seat}`));
-  untilNightRole('medium');
-  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.used, true);
+  untilNightRole('werewolf');
+  assert.ok(!s.game.queue.includes('medium'), 'not called once the power is used');
 });
 
 test('the madman (third party) wins alone when the village hangs them', () => {
@@ -1084,7 +1084,7 @@ test('a tied host vote is settled by drawing one of the tied players', () => {
     applyAction(s, P[4].id, 'hostVote', { candidate: P[2].id }, later, rng);
     assert.ok([P[1].id, P[2].id].includes(s.hostId), 'one of the tied players wins');
     picks.add(s.hostId === P[1].id ? 'first' : 'second');
-    assert.ok(s.game.log[0].includes('bốc thăm'));
+    assert.ok(s.game.log.at(-1).includes('bốc thăm'));
   }
   assert.equal(picks.size, 2, 'either tied player can be drawn');
 });
@@ -1636,4 +1636,66 @@ test('the couple find the news in their own notes, not on screen', () => {
   assert.deepEqual(notes(P[2]), [`💘 Bạn và ${P[3].name} đã thành Tình Nhân.`]);
   assert.deepEqual(notes(P[3]), [`💘 Bạn và ${P[2].name} đã thành Tình Nhân.`]);
   assert.deepEqual(notes(P[4]), []);
+});
+
+test('a hunter brought back does not shoot a second time', () => {
+  const { s, P, act, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'medium', 'villager', 'villager', 'villager', 'villager']);
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilNightRole('hunter');
+  act(P[0], 'night', { target: P[3].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
+  assert.equal(P[3].alive, false, 'the gun went off');
+  untilNightRole('medium');
+  act(P[2], 'night', { target: P[0].id });
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, true, 'back');
+  untilPhase('DISCUSSION');
+  untilNightRole('werewolf');
+  act(P[1], 'night', { target: P[0].id });
+  untilNightRole('hunter');
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.spent, true);
+  assert.throws(() => act(P[0], 'night', { target: P[4].id }), /đã nổ/);
+  untilPhase('MORNING');
+  assert.equal(P[0].alive, false);
+  assert.equal(P[4].alive, true, 'no second shot');
+});
+
+test('a wolf cub brought back gives the pack its double bite only once', () => {
+  const g = setup(['wolf_cub', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  g.s.game.cubSpent = true; // the cub already died once and was brought back
+  const { s } = g;
+  g.untilPhase('DISCUSSION');
+  g.untilPhase('VOTE');
+  const voters = g.P.filter(p => p.alive && p.id !== g.P[0].id);
+  voters.forEach(v => g.act(v, 'vote', { target: g.P[0].id }));
+  g.untilPhase('JUDGE');
+  voters.forEach(v => g.act(v, 'judge', { choice: 'kill' }));
+  g.untilPhase('VERDICT');
+  assert.equal(g.P[0].alive, false);
+  g.untilNightRole('werewolf');
+  assert.equal(s.game.night.wolfKills, 1);
+});
+
+test('used potions stay used for a witch brought back', () => {
+  const g = setup(['witch', 'werewolf', 'medium', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[3].id });
+  g.untilNightRole('witch');
+  g.act(g.P[0], 'witch', { use: 'heal' });
+  g.untilPhase('DISCUSSION');
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false);
+  g.untilNightRole('medium');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, true);
+  g.untilPhase('DISCUSSION');
+  g.untilNightRole('witch');
+  const task = viewFor(g.s, g.P[0].id, 0, 1).me.task;
+  assert.equal(task.healAvailable, false, 'the heal was used before');
+  assert.equal(task.poisonAvailable, true, 'the poison is still there');
 });
