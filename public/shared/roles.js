@@ -29,6 +29,7 @@ export const THIEF_EXTRA_CARDS = 2;
 export const ROLES = {
   werewolf: {
     id: 'werewolf',
+    points: -6,
     name: 'Ma Sói',
     team: 'werewolf',
     icon: '🐺',
@@ -45,6 +46,7 @@ export const ROLES = {
   },
   seer: {
     id: 'seer',
+    points: 7,
     name: 'Tiên Tri',
     team: 'village',
     icon: '🔮',
@@ -60,6 +62,7 @@ export const ROLES = {
   },
   guard: {
     id: 'guard',
+    points: 3,
     name: 'Bảo Vệ',
     team: 'village',
     icon: '🛡️',
@@ -73,6 +76,7 @@ export const ROLES = {
   },
   witch: {
     id: 'witch',
+    points: 4,
     name: 'Phù Thủy',
     team: 'village',
     icon: '🧪',
@@ -88,6 +92,7 @@ export const ROLES = {
   },
   hunter: {
     id: 'hunter',
+    points: 3,
     name: 'Thợ Săn',
     team: 'village',
     icon: '🎯',
@@ -103,6 +108,7 @@ export const ROLES = {
   },
   thief: {
     id: 'thief',
+    points: 1,
     name: 'Ăn Trộm',
     team: 'village',
     icon: '🦝',
@@ -118,6 +124,7 @@ export const ROLES = {
   },
   cupid: {
     id: 'cupid',
+    points: -3,
     name: 'Thần Tình Yêu',
     team: 'village',
     icon: '💘',
@@ -131,6 +138,7 @@ export const ROLES = {
   },
   piper: {
     id: 'piper',
+    points: 1,
     name: 'Người Thổi Sáo',
     team: 'piper',
     icon: '🪈',
@@ -145,6 +153,7 @@ export const ROLES = {
   },
   elder: {
     id: 'elder',
+    points: 1,
     name: 'Già Làng',
     team: 'village',
     icon: '👴',
@@ -161,6 +170,7 @@ export const ROLES = {
   },
   wolf_cub: {
     id: 'wolf_cub',
+    points: -8,
     name: 'Sói Con',
     team: 'werewolf',
     icon: '🐺',
@@ -175,6 +185,7 @@ export const ROLES = {
   },
   priest: {
     id: 'priest',
+    points: 3,
     name: 'Mục Sư',
     team: 'village',
     icon: '✝️',
@@ -188,6 +199,7 @@ export const ROLES = {
   },
   detective: {
     id: 'detective',
+    points: 3,
     name: 'Thám Tử',
     team: 'village',
     icon: '🕵️',
@@ -202,6 +214,7 @@ export const ROLES = {
   },
   medium: {
     id: 'medium',
+    points: 3,
     name: 'Thầy Đồng',
     team: 'village',
     icon: '🕯️',
@@ -215,6 +228,7 @@ export const ROLES = {
   },
   fool: {
     id: 'fool',
+    points: 1,
     name: 'Kẻ Cuồng Loạn',
     team: 'fool',
     icon: '🤡',
@@ -229,6 +243,7 @@ export const ROLES = {
   },
   avenger: {
     id: 'avenger',
+    points: -7,
     name: 'Sói Báo Thù',
     team: 'werewolf',
     icon: '🗡️',
@@ -242,6 +257,7 @@ export const ROLES = {
   },
   cursed: {
     id: 'cursed',
+    points: -3,
     name: 'Sói Nguyền',
     team: 'village',
     icon: '🌑',
@@ -257,6 +273,7 @@ export const ROLES = {
   },
   villager: {
     id: 'villager',
+    points: 1,
     name: 'Dân Làng',
     team: 'village',
     icon: '🧑‍🌾',
@@ -293,40 +310,74 @@ export function emptyRoleCounts() {
   return Object.fromEntries(ROLE_IDS.map(id => [id, 0]));
 }
 
-// The house setup for 12 players: 3 wolves, 8 villagers (7 roles and one
-// plain Villager), 1 third party. Villagers fill any extra seats.
-const HOUSE_TABLE_12 = {
-  werewolf: 2, avenger: 1,
-  seer: 1, guard: 1, witch: 1, hunter: 1, detective: 1, medium: 1, priest: 1,
-  fool: 1
-};
+// Balance follows the "Village Impact" printed on Ultimate Werewolf cards
+// (each role's `points`): positive helps the village, negative the wolves,
+// and a game is fair when the cards add up to about zero. Roles that game
+// does not have carry an estimate: Thief +1 (usually ends up a villager),
+// Elder +1, Medium +3 (like the Witch's heal), Priest +3, Detective +3 (like
+// the P.I.), Avenger -7 (a Werewolf plus the revenge), Fool +1 (the Tanner),
+// Piper +1 (the Cult Leader).
+export function balanceScore(counts) {
+  return ROLE_IDS.reduce((sum, id) => sum + (ROLES[id].points || 0) * (counts[id] || 0), 0);
+}
 
-export function computeBalancedRoles(playerCount) {
+// What a score means, for the lobby.
+export function balanceLabel(score) {
+  if (score >= 6) return 'nghiêng nhiều về phe Dân';
+  if (score >= 3) return 'hơi nghiêng về phe Dân';
+  if (score <= -6) return 'nghiêng nhiều về phe Sói';
+  if (score <= -3) return 'hơi nghiêng về phe Sói';
+  return 'cân bằng';
+}
+
+// Special roles of the suggested game for each player count. From 12
+// players: the house set (Sói Báo Thù, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn,
+// Thám Tử, Thầy Đồng, Mục Sư, Kẻ Cuồng Loạn).
+const HOUSE_PICKS_12 = ['avenger', 'seer', 'guard', 'witch', 'hunter', 'detective', 'medium', 'priest', 'fool'];
+export function defaultPicks(playerCount) {
+  const n = playerCount;
+  if (n >= 12) return [...HOUSE_PICKS_12];
+  const picks = [];
+  if (n >= 2) picks.push('seer');
+  if (n >= 4) picks.push('guard');
+  if (n >= 6) picks.push('witch');
+  if (n >= 7) picks.push('cupid');
+  if (n >= 8) picks.push('hunter');
+  if (n >= 9) picks.push('thief');
+  if (n >= 11) picks.push('piper');
+  return picks;
+}
+
+// Given the special roles the host wants (one card each), fill the deck with
+// Werewolves and Villagers so the points add up as close to zero as
+// possible: at least one wolf, never more than a third of the players, and
+// never so many that the game is not playable. Ties go to the wolf count
+// nearest a quarter of the table.
+export function balanceRoles(picks, playerCount) {
   const n = Math.max(0, playerCount);
   const c = emptyRoleCounts();
   if (n === 0) return c;
-  if (n >= 12) {
-    // From 12 players, start from the house table; extra players are
-    // villagers, with one more wolf from 15.
-    Object.assign(c, HOUSE_TABLE_12);
-    if (n >= 15) c.werewolf += 1;
-    const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
-    c.villager = n - special;
-    return c;
+  new Set(picks).forEach(id => { if (ROLES[id] && id !== 'werewolf' && id !== 'villager') c[id] = 1; });
+  const needed = cardsNeeded(c, n);
+  const special = totalRoles(c);
+  const packSpecials = PACK_ROLES.reduce((sum, id) => sum + c[id], 0);
+  const maxPack = Math.max(1, Math.floor(n / 3));
+  let best = null;
+  for (let w = packSpecials ? 0 : 1; special + w <= needed; w++) {
+    const trial = { ...c, werewolf: w, villager: needed - special - w };
+    if (packSpecials + w > maxPack && best) break;
+    if (validateRoleCounts(trial, n)) continue;
+    const score = Math.abs(balanceScore(trial));
+    const spread = Math.abs(packSpecials + w - n / 4);
+    if (!best || score < best.score || (score === best.score && spread < best.spread)) best = { trial, score, spread };
   }
-  c.werewolf = 1;
-  if (n >= 2) c.seer = 1;
-  if (n >= 4) c.guard = 1;
-  if (n >= 6) { c.werewolf = 2; c.witch = 1; }
-  if (n >= 7) c.cupid = 1;
-  if (n >= 8) c.hunter = 1;
-  if (n >= 9) c.thief = 1;
-  if (n >= 10) c.werewolf = 3;
-  if (n >= 11) c.piper = 1;
-  const special = ROLE_IDS.reduce((sum, id) => sum + (id === 'villager' ? 0 : c[id]), 0);
-  // The Thief brings two spare cards, filled with Villagers.
-  c.villager = Math.max(0, cardsNeeded(c, n) - special);
-  return c;
+  // Nothing playable (too many roles picked for the table): still return a
+  // full deck so the lobby can explain what is wrong.
+  return best ? best.trial : { ...c, werewolf: packSpecials ? 0 : 1, villager: Math.max(0, needed - special - (packSpecials ? 0 : 1)) };
+}
+
+export function computeBalancedRoles(playerCount) {
+  return balanceRoles(defaultPicks(playerCount), playerCount);
 }
 
 export function totalRoles(counts) {

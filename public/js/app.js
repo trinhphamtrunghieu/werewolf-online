@@ -1,5 +1,6 @@
 import {
-  ROLES, ROLE_IDS, TEAM_LABEL, MIN_PLAYERS, MAX_PLAYERS, NIGHT_STEPS, PACK_ROLES, totalRoles, validateRoleCounts, cardsNeeded, stepInfo
+  ROLES, ROLE_IDS, TEAM_LABEL, MIN_PLAYERS, MAX_PLAYERS, NIGHT_STEPS, PACK_ROLES, totalRoles, validateRoleCounts, cardsNeeded, stepInfo,
+  balanceScore, balanceLabel
 } from '/shared/roles.js';
 import { Narrator } from './narrator.js';
 import { connectRealtime } from './realtime.js';
@@ -447,10 +448,10 @@ function onTransitions(prev, next) {
   if (taskKey && taskKey !== lastTaskKey && canVibrate && vibrateOn) navigator.vibrate([120, 80, 120]);
   lastTaskKey = taskKey;
 
-  if (prev && prev.phase === 'LOBBY' && next.phase === 'NIGHT' && next.me?.inGame) {
+  if (prev && prev.phase === 'LOBBY' && ['NIGHT', 'SWAP'].includes(next.phase) && next.me?.inGame) {
     toast('Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
   }
-  document.body.dataset.time = ['NIGHT', 'LOBBY'].includes(next.phase) ? 'night' : 'day';
+  document.body.dataset.time = ['NIGHT', 'LOBBY', 'SWAP'].includes(next.phase) ? 'night' : 'day';
 }
 
 async function requestWakeLock() {
@@ -753,6 +754,7 @@ function musicControls() {
 }
 
 const SLIDERS = [
+  ['swapTime', 'Đổi vai trước đêm đầu (0 = tắt)', 0, 60, 5],
   ['discussionTime', 'Thảo luận', 30, 600, 15],
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
@@ -824,8 +826,16 @@ function rolesPanel(count, host) {
       ${host && view.roleMode === 'manual' ? '<button class="btn btn-ghost btn-small" data-act="autoBalance">Dùng gợi ý</button>' : ''}
     </div>
     <p class="muted small">${view.roleMode === 'auto'
-      ? 'Tự động cân bằng theo số người chơi.'
+      ? 'Gợi ý tự động theo số người chơi.'
+      : view.roleMode === 'pick'
+      ? 'Chủ phòng chọn vai, số Sói và Dân tự điều chỉnh cho cân bằng.'
       : 'Chủ phòng đang tự chọn số lượng.'} ${total}/${cardsNeeded(counts, count)} lá bài cho ${count} người${counts.thief ? ' (có Ăn Trộm nên chia dư 2 lá)' : ''}.</p>
+    ${(() => {
+      const score = balanceScore(counts);
+      return `<p class="small balance-score">⚖️ Điểm cân bằng: <strong>${score > 0 ? '+' : ''}${score}</strong> · ${balanceLabel(score)}
+        <span class="muted">(theo điểm Ultimate Werewolf: dương có lợi cho phe Dân, âm có lợi cho phe Sói; gần 0 là cân bằng)</span></p>`;
+    })()}
+    ${host ? '<p class="muted small">Chạm vào biểu tượng của vai để chọn hoặc bỏ vai đó; số Ma Sói và Dân Làng sẽ tự điều chỉnh. Nút −/+ để tự chỉnh số lượng.</p>' : ''}
     <div class="balance" style="margin:12px 0 4px" role="img" aria-label="Phe Dân ${teams.village}, phe Sói ${teams.werewolf}, phe thứ ba ${teams.third}">
       <span class="v" style="width:${pct(teams.village)}%"></span><span class="t" style="width:${pct(teams.third)}%"></span><span class="w" style="width:${pct(teams.werewolf)}%"></span>
     </div>
@@ -836,10 +846,15 @@ function rolesPanel(count, host) {
     </div>
     ${ROLE_IDS.filter(id => host || counts[id] > 0).map(id => {
       const r = ROLES[id];
+      const pts = `<span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>`;
+      // Werewolves and Villagers fill the deck; every other role can be ticked.
+      const toggle = host && id !== 'werewolf' && id !== 'villager';
       return `
         <div class="role-row">
-          <span class="icon" aria-hidden="true">${r.icon}</span>
-          <div><strong>${r.name}</strong><p class="desc">${r.short}</p></div>
+          ${toggle
+            ? `<button class="icon pick ${counts[id] ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${!!counts[id]}" aria-label="${counts[id] ? 'Bỏ' : 'Chọn'} ${r.name}">${r.icon}</button>`
+            : `<span class="icon" aria-hidden="true">${r.icon}</span>`}
+          <div><strong>${r.name}</strong> ${pts}<p class="desc">${r.short}</p></div>
           ${host ? `
             <div class="stepper">
               <button data-act="role" data-role="${id}" data-delta="-1" ${counts[id] ? '' : 'disabled'} aria-label="Bớt ${r.name}">−</button>
@@ -855,6 +870,7 @@ function rolesPanel(count, host) {
 const PHASE_TITLE = {
   NIGHT: (g) => `Đêm ${g.day}`,
   MORNING: (g) => `Sáng ngày ${g.day}`,
+  SWAP: () => 'Xem bài và đổi vai',
   DISCUSSION: (g) => `Ngày ${g.day}: thảo luận`,
   VOTE: (g) => `Ngày ${g.day}: bỏ phiếu`,
   DEFENSE: (g) => `Ngày ${g.day}: biện hộ`,
@@ -1065,6 +1081,7 @@ function phaseSubtitle() {
       return `Quản trò đang gọi ${r.name} thức dậy.`;
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
+    case 'SWAP': return 'Ai muốn đổi lá bài thì đổi trước đêm đầu tiên.';
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
     case 'DEFENSE': return `${esc(player(g.defendant)?.name || '')} đang tự bào chữa.`;
@@ -1152,6 +1169,29 @@ function stage() {
       <div class="panel stack">
         <h2>${deaths.length ? 'Đêm qua có người đã chết' : 'Đêm qua không ai chết'}</h2>
         ${deaths.length ? `<div class="village">${deaths.map(id => seat(player(id))).join('')}</div>` : '<p class="lead">Bảo Vệ hoặc Phù Thủy đã làm tốt việc của mình… hoặc bầy Sói đang toan tính điều gì đó.</p>'}
+      </div>`;
+  }
+
+  if (view.phase === 'SWAP') {
+    const sw = m.swap;
+    const hostSkip = isHost() ? '<button class="btn btn-ghost" data-act="skip">Bắt đầu đêm đầu tiên</button>' : '';
+    if (!sw) {
+      return `<div class="panel stack"><h2>Mọi người đang xem bài</h2>
+        <p class="lead">Người chơi có thể đổi lá bài với nhau trước đêm đầu tiên.</p>${hostSkip}</div>`;
+    }
+    return `
+      <div class="panel stack">
+        <h2>Xem lá bài của bạn</h2>
+        <p class="lead">Không thích vai của mình? Bạn có thể đề nghị đổi. Không ai biết ai đổi, cũng không ai biết vai gì được đổi.</p>
+        ${sw.offers ? `<p class="result">🔄 Có ${sw.offers} vai đang cần đổi.</p>` : '<p class="muted small">Chưa có ai cần đổi vai.</p>'}
+        ${sw.offers && !sw.asked
+          ? `<button class="btn ${sw.accepted ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapAccept" aria-pressed="${sw.accepted}">${sw.accepted ? '✅ Đã chấp nhận đổi (bấm để huỷ)' : 'Chấp nhận đổi'}</button>`
+          : ''}
+        <button class="btn btn-ghost btn-block" data-act="swapRequest" aria-pressed="${sw.asked}">${sw.asked ? 'Huỷ yêu cầu đổi vai' : '🔄 Tôi muốn đổi vai'}</button>
+        ${sw.asked ? '<p class="muted small">Đã gửi yêu cầu. Hết giờ, nếu có người nhận thì bạn sẽ đổi với một người trong số họ (chọn ngẫu nhiên).</p>' : ''}
+        ${sw.accepted ? '<p class="muted small">Hết giờ, nếu bạn được chọn thì lá bài của bạn sẽ được đổi.</p>' : ''}
+        <p class="muted small">Đổi xong, xem lại lá bài và 📜 Nhật ký.</p>
+        ${hostSkip}
       </div>`;
   }
 
@@ -1435,6 +1475,7 @@ function renderCard(reset = true) {
   if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(id => `${seatName(id)}${player(id)?.turned ? ' (Sói Nguyền)' : ['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
   if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
+  if (m.swapped) extra.push('🔄 Bạn đã đổi lá bài với một người chơi khác trước đêm đầu.');
   if (m.turned) extra.push('🌑 Bạn là Sói Nguyền và đã bị Sói cắn: giờ bạn là Ma Sói, thức dậy và thắng cùng đàn Sói.');
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);
   if (m.charmed) {
@@ -1586,6 +1627,9 @@ document.addEventListener('click', async (e) => {
     case 'addBot': return act('addBot', { count: botCount });
     case 'autoBalance': return act('autoBalance');
     case 'role': return act('role', { roleId: el.dataset.role, delta: Number(el.dataset.delta) });
+    case 'pickRole': return act('pickRole', { roleId: el.dataset.role });
+    case 'swapRequest': return act('swapRequest');
+    case 'swapAccept': return act('swapAccept');
     case 'start':
       narrator.unlock();
       return act('start');
