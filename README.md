@@ -18,7 +18,7 @@ Ma Sói, Sói Con, Tiên Tri, Bảo Vệ, Phù Thủy, Thợ Săn, Thần Tình 
 - **Kẻ Cuồng Loạn** (phe thứ ba): nếu bị dân làng treo cổ thì ván kết thúc và Kẻ Cuồng Loạn thắng một mình.
 - **Sói Báo Thù** (phe Sói): thức dậy và cắn cùng đàn Sói, rồi được gọi riêng để chọn 1 người. Nếu bị dân làng treo cổ, người đó chết theo ngay.
 
-**Mỗi lượt đêm gồm 3 khoảng**: **gọi dậy** (quản trò đọc câu gọi; bảng lựa chọn chỉ hiện khi đọc xong), **thao tác** theo thời gian riêng của từng vai (mặc định: Bầy Sói 30 giây, cộng 5 giây cho mỗi lá Sói thêm; Già Làng 10 giây; các vai khác 15–25 giây), rồi **kêu đi ngủ** và gọi luôn vai tiếp theo. Vai làm xong phần của mình là tự sang lượt tiếp, không cần bấm xác nhận (Tiên Tri, Thám Tử, Ăn Trộm có thêm 4 giây để đọc kết quả); vai không muốn làm gì thì bấm **Bỏ qua lượt này**. Bầy Sói sang lượt khi mọi con Sói còn sống đều đã chọn. Mỗi lượt kéo dài ít nhất 5 giây. Lượt của vai không ai chơi được (người giữ đã chết hoặc lá bài nằm trong 2 lá dư) kết thúc vào một thời điểm ngẫu nhiên trong khoảng 5–15 giây (không quá thời gian của vai đó), giống thời gian một người chơi thật cần để chọn, nên độ dài lượt không tiết lộ gì. Chủ phòng chỉnh được thời gian từng lượt, cả trong lúc đang chơi (mục ⏱️ Chỉnh thời gian).
+**Mỗi lượt đêm gồm 3 khoảng**: **gọi dậy** (quản trò đọc câu gọi; bảng lựa chọn chỉ hiện khi đọc xong), **thao tác** theo thời gian riêng của từng vai (mặc định 5 giây cho mọi vai; Bầy Sói 5 giây cho 1 lá Sói, cộng 5 giây cho mỗi lá Sói thêm; chưa kịp chọn thì bấm **⏳ Thêm 5 giây**, bấm bao nhiêu lần cũng được, dồn tối đa 15 giây), rồi **kêu đi ngủ** và gọi luôn vai tiếp theo. Vai làm xong phần của mình là tự sang lượt tiếp, không cần bấm xác nhận (Tiên Tri, Thám Tử, Ăn Trộm có thêm 4 giây để đọc kết quả); vai không muốn làm gì thì bấm **Bỏ qua lượt này**. Bầy Sói sang lượt khi mọi con Sói còn sống đều đã chọn. Mỗi lượt kéo dài ít nhất 5 giây. Lượt của vai không ai chơi được (người giữ đã chết hoặc lá bài nằm trong 2 lá dư) kết thúc vào một thời điểm ngẫu nhiên trong khoảng 5–15 giây, giống thời gian một người chơi thật cần để chọn (kể cả khi bấm thêm giờ), nên độ dài lượt không tiết lộ gì. Chủ phòng chỉnh được thời gian từng lượt, cả trong lúc đang chơi (mục ⏱️ Chỉnh thời gian).
 
 Trạng thái kết nối chỉ hiện cho chủ phòng. Nếu chủ phòng cũng chơi thì ban đêm cũng không thấy, vì người đang cầm điện thoại thường là vai vừa được gọi. Những người khác chỉ được báo khi máy chủ phòng mất kết nối quá lâu. Ban đêm đó chỉ là một thông báo, việc bầu máy làm loa mới đợi tới sáng.
 
@@ -68,7 +68,7 @@ Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi ph
 
 ## Máy chủ phòng
 
-Máy chủ phòng chỉ có 3 việc: **phát âm thanh** (lời quản trò, nhạc nền, tích tắc), **bắt đầu ván** và **mở ván mới** (kèm chỉnh cài đặt ở phòng chờ). Nhịp ván do server điều khiển, nên nếu máy chủ phòng rớt mạng thì ván vẫn chạy, chỉ tạm thời không có tiếng.
+Máy chủ phòng chỉ có 3 việc: **phát âm thanh** (lời quản trò, nhạc nền), **bắt đầu ván** và **mở ván mới** (kèm chỉnh cài đặt ở phòng chờ). Nhịp ván do server điều khiển, nên nếu máy chủ phòng rớt mạng thì ván vẫn chạy, chỉ tạm thời không có tiếng.
 
 **Khi máy chủ phòng mất kết nối** (không có tín hiệu quá 12 giây), mọi máy hiện khung **chọn máy làm loa mới**. Phiếu được chốt khi có người đạt quá nửa số người đang online, hoặc khi mọi người đã bầu xong, hoặc sau 20 giây kể từ phiếu đầu tiên. Nếu hoà phiếu thì bốc thăm ngẫu nhiên giữa những người hoà. Máy chủ phòng mới không thấy thêm bài của ai; bảng quản trò chỉ dành cho chủ phòng không tham gia chơi.
 
@@ -85,7 +85,7 @@ Máy chủ phòng phát giọng theo thứ tự ưu tiên:
 
 Lời dẫn nằm trong `public/shared/voice-lines.js`. Lời dẫn được viết ngắn gọn: ai thức dậy, rồi làm gì. Mỗi đoạn có 3 phiên bản, mỗi lần đọc chọn ngẫu nhiên. Sửa lời thoại rồi chạy lại workflow "Tạo giọng quản trò": câu nào đổi chữ sẽ được thu âm lại, câu đã bỏ thì file cũng bị xoá. Số ghế được đọc bằng các file `seat_N` (“Người chơi số ba”).
 
-**Nhịp đọc:** máy chủ biết độ dài từng câu (`public/shared/voice-durations.js`, do script tạo giọng ghi ra) và **không chuyển bước khi quản trò còn đang đọc**. Thời gian của mỗi bước (lượt ban đêm, thảo luận, bỏ phiếu…) chỉ bắt đầu tính sau khi đọc xong. Sau phán quyết ban ngày, quản trò báo “Màn đêm sẽ buông xuống sau mười giây nữa” rồi tự chuyển sang đêm. Trong 10 giây cuối của mỗi bước, máy chủ phòng phát tiếng tích tắc (tắt được trong phần Giọng quản trò). Script tạo giọng tự cắt khoảng lặng thừa ở đầu và cuối mỗi file (cần ffmpeg), để “người chơi số ba… và… người chơi số năm” đọc liền mạch.
+**Nhịp đọc:** máy chủ biết độ dài từng câu (`public/shared/voice-durations.js`, do script tạo giọng ghi ra) và **không chuyển bước khi quản trò còn đang đọc**. Thời gian của mỗi bước (lượt ban đêm, thảo luận, bỏ phiếu…) chỉ bắt đầu tính sau khi đọc xong. Sau phán quyết ban ngày, quản trò báo “Màn đêm sẽ buông xuống sau mười giây nữa” rồi tự chuyển sang đêm. Script tạo giọng tự cắt khoảng lặng thừa ở đầu và cuối mỗi file (cần ffmpeg), để “người chơi số ba… và… người chơi số năm” đọc liền mạch.
 
 ### Tạo file giọng miễn phí, không cần API key
 

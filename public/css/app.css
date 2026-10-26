@@ -621,3 +621,5 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .deck-name { flex: 1; display: flex; flex-direction: column; }
 .deck-count { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1.1rem; }
 .log li.log-head { margin-top: 10px; font-weight: 700; color: var(--lantern); }
+.turn-row { margin-bottom: 8px; }
+.turn-row .end-turn { flex: 1; }
