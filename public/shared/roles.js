@@ -9,19 +9,39 @@ export const MAX_PLAYERS = 18;
 export const NIGHT_STEPS = [
   { id: 'thief', role: 'thief', firstNightOnly: true },
   { id: 'cupid', role: 'cupid', firstNightOnly: true },
+  { id: 'doppelganger', role: 'doppelganger', firstNightOnly: true },
+  { id: 'hoodlum', role: 'hoodlum', firstNightOnly: true },
+  { id: 'blesser', role: 'blesser' },
   { id: 'guard', role: 'guard' },
-  // The Wolf Cub wakes with the pack.
-  { id: 'werewolf', role: 'werewolf', also: ['wolf_cub', 'avenger'] },
+  // The Wolf Cub, the Avenger and the Lone Wolf wake with the pack.
+  { id: 'werewolf', role: 'werewolf', also: ['wolf_cub', 'avenger', 'lone_wolf'] },
   { id: 'avenger', role: 'avenger' },
-  { id: 'seer', role: 'seer' },
+  { id: 'martyr', role: 'martyr' },
+  // The Apprentice Seer takes the Seer's turn once the Seer is dead.
+  { id: 'seer', role: 'seer', also: ['apprentice_seer'] },
+  { id: 'aura_seer', role: 'aura_seer' },
   { id: 'detective', role: 'detective' },
+  { id: 'pi', role: 'pi' },
+  { id: 'sorcerer', role: 'sorcerer' },
   { id: 'priest', role: 'priest' },
   { id: 'witch', role: 'witch' },
   { id: 'medium', role: 'medium' },
   { id: 'piper', role: 'piper' },
+  { id: 'ghost', role: 'ghost' },
+  { id: 'spellcaster', role: 'spellcaster' },
+  { id: 'old_hag', role: 'old_hag' },
+  { id: 'troublemaker', role: 'troublemaker' },
   { id: 'elder', role: 'elder', firstNightOnly: true },
   { id: 'hunter', role: 'hunter' }
 ];
+
+// Card art for the roles added from Ultimate Werewolf: the role's emblem in
+// a ring, in the card's colour.
+const glyph = (emoji) => `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle cx="50" cy="50" r="38" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="3"/>
+      <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.6"/>
+      <text x="50" y="64" font-size="38" text-anchor="middle" fill="currentColor">${emoji}</text>
+    </svg>`;
 
 // Cards dealt beyond the player count when the Thief is in the game.
 export const THIEF_EXTRA_CARDS = 2;
@@ -271,6 +291,151 @@ export const ROLES = {
       <path d="M34 66L38 70L41 66L44 70L48 66" stroke="#fecaca" stroke-width="2.5" stroke-linecap="round"/>
     </svg>`
   },
+  // ---- Roles from Ultimate Werewolf (points = Village Impact on the card).
+  apprentice_seer: {
+    id: 'apprentice_seer', points: 4, name: 'Tiên Tri Tập Sự', team: 'village', icon: '🔭', color: '#b8a2ff',
+    short: 'Khi Tiên Tri chết, bạn trở thành Tiên Tri.',
+    description: 'Ban đầu bạn không có chức năng. Khi Tiên Tri chết, từ đêm sau bạn được gọi dậy thay Tiên Tri: mỗi đêm soi 1 người để biết là Sói hay Dân.',
+    art: glyph('🔭')
+  },
+  aura_seer: {
+    id: 'aura_seer', points: 3, name: 'Tiên Tri Hào Quang', team: 'village', icon: '✨', color: '#f0d77a',
+    short: 'Mỗi đêm soi 1 người: có chức năng đặc biệt hay không.',
+    description: 'Mỗi đêm chọn 1 người. Bạn biết người đó có vai đặc biệt hay chỉ là Dân Làng / Ma Sói thường. Không biết họ thuộc phe nào.',
+    art: glyph('✨')
+  },
+  pi: {
+    id: 'pi', points: 3, name: 'Nhà Ngoại Cảm', team: 'village', icon: '🧿', color: '#7fd6e8',
+    short: 'Một lần mỗi ván: biết có Sói trong 1 người và 2 người ngồi cạnh hay không.',
+    description: 'Một lần trong cả ván, ban đêm bạn chọn 1 người. Bạn biết trong người đó và 2 người ngồi hai bên (theo số ghế, chỉ tính người còn sống) có ít nhất 1 Sói hay không, nhưng không biết là ai.',
+    art: glyph('🧿')
+  },
+  blesser: {
+    id: 'blesser', points: 3, name: 'Thầy Tu', team: 'village', icon: '📿', color: '#e8dcb0',
+    short: 'Một lần mỗi ván ban phước cho 1 người: lần đầu bị giết người đó sống sót.',
+    description: 'Một lần trong cả ván, ban đêm bạn ban phước cho 1 người khác. Lần đầu tiên người đó bị giết (Sói cắn, bình Độc, nước thánh, súng, treo cổ…) thì không chết. Phước vẫn còn kể cả khi bạn đã chết.',
+    art: glyph('📿')
+  },
+  martyr: {
+    id: 'martyr', points: 3, name: 'Người Tử Đạo', team: 'village', icon: '🕊️', color: '#d9e4ff',
+    short: 'Một lần mỗi ván: chết thay người bị Sói cắn.',
+    description: 'Mỗi đêm sau lượt Sói, bạn được biết Sói cắn ai và có thể chết thay người đó (chỉ một lần cả ván). Bảo Vệ hoặc bình Cứu vẫn có thể cứu bạn.',
+    art: glyph('🕊️')
+  },
+  tough_guy: {
+    id: 'tough_guy', points: 3, name: 'Gã Cứng Cựa', team: 'village', icon: '💪', color: '#ffb37a',
+    short: 'Bị Sói cắn thì sống thêm một ngày, đêm sau mới chết.',
+    description: 'Nếu bị Sói cắn, bạn không chết ngay: sáng hôm đó cả làng nghe "không ai chết", và bạn chết vào đêm tiếp theo. Bạn được báo trong Nhật ký để tranh thủ một ngày cuối.',
+    art: glyph('💪')
+  },
+  prince: {
+    id: 'prince', points: 3, name: 'Hoàng Tử', team: 'village', icon: '🤴', color: '#ffd76b',
+    short: 'Lần đầu bị treo cổ: lộ là Hoàng Tử và không chết.',
+    description: 'Lần đầu dân làng biểu quyết treo cổ bạn, bạn được lật bài là Hoàng Tử và không bị treo. Lần sau thì không còn được tha.',
+    art: glyph('🤴')
+  },
+  diseased: {
+    id: 'diseased', points: 3, name: 'Người Bệnh', team: 'village', icon: '🤒', color: '#a8e6a1',
+    short: 'Sói ăn phải bạn thì đêm sau cả đàn ốm, cắn ai cũng không chết.',
+    description: 'Nếu Sói cắn chết bạn, cả đàn bị lây bệnh: đêm tiếp theo Sói vẫn chọn người như thường nhưng người bị cắn không chết.',
+    art: glyph('🤒')
+  },
+  mayor: {
+    id: 'mayor', points: 2, name: 'Trưởng Làng', team: 'village', icon: '🎖️', color: '#ffcf70',
+    short: 'Phiếu của bạn được tính gấp đôi (bí mật).',
+    description: 'Khi bỏ phiếu nghi phạm và khi biểu quyết treo cổ, phiếu của bạn được tính là 2 phiếu. Không ai biết điều này ngoài bạn.',
+    art: glyph('🎖️')
+  },
+  troublemaker: {
+    id: 'troublemaker', points: 2, name: 'Kẻ Gây Rối', team: 'village', icon: '🔥', color: '#ff8a5c',
+    short: 'Một lần mỗi ván: hôm sau làng treo cổ 2 lần.',
+    description: 'Một lần trong cả ván, ban đêm bạn có thể "gây rối": ngày hôm sau, sau lần treo cổ đầu tiên, cả làng phải bỏ phiếu thêm một lần nữa.',
+    art: glyph('🔥')
+  },
+  idiot: {
+    id: 'idiot', points: 2, name: 'Gã Khờ', team: 'village', icon: '🥴', color: '#e5c98f',
+    short: 'Luôn biểu quyết "treo cổ".',
+    description: 'Phe Dân. Khi cả làng biểu quyết treo cổ hay tha, phiếu của bạn luôn là "treo cổ".',
+    art: glyph('🥴')
+  },
+  mason: {
+    id: 'mason', points: 2, name: 'Hội Kín', team: 'village', icon: '🤝', color: '#9fc5e8',
+    short: 'Các Hội Kín biết nhau ngay từ đầu. Phải có ít nhất 2 lá.',
+    description: 'Phe Dân. Tên các thành viên Hội Kín khác hiện trên lá bài của bạn. Theo luật gốc, ai nhắc tới Hội Kín sẽ bị phạt, hãy giữ bí mật.',
+    art: glyph('🤝')
+  },
+  ghost: {
+    id: 'ghost', points: 2, name: 'Hồn Ma', team: 'village', icon: '👻', color: '#cfd8ff',
+    short: 'Chết ngay đêm đầu; mỗi đêm để lại 1 chữ cái cho cả làng.',
+    description: 'Bạn chết ngay đêm đầu tiên. Mỗi đêm (kể cả đêm đầu) bạn chọn 1 chữ cái, sáng ra cả làng thấy chữ đó. Không được dùng chữ để chỉ thẳng tên ai. Bạn không được nói chuyện với người còn sống.',
+    art: glyph('👻')
+  },
+  spellcaster: {
+    id: 'spellcaster', points: 1, name: 'Pháp Sư Phong Ấn', team: 'village', icon: '🤐', color: '#b5a8ff',
+    short: 'Mỗi đêm có thể làm 1 người bị câm vào ngày hôm sau.',
+    description: 'Mỗi đêm bạn có thể chọn 1 người (kể cả mình): ngày hôm sau người đó không được nói, chỉ được ra hiệu và vẫn được bỏ phiếu. Mỗi người chỉ bị câm một lần trong cả ván.',
+    art: glyph('🤐')
+  },
+  old_hag: {
+    id: 'old_hag', points: 1, name: 'Mụ Già', team: 'village', icon: '🧙‍♀️', color: '#c9b38a',
+    short: 'Mỗi đêm đuổi 1 người ra khỏi làng vào ngày hôm sau.',
+    description: 'Mỗi đêm chọn 1 người khác: ngày hôm sau người đó phải rời khỏi làng, không được thảo luận, không được bỏ phiếu và cũng không bị bỏ phiếu.',
+    art: glyph('🧙‍♀️')
+  },
+  old_man: {
+    id: 'old_man', points: 0, name: 'Ông Lão', team: 'village', icon: '👨‍🦳', color: '#d6d0c4',
+    short: 'Chết vì tuổi già vào đêm thứ (số Sói còn sống + 1).',
+    description: 'Phe Dân. Bạn sẽ chết vì tuổi già vào đêm thứ X, với X là số Sói còn sống cộng 1. Mỗi khi một con Sói chết, ngày của bạn đến sớm hơn.',
+    art: glyph('👨‍🦳')
+  },
+  lycan: {
+    id: 'lycan', points: -1, name: 'Người Lai Sói', team: 'village', icon: '🐾', color: '#d39a7a',
+    short: 'Phe Dân, nhưng Tiên Tri soi ra là Sói.',
+    description: 'Bạn là người phe Dân mang dòng máu Sói: Tiên Tri soi bạn sẽ thấy là Sói. Hãy thuyết phục cả làng rằng bạn vô tội.',
+    art: glyph('🐾')
+  },
+  pacifist: {
+    id: 'pacifist', points: -2, name: 'Người Hoà Bình', team: 'village', icon: '☮️', color: '#a7e3c9',
+    short: 'Luôn biểu quyết "tha".',
+    description: 'Phe Dân. Khi cả làng biểu quyết treo cổ hay tha, phiếu của bạn luôn là "tha".',
+    art: glyph('☮️')
+  },
+  doppelganger: {
+    id: 'doppelganger', points: -2, name: 'Kẻ Song Trùng', team: 'village', icon: '🎭', color: '#c7a6e8',
+    short: 'Đêm đầu chọn 1 người; người đó chết thì bạn nhận vai của họ.',
+    description: 'Đêm đầu chọn 1 người. Khi người đó chết, bạn bí mật nhận vai (và phe) của họ, kể cả nếu đó là Sói. Trước đó bạn thuộc phe Dân.',
+    art: glyph('🎭')
+  },
+  drunk: {
+    id: 'drunk', points: -3, name: 'Kẻ Say', team: 'village', icon: '🍺', color: '#e8c36a',
+    short: 'Hai ngày đầu nghĩ mình là Dân; đêm thứ ba tỉnh rượu và biết vai thật.',
+    description: 'Lá bài của bạn hiện là Dân Làng cho đến đêm thứ ba, khi bạn tỉnh rượu và biết vai thật của mình (Ma Sói, Dân Làng hoặc một vai không có chức năng ban đêm). Tiên Tri soi bạn thấy vai thật.',
+    art: glyph('🍺')
+  },
+  sorcerer: {
+    id: 'sorcerer', points: -3, name: 'Pháp Sư Hắc Ám', team: 'werewolf', icon: '🌘', color: '#e07ac0',
+    short: 'Phe Sói. Mỗi đêm đi tìm Tiên Tri.',
+    description: 'Thuộc phe Sói nhưng không thức dậy cùng Sói và Sói không biết bạn. Mỗi đêm chọn 1 người để biết người đó có phải Tiên Tri không. Tiên Tri soi bạn thấy là Dân.',
+    art: glyph('🌘')
+  },
+  lone_wolf: {
+    id: 'lone_wolf', points: -5, name: 'Sói Đơn Độc', team: 'werewolf', icon: '🌕', color: '#b4b4c8',
+    short: 'Cắn cùng đàn Sói, nhưng chỉ thắng khi là con Sói cuối cùng.',
+    description: 'Thức dậy và cắn cùng đàn Sói. Nhưng bạn chỉ thắng khi là con Sói duy nhất còn sống và số người còn lại bằng bạn (1 chọi 1). Nếu đàn Sói thắng khi còn con Sói khác, bạn thua.',
+    art: glyph('🌕')
+  },
+  minion: {
+    id: 'minion', points: -6, name: 'Tay Sai', team: 'werewolf', icon: '🦹', color: '#e88f8f',
+    short: 'Phe Sói, biết ai là Sói nhưng không thức dậy cùng.',
+    description: 'Bạn thuộc phe Sói: tên các con Sói hiện trên lá bài của bạn, nhưng Sói không biết bạn và bạn không thức dậy ban đêm. Tiên Tri soi bạn thấy là Dân. Phe Sói thắng thì bạn thắng.',
+    art: glyph('🦹')
+  },
+  hoodlum: {
+    id: 'hoodlum', points: 0, name: 'Kẻ Côn Đồ', team: 'hoodlum', icon: '🔪', color: '#c99a6b',
+    short: 'Đêm đầu chọn 2 người; thắng nếu cả hai chết mà bạn còn sống.',
+    description: 'Đêm đầu chọn 2 người. Khi ván kết thúc, nếu cả hai người đó đã chết còn bạn vẫn sống thì bạn cũng thắng (cùng với phe thắng).',
+    art: glyph('🔪')
+  },
   villager: {
     id: 'villager',
     points: 1,
@@ -293,7 +458,8 @@ export const TEAM_LABEL = {
   werewolf: 'Phe Ma Sói',
   village: 'Phe Dân Làng',
   piper: 'Phe riêng của Người Thổi Sáo',
-  fool: 'Phe thứ ba (Kẻ Cuồng Loạn)'
+  fool: 'Phe thứ ba (Kẻ Cuồng Loạn)',
+  hoodlum: 'Phe thứ ba (Kẻ Côn Đồ)'
 };
 
 // Display info for a night step.
@@ -301,10 +467,11 @@ export function stepInfo(stepId) {
   return ROLES[stepId] || null;
 }
 
-const UNIQUE_ROLES = ['thief', 'cupid', 'piper', 'elder', 'seer', 'witch', 'guard', 'hunter', 'wolf_cub', 'priest', 'medium', 'fool', 'avenger', 'detective', 'cursed'];
+// Every special role is one card, except the Masons (at least two).
+const UNIQUE_ROLES = Object.keys(ROLES).filter(id => !['werewolf', 'villager', 'mason'].includes(id));
 
 // Cards that belong to the wolf pack (they wake together and know each other).
-export const PACK_ROLES = ['werewolf', 'wolf_cub', 'avenger'];
+export const PACK_ROLES = ['werewolf', 'wolf_cub', 'avenger', 'lone_wolf'];
 
 export function emptyRoleCounts() {
   return Object.fromEntries(ROLE_IDS.map(id => [id, 0]));
@@ -395,6 +562,7 @@ export function validateRoleCounts(counts, playerCount) {
   const needed = cardsNeeded(counts, playerCount);
   const dup = UNIQUE_ROLES.find(id => (counts[id] || 0) > 1);
   if (dup) return `Chỉ được có 1 lá ${ROLES[dup].name}.`;
+  if (counts.mason === 1) return 'Hội Kín cần ít nhất 2 lá (hoặc không có lá nào).';
   if (total !== needed) {
     return counts.thief
       ? `Có Ăn Trộm nên cần ${needed} lá bài (${playerCount} người + 2 lá dư), hiện có ${total}.`

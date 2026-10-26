@@ -635,3 +635,8 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .role-group.v { color: #8fd3c8; }
 .role-group.w { color: #ff9a8a; }
 .role-group.t { color: #c58cff; }
+.letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+.letters .btn { min-height: 44px; padding: 0; font-weight: 800; }
+.day-news { display: grid; gap: 6px; margin-bottom: 10px; }
+.day-news p { margin: 0; }
+.ghost-letter { font-family: var(--display); font-size: 1.6rem; color: var(--lantern); }
