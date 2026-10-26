@@ -258,6 +258,12 @@ p { margin: 0; }
 }
 .role-row:first-of-type { border-top: 0; }
 .role-row .icon { font-size: 1.6rem; text-align: center; }
+.role-row .icon.pick { width: 40px; height: 40px; padding: 0; border-radius: 12px; border: 1px dashed var(--line); background: transparent; cursor: pointer; filter: grayscale(1); opacity: 0.5; }
+.role-row .icon.pick.on { border: 1px solid var(--lantern); background: rgba(233, 162, 59, 0.14); filter: none; opacity: 1; }
+.role-row .pts { font-size: 0.75rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--ink-3); color: var(--muted); }
+.role-row .pts.pos { color: #8fd3c8; }
+.role-row .pts.neg { color: #ff9a8a; }
+.balance-score { margin: 4px 0 8px; }
 .role-row .desc { font-size: 0.85rem; color: var(--muted); }
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper button {

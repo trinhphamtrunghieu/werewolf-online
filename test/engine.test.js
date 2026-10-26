@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
-import { computeBalancedRoles, validateRoleCounts, totalRoles, MAX_PLAYERS } from '../public/shared/roles.js';
+import { computeBalancedRoles, validateRoleCounts, totalRoles, balanceScore, MAX_PLAYERS } from '../public/shared/roles.js';
 import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests } from '../lib/store.js';
 
 function seeded(seed = 42) {
@@ -20,7 +20,8 @@ function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
   let now = 1_000_000;
   const { state: s, player: host } = createRoom({ code: 'TEST1', hostName: 'Chủ', now, rng });
   for (let i = 1; i < roles.length; i++) joinRoom(s, `P${i + 1}`, now, rng);
-  applyAction(s, host.id, 'config', config, now, rng);
+  // Most tests start straight at night; the swap tests turn it back on.
+  applyAction(s, host.id, 'config', { swapTime: 0, ...config }, now, rng);
   const counts = {};
   [...roles, ...extras].forEach(r => { counts[r] = (counts[r] || 0) + 1; });
   for (const [roleId, n] of Object.entries(counts)) {
@@ -74,20 +75,42 @@ test('auto balance brings in Cupid, Thief and Piper as the village grows', () =>
   assert.equal(firstAt('piper'), 11);
 });
 
-test('12 players get the house table: 3 wolves, 8 villagers, 1 third party', () => {
+test('12 players get the house roles, with wolves and villagers set by the role points', () => {
   const c = computeBalancedRoles(12);
   const used = Object.fromEntries(Object.entries(c).filter(([, n]) => n));
   assert.deepEqual(used, {
-    werewolf: 2, avenger: 1, seer: 1, guard: 1, witch: 1, hunter: 1,
-    detective: 1, medium: 1, priest: 1, villager: 1, fool: 1
+    werewolf: 3, avenger: 1, seer: 1, guard: 1, witch: 1, hunter: 1,
+    detective: 1, medium: 1, priest: 1, fool: 1
   });
-  assert.equal(computeBalancedRoles(13).villager, 2);
+  assert.equal(balanceScore(c), 2, 'close to zero');
   // Bigger rooms build on it.
   for (let n = 13; n <= 18; n++) {
     const d = computeBalancedRoles(n);
     for (const id of ['avenger', 'seer', 'guard', 'witch', 'hunter', 'detective', 'medium', 'priest', 'fool']) assert.equal(d[id], 1, `${id} n=${n}`);
+    assert.ok(Math.abs(balanceScore(d)) <= 4, `n=${n}: ${balanceScore(d)}`);
   }
-  assert.equal(computeBalancedRoles(15).werewolf, 3);
+});
+
+test('every suggested deck adds up close to zero (Ultimate Werewolf points)', () => {
+  for (let n = 6; n <= 18; n++) assert.ok(Math.abs(balanceScore(computeBalancedRoles(n))) <= 4, `n=${n}`);
+});
+
+test('the host picks the roles to play and the deck is filled and balanced', () => {
+  const { state: s, player: host } = createRoom({ code: 'PICK1', hostName: 'Host', now: 0 });
+  applyAction(s, host.id, 'addBot', { count: 9 }, 0);
+  const pick = (roleId) => applyAction(s, host.id, 'pickRole', { roleId }, 0);
+  ['seer', 'witch', 'guard', 'hunter', 'cupid', 'thief'].forEach(pick); // toggle off the defaults for 10
+  assert.deepEqual(s.rolePicks, []);
+  ['seer', 'wolf_cub', 'cursed'].forEach(pick);
+  assert.equal(s.roleMode, 'pick');
+  const c = s.roleCounts;
+  assert.equal(c.seer, 1); assert.equal(c.wolf_cub, 1); assert.equal(c.cursed, 1);
+  assert.equal(validateRoleCounts(c, 10), null);
+  assert.ok(Math.abs(balanceScore(c)) <= 4, String(balanceScore(c)));
+  // A new player joining re-balances the same picks.
+  applyAction(s, host.id, 'addBot', { count: 1 }, 0);
+  assert.equal(validateRoleCounts(s.roleCounts, 11), null);
+  assert.equal(s.roleCounts.cursed, 1);
 });
 
 test('names are cleaned so they cannot inject HTML', () => {
@@ -827,7 +850,7 @@ test('only the host sees who is connected; others learn only when the host is go
 test('a non-playing host sees connections at any time', () => {
   const { state: s, player: host } = createRoom({ code: 'MOD02', hostName: 'Host', now: 0 });
   const lan = joinRoom(s, 'Lan', 0);
-  applyAction(s, host.id, 'config', { hostPlays: false }, 0);
+  applyAction(s, host.id, 'config', { hostPlays: false, swapTime: 0 }, 0);
   applyAction(s, host.id, 'addBot', { count: 3 }, 0);
   applyAction(s, host.id, 'start', {}, 0);
   assert.equal(s.phase, 'NIGHT');
@@ -1093,7 +1116,7 @@ test('the host can add computer players in a normal (non-debug) room', () => {
   for (let i = 0; i < 4; i++) applyAction(s, host.id, 'addBot', {}, 0);
   assert.equal(s.players.filter(p => p.isBot).length, 4);
   applyAction(s, host.id, 'start', {}, 0);
-  assert.equal(s.phase, 'NIGHT');
+  assert.equal(s.phase, 'SWAP', 'cards are looked at (and may be traded) before the night');
   const bot = s.players.find(p => p.isBot);
   assert.throws(() => applyAction(s, bot.id, 'addBot', {}, 0), /Chủ phòng/);
 });
@@ -1715,4 +1738,52 @@ test('a result picked at the last second still gets its reading time', () => {
   g.clock.advance(4500);
   g.act(g.P[0], 'night', { target: g.P[1].id });
   assert.equal(g.s.game.phaseEndsAt, g.clock.now + 4000);
+});
+
+test('swap: one offer and one taker trade cards before the first night', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapTime: 20 } });
+  const { s, P, act, untilPhase } = g;
+  assert.equal(s.phase, 'SWAP');
+  assert.throws(() => act(P[1], 'swapAccept', {}), /Chưa có ai/);
+  act(P[0], 'swapRequest', {});
+  // Others only learn that someone wants to swap.
+  const other = viewFor(s, P[3].id, 0, 1);
+  assert.deepEqual(other.me.swap, { offers: 1, asked: false, accepted: false });
+  assert.ok(!JSON.stringify(other).includes('"requests"'));
+  assert.throws(() => act(P[0], 'swapAccept', {}), /muốn đổi/);
+  act(P[3], 'swapAccept', {});
+  untilPhase('NIGHT');
+  assert.equal(P[0].role, 'guard');
+  assert.equal(P[3].role, 'seer');
+  assert.ok(viewFor(s, P[0].id, 0, 1).me.notes.some(n => n.text.includes('Bảo Vệ')));
+  assert.ok(!viewFor(s, P[0].id, 0, 1).me.notes.some(n => n.text.includes(P[3].name)), 'not told with whom');
+  assert.throws(() => act(P[2], 'swapRequest', {}), /trước đêm đầu/);
+});
+
+test('swap: with several takers, the asker trades with one drawn at random', () => {
+  const partners = new Set();
+  for (let seed = 1; seed <= 12; seed++) {
+    const g = setup(['seer', 'werewolf', 'villager', 'guard', 'hunter', 'villager'], { config: { swapTime: 20 }, rng: seeded(seed) });
+    g.act(g.P[0], 'swapRequest', {});
+    [1, 3, 4].forEach(i => g.act(g.P[i], 'swapAccept', {}));
+    g.untilPhase('NIGHT');
+    const taker = [1, 3, 4].find(i => g.P[i].role === 'seer');
+    assert.ok(taker, 'someone took the seer card');
+    assert.equal(g.P[0].role, ['seer', 'werewolf', 'villager', 'guard', 'hunter'][taker]);
+    partners.add(taker);
+  }
+  assert.ok(partners.size > 1, 'not always the same taker');
+});
+
+test('swap: nobody accepts, nothing changes; two askers trade with each other', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapTime: 20 } });
+  g.act(g.P[0], 'swapRequest', {});
+  g.untilPhase('NIGHT');
+  assert.equal(g.P[0].role, 'seer');
+  const h = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapTime: 20 } });
+  h.act(h.P[0], 'swapRequest', {});
+  h.act(h.P[3], 'swapRequest', {});
+  h.untilPhase('NIGHT');
+  assert.equal(h.P[0].role, 'guard');
+  assert.equal(h.P[3].role, 'seer');
 });
