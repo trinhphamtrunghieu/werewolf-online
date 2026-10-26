@@ -167,6 +167,116 @@ export const LINES = {
     'Thợ Săn, nhắm mắt lại.',
     'Thợ Săn, đi ngủ.'
   ],
+  doppelganger_wake: [
+    'Kẻ Song Trùng, mở mắt. Chọn người để sao chép.',
+    'Kẻ Song Trùng, thức dậy. Bạn muốn theo bóng ai?',
+    'Kẻ Song Trùng, mở mắt. Chọn một người.'
+  ],
+  doppelganger_sleep: [
+    'Kẻ Song Trùng, nhắm mắt.',
+    'Kẻ Song Trùng, nhắm mắt lại.',
+    'Kẻ Song Trùng, đi ngủ.'
+  ],
+  hoodlum_wake: [
+    'Kẻ Côn Đồ, mở mắt. Chọn hai người.',
+    'Kẻ Côn Đồ, thức dậy. Hai kẻ thù của bạn là ai?',
+    'Kẻ Côn Đồ, mở mắt. Hãy chọn hai mục tiêu.'
+  ],
+  hoodlum_sleep: [
+    'Kẻ Côn Đồ, nhắm mắt.',
+    'Kẻ Côn Đồ, nhắm mắt lại.',
+    'Kẻ Côn Đồ, đi ngủ.'
+  ],
+  blesser_wake: [
+    'Thầy Tu, mở mắt. Có muốn ban phước không?',
+    'Thầy Tu, thức dậy. Ban phước cho ai?',
+    'Thầy Tu, mở mắt. Chọn người được ban phước.'
+  ],
+  blesser_sleep: [
+    'Thầy Tu, nhắm mắt.',
+    'Thầy Tu, nhắm mắt lại.',
+    'Thầy Tu, đi ngủ.'
+  ],
+  martyr_wake: [
+    'Người Tử Đạo, mở mắt. Có muốn chết thay không?',
+    'Người Tử Đạo, thức dậy. Hy sinh đêm nay không?',
+    'Người Tử Đạo, mở mắt. Hãy quyết định.'
+  ],
+  martyr_sleep: [
+    'Người Tử Đạo, nhắm mắt.',
+    'Người Tử Đạo, nhắm mắt lại.',
+    'Người Tử Đạo, đi ngủ.'
+  ],
+  aura_seer_wake: [
+    'Tiên Tri Hào Quang, mở mắt. Chọn người để soi.',
+    'Tiên Tri Hào Quang, thức dậy. Soi ai đêm nay?',
+    'Tiên Tri Hào Quang, mở mắt. Hãy chọn một người.'
+  ],
+  aura_seer_sleep: [
+    'Tiên Tri Hào Quang, nhắm mắt.',
+    'Tiên Tri Hào Quang, nhắm mắt lại.',
+    'Tiên Tri Hào Quang, đi ngủ.'
+  ],
+  pi_wake: [
+    'Nhà Ngoại Cảm, mở mắt. Có muốn dùng năng lực không?',
+    'Nhà Ngoại Cảm, thức dậy. Dò tìm quanh ai?',
+    'Nhà Ngoại Cảm, mở mắt. Hãy quyết định.'
+  ],
+  pi_sleep: [
+    'Nhà Ngoại Cảm, nhắm mắt.',
+    'Nhà Ngoại Cảm, nhắm mắt lại.',
+    'Nhà Ngoại Cảm, đi ngủ.'
+  ],
+  sorcerer_wake: [
+    'Pháp Sư Hắc Ám, mở mắt. Tìm Tiên Tri.',
+    'Pháp Sư Hắc Ám, thức dậy. Ai là Tiên Tri?',
+    'Pháp Sư Hắc Ám, mở mắt. Chọn một người.'
+  ],
+  sorcerer_sleep: [
+    'Pháp Sư Hắc Ám, nhắm mắt.',
+    'Pháp Sư Hắc Ám, nhắm mắt lại.',
+    'Pháp Sư Hắc Ám, đi ngủ.'
+  ],
+  ghost_wake: [
+    'Hồn Ma, hãy để lại một chữ cái.',
+    'Hồn Ma, gửi một chữ cái cho dân làng.',
+    'Hồn Ma, chọn một chữ cái.'
+  ],
+  ghost_sleep: [
+    'Hồn Ma, nhắm mắt.',
+    'Hồn Ma, nhắm mắt lại.',
+    'Hồn Ma, đi ngủ.'
+  ],
+  spellcaster_wake: [
+    'Pháp Sư Phong Ấn, mở mắt. Phong ấn ai?',
+    'Pháp Sư Phong Ấn, thức dậy. Ai phải im lặng ngày mai?',
+    'Pháp Sư Phong Ấn, mở mắt. Hãy chọn một người.'
+  ],
+  spellcaster_sleep: [
+    'Pháp Sư Phong Ấn, nhắm mắt.',
+    'Pháp Sư Phong Ấn, nhắm mắt lại.',
+    'Pháp Sư Phong Ấn, đi ngủ.'
+  ],
+  old_hag_wake: [
+    'Mụ Già, mở mắt. Đuổi ai khỏi làng?',
+    'Mụ Già, thức dậy. Ai phải rời làng ngày mai?',
+    'Mụ Già, mở mắt. Hãy chọn một người.'
+  ],
+  old_hag_sleep: [
+    'Mụ Già, nhắm mắt.',
+    'Mụ Già, nhắm mắt lại.',
+    'Mụ Già, đi ngủ.'
+  ],
+  troublemaker_wake: [
+    'Kẻ Gây Rối, mở mắt. Có muốn gây rối không?',
+    'Kẻ Gây Rối, thức dậy. Ngày mai có loạn không?',
+    'Kẻ Gây Rối, mở mắt. Hãy quyết định.'
+  ],
+  troublemaker_sleep: [
+    'Kẻ Gây Rối, nhắm mắt.',
+    'Kẻ Gây Rối, nhắm mắt lại.',
+    'Kẻ Gây Rối, đi ngủ.'
+  ],
   morning_peace: [
     'Trời sáng. Đêm qua không ai chết.',
     'Mọi người mở mắt. Đêm qua bình yên.',
@@ -240,6 +350,31 @@ export const LINES = {
     'Ra đi cùng là...',
     'Thêm một người chết...'
   ],
+  ghost_letter: [
+    'Hồn ma đã để lại một chữ cái. Hãy xem trên màn hình.',
+    'Đêm qua hồn ma gửi một chữ cái, xem trên màn hình.',
+    'Có một chữ cái từ cõi âm. Xem trên màn hình.'
+  ],
+  banished: [
+    'Hôm nay người này bị đuổi khỏi làng:',
+    'Người sau phải rời làng hôm nay:',
+    'Mụ Già đã đuổi người này khỏi làng:'
+  ],
+  muted: [
+    'Hôm nay người này bị câm:',
+    'Người sau không được nói hôm nay:',
+    'Phong ấn đã khoá miệng người này:'
+  ],
+  prince_revealed: [
+    'Đó là Hoàng Tử! Hoàng Tử không bị treo cổ.',
+    'Người này là Hoàng Tử, và được tha.',
+    'Hoàng Tử lộ diện, dân làng không thể treo cổ.'
+  ],
+  second_lynch: [
+    'Kẻ Gây Rối đã ra tay: cả làng bỏ phiếu thêm một lần nữa.',
+    'Hôm nay có hai lần treo cổ. Bỏ phiếu lại.',
+    'Chưa xong đâu, cả làng bỏ phiếu thêm lần nữa.'
+  ],
   win_village: [
     'Hết Sói rồi. Phe Dân Làng thắng!',
     'Ngôi làng bình yên. Dân Làng chiến thắng!',
@@ -259,6 +394,11 @@ export const LINES = {
     'Chỉ còn cặp đôi. Tình Nhân thắng!',
     'Tình yêu chiến thắng. Cặp Tình Nhân thắng!',
     'Cặp đôi sống sót đến cuối. Tình Nhân thắng!'
+  ],
+  win_lone_wolf: [
+    'Sói Đơn Độc chiến thắng!',
+    'Con sói cuối cùng đã thắng. Sói Đơn Độc chiến thắng!',
+    'Sói Đơn Độc là kẻ sống sót cuối cùng. Chiến thắng!'
   ],
   win_fool: [
     'Treo nhầm Kẻ Cuồng Loạn rồi. Kẻ Cuồng Loạn thắng!',

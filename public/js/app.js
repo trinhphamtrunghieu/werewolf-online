@@ -883,7 +883,7 @@ const byPoints = (a, b) => ROLES[b].points - ROLES[a].points;
 const ROLE_GROUPS = [
   { title: 'Phe Dân', cls: 'v', teams: ['village'], order: byPoints },
   { title: 'Phe Sói', cls: 'w', teams: ['werewolf'], order: (a, b) => -byPoints(a, b) },
-  { title: 'Phe thứ ba', cls: 't', teams: ['piper', 'fool'], order: byPoints }
+  { title: 'Phe thứ ba', cls: 't', teams: ['piper', 'fool', 'hoodlum'], order: byPoints }
 ];
 
 // ---------- Game ----------
@@ -1154,7 +1154,8 @@ function seat(p, opts = {}) {
       ? `<span class="disc disc-role" title="${esc(roleName)}" style="--role:${role.color}">${p.turned ? ROLES.cursed.icon : role.icon}</span>`
       : `<span class="disc">${p.seat ?? ''}</span>`}
     <span class="label">${esc(p.name)}</span>
-    <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', role ? roleName : '', !p.alive ? 'Đã chết' : ''].filter(Boolean).join(' · ')}</span>`;
+    <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', role ? roleName : '', !p.alive ? 'Đã chết' : '',
+      p.alive && view.game.banished === p.id ? '🚪 Rời làng' : '', p.alive && view.game.muted === p.id ? '🤐 Bị câm' : ''].filter(Boolean).join(' · ')}</span>`;
   const cls = `seat ${p.alive ? '' : 'dead'} ${isMe ? 'me' : ''}`;
   if (!selectable) return `<div class="${cls}">${inner}</div>`;
   return `<button class="${cls}" data-act="${act}" data-id="${esc(p.id)}" aria-pressed="${pressed}" ${disabled ? 'disabled' : ''}>${inner}</button>`;
@@ -1173,6 +1174,16 @@ function pickGrid(act, { exclude = [], disabled = [], selected = [], counts = {}
       count: counts[p.id] || 0,
       sub: subs[p.id]
     })).join('')}</div>`;
+}
+
+// What everyone learned at dawn that shapes the day.
+function dayNews() {
+  const g = view.game;
+  const items = [];
+  if (g.ghostLetter) items.push(`<p>👻 Hồn Ma để lại chữ: <span class="ghost-letter">${esc(g.ghostLetter)}</span></p>`);
+  if (g.banished) items.push(`<p>🧙‍♀️ <strong>${esc(nameOnly(g.banished))}</strong> bị đuổi khỏi làng hôm nay: không thảo luận, không bỏ phiếu, không bị bỏ phiếu.</p>`);
+  if (g.muted) items.push(`<p>🤐 <strong>${esc(nameOnly(g.muted))}</strong> bị phong ấn: không được nói hôm nay (vẫn bỏ phiếu được).</p>`);
+  return items.length ? `<div class="day-news panel">${items.join('')}</div>` : '';
 }
 
 function stage() {
@@ -1198,7 +1209,7 @@ function stage() {
       <div class="panel stack">
         <h2>${deaths.length ? 'Đêm qua có người đã chết' : 'Đêm qua không ai chết'}</h2>
         ${deaths.length ? `<div class="village">${deaths.map(id => seat(player(id))).join('')}</div>` : '<p class="lead">Bảo Vệ hoặc Phù Thủy đã làm tốt việc của mình… hoặc bầy Sói đang toan tính điều gì đó.</p>'}
-      </div>`;
+      </div>${dayNews()}`;
   }
 
   if (view.phase === 'REVEAL') {
@@ -1242,7 +1253,7 @@ function stage() {
         <h2>Cả làng thảo luận</h2>
         <p class="lead">${deaths.length ? `Đêm qua ${esc(deaths.join(', '))} đã chết.` : 'Đêm qua không ai chết.'} Ai đang nói dối?</p>
         ${isHost() ? '<button class="btn btn-ghost" data-act="skip">Kết thúc thảo luận và bỏ phiếu</button>' : ''}
-      </div>`;
+      </div>${dayNews()}`;
   }
 
   if (view.phase === 'VOTE') {
@@ -1250,16 +1261,18 @@ function stage() {
     Object.values(g.votes).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
     const voted = Object.keys(g.votes).length;
     const mine = g.votes[m.id];
-    const canVote = m.inGame && m.alive;
+    const banishedMe = g.banished === m.id;
+    const canVote = m.inGame && m.alive && !banishedMe;
+    const voters = alivePlayers().filter(p => p.id !== g.banished).length;
     return `
       <div class="panel">
-        <h2>Bỏ phiếu nghi phạm</h2>
+        <h2>${g.voteRound === 2 ? 'Bỏ phiếu lần hai' : 'Bỏ phiếu nghi phạm'}</h2>
         <p class="lead">${canVote
           ? (mine ? `Bạn đã chọn ${esc(seatName(mine))}. Có thể đổi trước khi hết giờ.` : 'Chạm vào người bạn nghi là Sói.')
-          : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
-        <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${alivePlayers().length}</p>
+          : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
+        <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
         ${canVote
-          ? pickGrid('vote', { exclude: [m.id], selected: mine ? [mine] : [], counts })
+          ? pickGrid('vote', { exclude: [m.id, g.banished].filter(Boolean), selected: mine ? [mine] : [], counts })
           : `<div class="village" style="margin-top:14px">${alivePlayers().map(p => seat(p, { count: counts[p.id] || 0 })).join('')}</div>`}
         ${voteList(g.votes)}
       </div>`;
@@ -1283,11 +1296,16 @@ function stage() {
     const kill = votes.filter(v => v === 'kill').length;
     const spare = votes.length - kill;
     const mine = g.judge[m.id];
-    const canVote = m.inGame && m.alive && m.id !== d.id;
+    // The Gã Khờ always hangs and the Người Hoà Bình always spares: their vote is cast for them.
+    const fixed = m.role === 'idiot' ? 'treo cổ' : m.role === 'pacifist' ? 'tha' : null;
+    const canVote = m.inGame && m.alive && m.id !== d.id && m.id !== g.banished && !fixed;
     return `
       <div class="panel stack">
         <h2>Số phận của ${esc(d.name)}</h2>
-        <p class="lead">${canVote ? 'Treo cổ nếu phiếu treo nhiều hơn phiếu tha.' : d.id === m.id ? 'Bạn không được tự bỏ phiếu cho mình.' : 'Bạn đang theo dõi.'}</p>
+        <p class="lead">${canVote ? 'Treo cổ nếu phiếu treo nhiều hơn phiếu tha.'
+          : d.id === m.id ? 'Bạn không được tự bỏ phiếu cho mình.'
+          : m.id === g.banished ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.'
+          : fixed && m.alive ? `Phiếu của bạn luôn là “${fixed}”.` : 'Bạn đang theo dõi.'}</p>
         <div class="judge">
           <button class="kill" data-act="judge" data-choice="kill" aria-pressed="${mine === 'kill'}" ${canVote ? '' : 'disabled'}>
             <span class="big" aria-hidden="true">🪢</span>Treo cổ<span class="n">${kill} phiếu</span>
@@ -1305,13 +1323,15 @@ function stage() {
     let body = '<h2>Hôm nay không ai lên bục</h2><p class="lead">Phiếu bầu chưa thống nhất. Màn đêm sắp buông xuống.</p>';
     if (v.type === 'kill') body = `<h2>${esc(v.ids.map(seatName).join(' và '))} đã bị loại</h2><p class="lead">${v.kill} phiếu treo, ${v.spare} phiếu tha.</p>`;
     if (v.type === 'spare') body = `<h2>${esc(seatName(v.ids[0]))} được tha</h2><p class="lead">${v.kill} phiếu treo, ${v.spare} phiếu tha.</p>`;
+    if (v.type === 'prince') body = `<h2>🤴 ${esc(seatName(v.ids[0]))} là Hoàng Tử!</h2><p class="lead">Dân làng biểu quyết treo cổ (${v.kill} treo, ${v.spare} tha), nhưng Hoàng Tử lật bài và không bị treo.</p>`;
+    if (g.secondVote) body += '<p class="result">🔥 Kẻ Gây Rối đã ra tay: cả làng sẽ bỏ phiếu thêm một lần nữa.</p>';
     return `<div class="panel stack">${body}${v.type ? judgeList(g.judge) : ''}</div>`;
   }
 
   if (view.phase === 'GAME_OVER') {
     const w = g.winner;
-    const icon = { village: '🌾', werewolf: '🐺', lovers: '💘', piper: '🪈', fool: '🤡' }[w];
-    const title = { village: 'Phe Dân Làng chiến thắng', werewolf: 'Phe Ma Sói chiến thắng', lovers: 'Cặp Tình Nhân chiến thắng', piper: 'Người Thổi Sáo chiến thắng', fool: 'Kẻ Cuồng Loạn chiến thắng' }[w];
+    const icon = { village: '🌾', werewolf: '🐺', lovers: '💘', piper: '🪈', fool: '🤡', lone_wolf: '🌕' }[w];
+    const title = { village: 'Phe Dân Làng chiến thắng', werewolf: 'Phe Ma Sói chiến thắng', lovers: 'Cặp Tình Nhân chiến thắng', piper: 'Người Thổi Sáo chiến thắng', fool: 'Kẻ Cuồng Loạn chiến thắng', lone_wolf: 'Sói Đơn Độc chiến thắng' }[w];
     return `
       <div class="panel winner">
         <div class="big" aria-hidden="true">${icon}</div>
@@ -1458,8 +1478,86 @@ function nightTask(task) {
         <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : { piper: '🪈', fool: '🤡' }[task.result] || '🌾'}</p>
         ${autoHint}</div>`;
     }
-    return `<div class="panel">${head('seer', 'Soi ai đêm nay?', 'Bạn chỉ biết người đó là Sói hay Dân.')}
+    return `<div class="panel">${head('seer', 'Soi ai đêm nay?', task.apprentice
+      ? 'Tiên Tri đã chết, bạn soi thay. Bạn chỉ biết người đó là Sói hay Dân.'
+      : 'Bạn chỉ biết người đó là Sói hay Dân.')}
       ${pickGrid('night', { exclude: [m.id] })}</div>`;
+  }
+  if (task.role === 'aura_seer') {
+    if (task.result) {
+      const special = task.result === 'special';
+      return `<div class="panel stack">${head('aura_seer', 'Kết quả soi', 'Chỉ bạn nhìn thấy kết quả này.')}
+        <p class="result ${special ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} ${special ? 'có vai đặc biệt ✨' : 'là Dân Làng hoặc Ma Sói thường'}</p>
+        ${autoHint}</div>`;
+    }
+    return `<div class="panel">${head('aura_seer', 'Soi hào quang ai?', 'Bạn biết người đó có vai đặc biệt hay chỉ là Dân Làng / Ma Sói thường.')}
+      ${pickGrid('night', { exclude: [m.id] })}</div>`;
+  }
+  if (task.role === 'pi') {
+    if (task.result) {
+      const wolf = task.result === 'wolf';
+      return `<div class="panel stack">${head('pi', 'Kết quả dò tìm', 'Chỉ bạn nhìn thấy kết quả này.')}
+        <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${wolf ? `Có Sói trong ${esc(seatName(task.target))} hoặc người ngồi cạnh 🐺` : `Không có Sói quanh ${esc(seatName(task.target))}`}</p>
+        ${autoHint}</div>`;
+    }
+    if (task.used) return `<div class="panel">${head('pi', 'Đã dùng năng lực', 'Bạn chỉ được dò một lần cả ván. Bấm “Bỏ qua lượt này”.')}</div>`;
+    return `<div class="panel">${head('pi', 'Dò tìm quanh ai?', 'Một lần cả ván. Bạn biết trong người đó và 2 người ngồi cạnh có Sói hay không. Chưa muốn dùng thì bấm “Bỏ qua lượt này”.')}
+      ${pickGrid('night')}</div>`;
+  }
+  if (task.role === 'sorcerer') {
+    if (task.result) {
+      const seer = task.result === 'seer';
+      return `<div class="panel stack">${head('sorcerer', 'Kết quả', 'Chỉ bạn nhìn thấy kết quả này.')}
+        <p class="result ${seer ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} ${seer ? 'CHÍNH LÀ Tiên Tri 🔮' : 'không phải Tiên Tri'}</p>
+        ${autoHint}</div>`;
+    }
+    return `<div class="panel">${head('sorcerer', 'Ai là Tiên Tri?', 'Chọn 1 người để biết người đó có phải Tiên Tri không.')}
+      ${pickGrid('night', { exclude: [m.id] })}</div>`;
+  }
+  if (task.role === 'blesser') {
+    if (task.pick) return `<div class="panel">${head('blesser', 'Đã ban phước', `${esc(seatName(task.pick))} sẽ sống sót lần đầu bị giết.`)}</div>`;
+    if (task.used) return `<div class="panel">${head('blesser', 'Đã ban phước', 'Bạn đã dùng phước lành rồi. Bấm “Bỏ qua lượt này”.')}</div>`;
+    return `<div class="panel">${head('blesser', 'Ban phước cho ai?', 'Một lần cả ván. Lần đầu người đó bị giết thì không chết. Chưa muốn dùng thì bấm “Bỏ qua lượt này”.')}
+      ${pickGrid('night', { exclude: [m.id] })}</div>`;
+  }
+  if (task.role === 'martyr') {
+    if (task.pick) return `<div class="panel">${head('martyr', 'Bạn đã chọn hy sinh', `Bạn sẽ chết thay ${esc(seatName(task.pick))}.`)}</div>`;
+    if (task.used) return `<div class="panel">${head('martyr', 'Đã hy sinh', 'Bạn chỉ hy sinh được một lần. Bấm “Bỏ qua lượt này”.')}</div>`;
+    const targets = (task.targets || []).filter(id => id !== m.id).map(player).filter(Boolean);
+    if (!targets.length) return `<div class="panel">${head('martyr', 'Đêm nay không ai cần bạn', 'Sói không cắn ai khác. Bấm “Bỏ qua lượt này”.')}</div>`;
+    return `<div class="panel">${head('martyr', 'Chết thay người bị cắn?', 'Sói vừa cắn người dưới đây. Chạm vào để chết thay họ (chỉ một lần cả ván), hoặc bấm “Bỏ qua lượt này”.')}
+      ${pickGrid('night', { pool: targets, subs: Object.fromEntries(targets.map(p => [p.id, 'Bị Sói cắn'])) })}</div>`;
+  }
+  if (task.role === 'spellcaster') {
+    if (task.pick) return `<div class="panel">${head('spellcaster', 'Đã phong ấn', `${esc(seatName(task.pick))} sẽ không được nói vào ngày mai.`)}</div>`;
+    return `<div class="panel">${head('spellcaster', 'Phong ấn ai?', 'Người đó không được nói vào ngày mai (vẫn bỏ phiếu được). Mỗi người chỉ bị một lần cả ván.')}
+      ${pickGrid('night', { disabled: task.mutedEver, subs: Object.fromEntries(task.mutedEver.map(id => [id, 'Đã bị câm'])) })}</div>`;
+  }
+  if (task.role === 'old_hag') {
+    if (task.pick) return `<div class="panel">${head('old_hag', 'Đã chọn', `${esc(seatName(task.pick))} sẽ phải rời làng vào ngày mai.`)}</div>`;
+    return `<div class="panel">${head('old_hag', 'Đuổi ai khỏi làng?', 'Ngày mai người đó không được thảo luận, không bỏ phiếu và không bị bỏ phiếu.')}
+      ${pickGrid('night', { exclude: [m.id] })}</div>`;
+  }
+  if (task.role === 'doppelganger') {
+    if (task.pick) return `<div class="panel">${head('doppelganger', 'Đã chọn', `Khi ${esc(seatName(task.pick))} chết, bạn sẽ nhận vai của họ.`)}</div>`;
+    return `<div class="panel">${head('doppelganger', 'Theo bóng ai?', 'Khi người này chết, bạn bí mật nhận vai và phe của họ.')}
+      ${pickGrid('night', { exclude: [m.id] })}</div>`;
+  }
+  if (task.role === 'hoodlum') {
+    return `<div class="panel">${head('hoodlum', 'Chọn 2 mục tiêu', `Đã chọn ${task.picks.length}/2. Bạn thắng nếu cả hai chết mà bạn còn sống.`)}
+      ${task.complete ? `<p class="result" style="margin-top:12px">Mục tiêu: ${esc(task.picks.map(seatName).join(' và '))}.</p>` : pickGrid('night', { exclude: [m.id], selected: task.picks })}</div>`;
+  }
+  if (task.role === 'troublemaker') {
+    if (task.stirred) return `<div class="panel">${head('troublemaker', 'Đã gây rối', 'Ngày mai, sau lần treo cổ đầu tiên, cả làng sẽ bỏ phiếu thêm một lần.')}</div>`;
+    if (task.used) return `<div class="panel">${head('troublemaker', 'Đã gây rối rồi', 'Bạn chỉ gây rối được một lần. Bấm “Bỏ qua lượt này”.')}</div>`;
+    return `<div class="panel stack">${head('troublemaker', 'Gây rối ngày mai?', 'Một lần cả ván: ngày mai sẽ có 2 lần treo cổ.')}
+      <button class="btn btn-primary btn-block" data-act="stir">🔥 Gây rối</button></div>`;
+  }
+  if (task.role === 'ghost') {
+    if (task.letter) return `<div class="panel">${head('ghost', 'Đã gửi', `Sáng mai cả làng sẽ thấy chữ “${esc(task.letter)}”.`)}</div>`;
+    const letters = [...'AĂÂBCDĐEÊGHIKLMNOÔƠPQRSTUƯVXY'].filter(l => /^[A-ZĐ]$/.test(l));
+    return `<div class="panel">${head('ghost', 'Để lại một chữ cái', 'Sáng mai cả làng sẽ thấy chữ này. Không dùng chữ để chỉ thẳng tên ai.')}
+      <div class="letters">${letters.map(l => `<button class="btn btn-ghost" data-act="ghostLetter" data-letter="${l}">${l}</button>`).join('')}</div></div>`;
   }
   if (task.role === 'witch') {
     if (task.complete) return `<div class="panel">${head('witch', 'Xong lượt', 'Nhắm mắt lại nhé.')}</div>`;
@@ -1512,7 +1610,12 @@ function renderCard(reset = true) {
   const card = body.querySelector('.card');
   const revealed = !reset && card?.classList.contains('revealed');
   const extra = [];
-  if (m.wolves.length) extra.push(`Đồng bọn Sói: ${m.wolves.map(id => `${seatName(id)}${player(id)?.turned ? ' (Sói Nguyền)' : ['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
+  if (m.wolves.length) extra.push(`${m.role === 'minion' ? 'Các con Sói (bạn là Tay Sai của chúng)' : 'Đồng bọn Sói'}: ${m.wolves.map(id => `${seatName(id)}${player(id)?.turned ? ' (Sói Nguyền)' : ['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
+  if (m.masons?.length) extra.push(`🤝 Hội Kín cùng bạn: ${m.masons.map(seatName).join(', ')}`);
+  if (m.hoodlumMarks?.length) extra.push(`🔪 Hai mục tiêu của bạn: ${m.hoodlumMarks.map(seatName).join(' và ')}`);
+  if (m.doppelTarget) extra.push(`🎭 Bạn đang theo bóng ${seatName(m.doppelTarget)}.`);
+  if (m.copied) extra.push('🎭 Bạn là Kẻ Song Trùng và đã nhận vai này từ người bạn theo bóng.');
+  if (m.wounded) extra.push('💪 Bạn đã bị Sói cắn: hết ngày hôm nay bạn sẽ chết vào đêm tới.');
   if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
   if (m.swapped) extra.push('🔄 Bạn đã đổi lá bài với một người chơi khác trước đêm đầu.');
@@ -1726,6 +1829,8 @@ document.addEventListener('click', async (e) => {
     case 'detectiveDone': return act('detectiveDone').then(() => act('endTurn'));
     case 'ack': return act('ack').then(() => act('endTurn'));
     case 'endTurn': return act('endTurn');
+    case 'stir': return act('troublemaker');
+    case 'ghostLetter': return act('ghost', { letter: el.dataset.letter });
     case 'extend': return act('extend');
     case 'thiefPick': {
       const card = view.me.task?.extras?.[Number(el.dataset.pick)];
