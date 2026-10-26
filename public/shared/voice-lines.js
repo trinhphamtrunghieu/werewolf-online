@@ -210,6 +210,11 @@ export const LINES = {
     'Hôm nay không ai lên bục.',
     'Làng chưa thống nhất. Không ai lên bục.'
   ],
+  game_soon: [
+    'Trò chơi sẽ bắt đầu sau mười giây. Hãy xem lá bài của mình.',
+    'Mười giây nữa trò chơi bắt đầu. Xem lại lá bài của bạn.',
+    'Hãy xem lá bài. Trò chơi bắt đầu sau mười giây.'
+  ],
   night_soon: [
     'Mười giây nữa trời tối.',
     'Đêm xuống sau mười giây.',

@@ -754,7 +754,7 @@ function musicControls() {
 }
 
 const SLIDERS = [
-  ['swapTime', 'Đổi vai trước đêm đầu (0 = tắt)', 0, 60, 5],
+  ['swapTime', 'Thời gian đổi vai', 5, 60, 5],
   ['discussionTime', 'Thảo luận', 30, 600, 15],
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
@@ -804,6 +804,10 @@ function settingsPanel() {
         <input type="checkbox" data-config="revealRoleOnDeath" ${c.revealRoleOnDeath ? 'checked' : ''} />
         <span><strong>Lật bài người chết</strong><span class="muted small">Cả làng thấy vai trò của người vừa bị loại.</span></span>
       </label>
+      <label class="check">
+        <input type="checkbox" data-config="swapEnabled" ${c.swapEnabled ? 'checked' : ''} />
+        <span><strong>Cho phép đổi vai</strong><span class="muted small">Sau khi chia bài, ai không thích vai của mình có thể đổi với người khác (ẩn danh) trước đêm đầu.</span></span>
+      </label>
       <p class="field-label" style="margin-top:8px">Thời gian thao tác của từng lượt đêm tính theo các lá bài trong ván.</p>
       ${timeSliders()}
     </details>`;
@@ -844,33 +848,51 @@ function rolesPanel(count, host) {
       ${teams.third ? `<span><i class="dot t"></i>Phe thứ ba: ${teams.third}</span>` : ''}
       <span><i class="dot w"></i>Phe Sói: ${teams.werewolf}</span>
     </div>
-    ${ROLE_IDS.filter(id => host || counts[id] > 0).map(id => {
-      const r = ROLES[id];
-      const pts = `<span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>`;
-      // Werewolves and Villagers fill the deck; every other role can be ticked.
-      const toggle = host && id !== 'werewolf' && id !== 'villager';
-      return `
-        <div class="role-row">
-          ${toggle
-            ? `<button class="icon pick ${counts[id] ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${!!counts[id]}" aria-label="${counts[id] ? 'Bỏ' : 'Chọn'} ${r.name}">${r.icon}</button>`
-            : `<span class="icon" aria-hidden="true">${r.icon}</span>`}
-          <div><strong>${r.name}</strong> ${pts}<p class="desc">${r.short}</p></div>
-          ${host ? `
-            <div class="stepper">
-              <button data-act="role" data-role="${id}" data-delta="-1" ${counts[id] ? '' : 'disabled'} aria-label="Bớt ${r.name}">−</button>
-              <output>${counts[id] || 0}</output>
-              <button data-act="role" data-role="${id}" data-delta="1" aria-label="Thêm ${r.name}">+</button>
-            </div>` : `<strong>×${counts[id]}</strong>`}
-        </div>`;
+    ${ROLE_GROUPS.map(group => {
+      const ids = ROLE_IDS
+        .filter(id => group.teams.includes(ROLES[id].team) && (host || counts[id] > 0))
+        .sort(group.order);
+      if (!ids.length) return '';
+      return `<h4 class="role-group ${group.cls}">${group.title}</h4>${ids.map(roleRow).join('')}`;
     }).join('')}`;
+
+  function roleRow(id) {
+    const r = ROLES[id];
+    const pts = `<span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>`;
+    // Werewolves and Villagers fill the deck; every other role can be ticked.
+    const toggle = host && id !== 'werewolf' && id !== 'villager';
+    return `
+      <div class="role-row">
+        ${toggle
+          ? `<button class="icon pick ${counts[id] ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${!!counts[id]}" aria-label="${counts[id] ? 'Bỏ' : 'Chọn'} ${r.name}">${r.icon}</button>`
+          : `<span class="icon" aria-hidden="true">${r.icon}</span>`}
+        <div><strong>${r.name}</strong> ${pts}<p class="desc">${r.short}</p></div>
+        ${host ? `
+          <div class="stepper">
+            <button data-act="role" data-role="${id}" data-delta="-1" ${counts[id] ? '' : 'disabled'} aria-label="Bớt ${r.name}">−</button>
+            <output>${counts[id] || 0}</output>
+            <button data-act="role" data-role="${id}" data-delta="1" aria-label="Thêm ${r.name}">+</button>
+          </div>` : `<strong>×${counts[id]}</strong>`}
+      </div>`;
+  }
 }
+
+// The role list is grouped by side, each sorted by the role's points: the
+// village's strongest helpers first, the most dangerous wolves first.
+const byPoints = (a, b) => ROLES[b].points - ROLES[a].points;
+const ROLE_GROUPS = [
+  { title: 'Phe Dân', cls: 'v', teams: ['village'], order: byPoints },
+  { title: 'Phe Sói', cls: 'w', teams: ['werewolf'], order: (a, b) => -byPoints(a, b) },
+  { title: 'Phe thứ ba', cls: 't', teams: ['piper', 'fool'], order: byPoints }
+];
 
 // ---------- Game ----------
 
 const PHASE_TITLE = {
   NIGHT: (g) => `Đêm ${g.day}`,
   MORNING: (g) => `Sáng ngày ${g.day}`,
-  SWAP: () => 'Xem bài và đổi vai',
+  SWAP: () => 'Đổi vai',
+  REVEAL: () => 'Xem lá bài',
   DISCUSSION: (g) => `Ngày ${g.day}: thảo luận`,
   VOTE: (g) => `Ngày ${g.day}: bỏ phiếu`,
   DEFENSE: (g) => `Ngày ${g.day}: biện hộ`,
@@ -959,6 +981,10 @@ function renderGame() {
     </div>`;
   updateClock();
 
+  // Before the first night (swap, then a look at the cards) the screen is
+  // kept to the card and the swap: the rest appears when the game starts.
+  const opening = ['SWAP', 'REVEAL'].includes(view.phase);
+  document.getElementById('narration').hidden = opening;
   renderNarration();
   // Leave the bar alone while a control in it is in use (dragging the volume,
   // choosing a theme), and keep the options open across redraws.
@@ -969,7 +995,8 @@ function renderGame() {
     if (open) bar.querySelector('details.device-options').open = true;
   }
   const timers = document.getElementById('hostTimers');
-  if (!timers.contains(document.activeElement)) timers.innerHTML = isHost() && view.phase !== 'GAME_OVER' ? hostTimers() : '';
+  if (!timers.contains(document.activeElement)) timers.innerHTML = isHost() && view.phase !== 'GAME_OVER' && !opening ? hostTimers() : '';
+  bar.hidden = opening && !isHost();
   renderHostAlert();
   document.getElementById('stage').innerHTML = stage();
 
@@ -979,11 +1006,11 @@ function renderGame() {
   document.getElementById('village').innerHTML = view.players.filter(p => p.inGame).map(p => seat(p)).join('');
   // While it is your turn the choices above already list everyone: one list
   // is enough.
-  document.getElementById('villageBox').hidden = !!(view.phase === 'NIGHT' && view.me?.task);
+  document.getElementById('villageBox').hidden = opening || !!(view.phase === 'NIGHT' && view.me?.task);
   // The log reaches a moderator who does not play, or the host once the game
   // is over (then it opens by itself).
   const logBox = document.getElementById('logBox');
-  logBox.hidden = !g.log.length;
+  logBox.hidden = !g.log.length || opening;
   if (view.phase === 'GAME_OVER' && g.log.length && !logBox.dataset.opened) {
     logBox.open = true;
     logBox.dataset.opened = '1';
@@ -993,7 +1020,8 @@ function renderGame() {
 
   const m = view.me;
   const myTurn = view.phase === 'NIGHT' && m.task;
-  document.getElementById('gameFooter').innerHTML = m.inGame
+  // On the look-at-your-card screen the card button is the screen itself.
+  document.getElementById('gameFooter').innerHTML = m.inGame && view.phase !== 'REVEAL'
     ? `${myTurn ? endTurnButton(m) : ''}
       <div class="footer-row">
         <button class="btn ${myTurn ? 'btn-ghost' : 'btn-primary'} btn-block card-button" data-act="card">
@@ -1082,6 +1110,7 @@ function phaseSubtitle() {
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
     case 'SWAP': return 'Ai muốn đổi lá bài thì đổi trước đêm đầu tiên.';
+    case 'REVEAL': return 'Trò chơi sẽ bắt đầu sau 10 giây.';
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
     case 'DEFENSE': return `${esc(player(g.defendant)?.name || '')} đang tự bào chữa.`;
@@ -1169,6 +1198,17 @@ function stage() {
       <div class="panel stack">
         <h2>${deaths.length ? 'Đêm qua có người đã chết' : 'Đêm qua không ai chết'}</h2>
         ${deaths.length ? `<div class="village">${deaths.map(id => seat(player(id))).join('')}</div>` : '<p class="lead">Bảo Vệ hoặc Phù Thủy đã làm tốt việc của mình… hoặc bầy Sói đang toan tính điều gì đó.</p>'}
+      </div>`;
+  }
+
+  if (view.phase === 'REVEAL') {
+    return `
+      <div class="panel stack reveal-panel">
+        <h2>Xem lá bài của bạn</h2>
+        <p class="lead">Trò chơi sẽ bắt đầu sau 10 giây. Che màn hình khỏi người bên cạnh.</p>
+        ${m.inGame
+          ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'
+          : '<p class="muted">Mọi người đang xem lá bài của mình.</p>'}
       </div>`;
   }
 

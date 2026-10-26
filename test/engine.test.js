@@ -21,7 +21,7 @@ function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
   const { state: s, player: host } = createRoom({ code: 'TEST1', hostName: 'Chủ', now, rng });
   for (let i = 1; i < roles.length; i++) joinRoom(s, `P${i + 1}`, now, rng);
   // Most tests start straight at night; the swap tests turn it back on.
-  applyAction(s, host.id, 'config', { swapTime: 0, ...config }, now, rng);
+  applyAction(s, host.id, 'config', { swapEnabled: false, ...config }, now, rng);
   const counts = {};
   [...roles, ...extras].forEach(r => { counts[r] = (counts[r] || 0) + 1; });
   for (const [roleId, n] of Object.entries(counts)) {
@@ -36,6 +36,12 @@ function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
   s.players.forEach((p, i) => { p.role = roles[i]; });
   s.game.thiefExtras = [...extras];
   s.game.thiefId = s.players.find(p => p.role === 'thief')?.id || null;
+  // Unless a test looks at the swap, go past the "look at your card" screen
+  // so it starts at the first night.
+  if (s.phase === 'REVEAL') {
+    now = s.game.phaseEndsAt;
+    tick(s, now, rng);
+  }
   const P = s.players;
   const clock = {
     get now() { return now; },
@@ -850,9 +856,10 @@ test('only the host sees who is connected; others learn only when the host is go
 test('a non-playing host sees connections at any time', () => {
   const { state: s, player: host } = createRoom({ code: 'MOD02', hostName: 'Host', now: 0 });
   const lan = joinRoom(s, 'Lan', 0);
-  applyAction(s, host.id, 'config', { hostPlays: false, swapTime: 0 }, 0);
+  applyAction(s, host.id, 'config', { hostPlays: false, swapEnabled: false }, 0);
   applyAction(s, host.id, 'addBot', { count: 3 }, 0);
   applyAction(s, host.id, 'start', {}, 0);
+  tick(s, s.game.phaseEndsAt); // past the look at the cards
   assert.equal(s.phase, 'NIGHT');
   lan.lastSeen = -120_000;
   assert.equal(viewFor(s, host.id, 1000, 1).players.find(p => p.id === lan.id).online, false);
@@ -1027,12 +1034,31 @@ test('rooms saved before the night slot settings existed still work', () => {
   }
 });
 
-test('the game opens with three lines 5 s apart: welcome, night falls, first call', () => {
-  const { s } = setup(['guard', 'werewolf', 'seer', 'villager', 'villager']);
+test('the game opens: welcome, a 10 s look at the cards, then night falls and the first call', () => {
+  const { state: s, player: host } = createRoom({ code: 'OPEN1', hostName: 'Host', now: 0 });
+  applyAction(s, host.id, 'config', { swapEnabled: false }, 0);
+  applyAction(s, host.id, 'addBot', { count: 4 }, 0);
+  applyAction(s, host.id, 'start', {}, 0);
+  assert.equal(s.phase, 'REVEAL', 'everyone looks at their card first');
+  assert.deepEqual(s.narration.clips.map(c => c.k), ['game_start', 'pause', 'game_soon']);
+  assert.ok(s.game.phaseEndsAt >= 10000);
+  tick(s, s.game.phaseEndsAt);
+  assert.equal(s.phase, 'NIGHT');
   const clips = s.narration.clips;
-  assert.deepEqual(clips.map(c => c.k), ['game_start', 'pause', 'night_start', 'pause', 'guard_wake']);
+  assert.deepEqual(clips.map(c => c.k).slice(0, 2), ['night_start', 'pause']);
   assert.equal(clips[1].ms, 5000);
-  assert.equal(clips[3].ms, 5000);
+});
+
+test('with the swap on: swap phase, then the look at the cards, then night', () => {
+  const { state: s, player: host } = createRoom({ code: 'OPEN2', hostName: 'Host', now: 0 });
+  applyAction(s, host.id, 'config', { swapEnabled: true, swapTime: 15 }, 0);
+  applyAction(s, host.id, 'addBot', { count: 4 }, 0);
+  applyAction(s, host.id, 'start', {}, 0);
+  assert.equal(s.phase, 'SWAP');
+  tick(s, s.game.phaseEndsAt);
+  assert.equal(s.phase, 'REVEAL');
+  tick(s, s.game.phaseEndsAt);
+  assert.equal(s.phase, 'NIGHT');
 });
 
 test('a silent host phone is replaced by a majority vote, with no new secrets', () => {
@@ -1741,7 +1767,7 @@ test('a result picked at the last second still gets its reading time', () => {
 });
 
 test('swap: one offer and one taker trade cards before the first night', () => {
-  const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapTime: 20 } });
+  const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
   const { s, P, act, untilPhase } = g;
   assert.equal(s.phase, 'SWAP');
   assert.throws(() => act(P[1], 'swapAccept', {}), /Chưa có ai/);
@@ -1763,7 +1789,7 @@ test('swap: one offer and one taker trade cards before the first night', () => {
 test('swap: with several takers, the asker trades with one drawn at random', () => {
   const partners = new Set();
   for (let seed = 1; seed <= 12; seed++) {
-    const g = setup(['seer', 'werewolf', 'villager', 'guard', 'hunter', 'villager'], { config: { swapTime: 20 }, rng: seeded(seed) });
+    const g = setup(['seer', 'werewolf', 'villager', 'guard', 'hunter', 'villager'], { config: { swapEnabled: true }, rng: seeded(seed) });
     g.act(g.P[0], 'swapRequest', {});
     [1, 3, 4].forEach(i => g.act(g.P[i], 'swapAccept', {}));
     g.untilPhase('NIGHT');
@@ -1776,14 +1802,29 @@ test('swap: with several takers, the asker trades with one drawn at random', () 
 });
 
 test('swap: nobody accepts, nothing changes; two askers trade with each other', () => {
-  const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapTime: 20 } });
+  const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
   g.act(g.P[0], 'swapRequest', {});
   g.untilPhase('NIGHT');
   assert.equal(g.P[0].role, 'seer');
-  const h = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapTime: 20 } });
+  const h = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
   h.act(h.P[0], 'swapRequest', {});
   h.act(h.P[3], 'swapRequest', {});
   h.untilPhase('NIGHT');
   assert.equal(h.P[0].role, 'guard');
   assert.equal(h.P[3].role, 'seer');
+});
+
+test('swap: a person who accepted is always picked before a bot', () => {
+  for (let seed = 1; seed <= 10; seed++) {
+    const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true }, rng: seeded(seed) });
+    g.P[1].isBot = true;
+    g.P[2].isBot = true;
+    g.act(g.P[0], 'swapRequest', {});
+    g.act(g.P[1], 'swapAccept', {});
+    g.act(g.P[2], 'swapAccept', {});
+    g.act(g.P[3], 'swapAccept', {});
+    g.untilPhase('REVEAL');
+    assert.equal(g.P[0].role, 'guard', `seed ${seed}`);
+    assert.equal(g.P[3].role, 'seer');
+  }
 });
