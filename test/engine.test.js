@@ -2099,3 +2099,186 @@ test('UW: Masons come at least two; every new role has points and a description'
   assert.match(validateRoleCounts({ ...emptyCounts(), werewolf: 1, mason: 1, villager: 3 }, 5), /Hội Kín/);
   assert.equal(validateRoleCounts({ ...emptyCounts(), werewolf: 1, mason: 2, villager: 2 }, 5), null);
 });
+
+// ---------------------------------------------------------------------------
+// Interactions between roles
+// ---------------------------------------------------------------------------
+
+const bite = (g, wolf, target) => { g.untilNightRole('werewolf'); g.act(wolf, 'night', { target: target.id }); };
+const nextNight = (g) => { g.untilPhase('DISCUSSION'); };
+
+test('mix: the Bảo Vệ guarding the Người Tử Đạo saves them both', () => {
+  const g = setup(['martyr', 'werewolf', 'guard', 'villager', 'villager', 'villager']);
+  g.untilNightRole('guard');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  bite(g, g.P[1], g.P[3]);
+  g.untilNightRole('martyr');
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[3].alive, true, 'the bitten one was replaced');
+  assert.equal(g.P[0].alive, true, 'the martyr was guarded');
+});
+
+test('mix: the witch\'s heal keeps the Gã Cứng Cựa unhurt and the Người Bệnh uneaten', () => {
+  const g = setup(['tough_guy', 'werewolf', 'witch', 'diseased', 'villager', 'villager', 'villager']);
+  bite(g, g.P[1], g.P[0]);
+  g.untilNightRole('witch');
+  g.act(g.P[2], 'witch', { use: 'heal' });
+  g.untilPhase('MORNING');
+  assert.equal(g.s.game.toughWounded, null);
+  nextNight(g);
+  bite(g, g.P[1], g.P[3]);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[3].alive, false);
+  assert.equal(g.P[0].alive, true, 'no wound from a healed bite');
+  assert.equal(g.s.game.wolvesSick, true, 'eating the diseased makes the pack sick');
+});
+
+test('mix: a bitten Sói Nguyền who is blessed still turns (the bite does not kill)', () => {
+  const g = setup(['cursed', 'werewolf', 'blesser', 'villager', 'villager', 'villager']);
+  g.untilNightRole('blesser');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  bite(g, g.P[1], g.P[0]);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].role, 'werewolf');
+  assert.equal(g.s.game.blessed, g.P[0].id, 'the blessing is still there');
+});
+
+test('mix: a blessing does not stop the Hồn Ma leaving or the Ông Lão dying of age', () => {
+  const g = setup(['ghost', 'werewolf', 'blesser', 'villager', 'villager', 'villager']);
+  g.untilNightRole('blesser');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false, 'the ghost leaves the living anyway');
+  const h = setup(['old_man', 'werewolf', 'blesser', 'villager', 'villager', 'villager', 'villager']);
+  h.untilNightRole('blesser');
+  h.act(h.P[2], 'night', { target: h.P[0].id });
+  h.untilPhase('DISCUSSION');
+  h.untilNightRole('werewolf');
+  h.untilPhase('MORNING');
+  assert.equal(h.P[0].alive, false, 'old age is not an attack');
+});
+
+test('mix: the Thầy Đồng cannot bring back the Hồn Ma', () => {
+  const g = setup(['ghost', 'werewolf', 'medium', 'villager', 'villager', 'villager', 'villager']);
+  g.untilPhase('MORNING');
+  nextNight(g);
+  g.untilNightRole('werewolf');
+  assert.ok(!g.s.game.queue.includes('medium'), 'only the ghost is dead: nobody to bring back');
+  g.act(g.P[1], 'night', { target: g.P[3].id });
+  g.untilPhase('MORNING');
+  nextNight(g);
+  g.untilNightRole('medium');
+  assert.deepEqual(viewFor(g.s, g.P[2].id, 0, 1).me.task.dead, [g.P[3].id]);
+  assert.throws(() => g.act(g.P[2], 'night', { target: g.P[0].id }), /Hồn Ma/);
+});
+
+test('mix: the Kẻ Côn Đồ only wins alongside the village', () => {
+  const g = setup(['hoodlum', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('hoodlum');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  [2, 3, 4, 5].forEach(i => { g.P[i].alive = false; });
+  g.untilPhase('GAME_OVER');
+  assert.equal(g.s.game.winner, 'werewolf');
+  assert.deepEqual(g.s.game.coWinners, [], 'the wolves won: the hoodlum loses');
+});
+
+test('mix: the one the Mụ Già sent away is safe from the day\'s Thợ Săn shot and Sói Báo Thù', () => {
+  const g = setup(['old_hag', 'avenger', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  g.untilNightRole('avenger');
+  g.act(g.P[1], 'night', { target: g.P[3].id });
+  g.untilNightRole('old_hag');
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  toJudge(g, g.P[1]);
+  g.P.filter(p => p.alive && p.id !== g.P[1].id && p.id !== g.P[3].id).forEach(p => g.act(p, 'judge', { choice: 'kill' }));
+  g.untilPhase('VERDICT');
+  assert.equal(g.P[1].alive, false);
+  assert.equal(g.P[3].alive, true, 'not in the village today');
+});
+
+test('mix: the Pháp Sư Hắc Ám finds the Tiên Tri Tập Sự only once they act as Seer', () => {
+  const g = setup(['sorcerer', 'werewolf', 'seer', 'apprentice_seer', 'villager', 'villager']);
+  g.untilNightRole('sorcerer');
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  assert.equal(g.s.game.night.sorcererResult, 'not');
+});
+
+test('mix: the Thám Tử and the Mục Sư judge a Kẻ Say by the real card', () => {
+  const g = setup(['drunk', 'werewolf', 'detective', 'villager', 'villager', 'villager']);
+  g.P[0].drunkRole = 'werewolf';
+  g.untilNightRole('detective');
+  g.act(g.P[2], 'night', { target: g.P[0].id });
+  g.act(g.P[2], 'night', { target: g.P[1].id });
+  assert.equal(g.s.game.night.detectiveResult, 'same');
+});
+
+test('mix: a Kẻ Song Trùng copying a Kẻ Say keeps the hidden card and sobers up too', () => {
+  const g = setup(['doppelganger', 'werewolf', 'drunk', 'villager', 'villager', 'villager', 'villager']);
+  g.P[2].drunkRole = 'mayor';
+  g.untilNightRole('doppelganger');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  bite(g, g.P[1], g.P[2]);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].role, 'drunk');
+  assert.equal(g.P[0].drunkRole, 'mayor');
+});
+
+test('mix: Kẻ Gây Rối + Hoàng Tử: a saved Prince is no hanging, so no second vote', () => {
+  const g = setup(['troublemaker', 'werewolf', 'prince', 'villager', 'villager', 'villager']);
+  g.untilNightRole('troublemaker');
+  g.act(g.P[0], 'troublemaker', {});
+  toJudge(g, g.P[2]);
+  g.P.filter(p => p.alive && p.id !== g.P[2].id).forEach(p => g.act(p, 'judge', { choice: 'kill' }));
+  g.untilPhase('VERDICT');
+  assert.equal(g.s.game.verdict.type, 'prince');
+  g.endPhase();
+  assert.equal(g.s.phase, 'NIGHT');
+});
+
+test('mix: a blessed lover survives the heartbreak; a blessed target survives the Thợ Săn', () => {
+  const g = setup(['cupid', 'werewolf', 'blesser', 'villager', 'villager', 'villager']);
+  g.untilNightRole('cupid');
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  g.act(g.P[0], 'night', { target: g.P[4].id });
+  g.untilNightRole('blesser');
+  g.act(g.P[2], 'night', { target: g.P[4].id });
+  bite(g, g.P[1], g.P[3]);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[3].alive, false);
+  assert.equal(g.P[4].alive, true);
+});
+
+test('mix: the Elder\'s death by the village takes the new village powers too', () => {
+  const g = setup(['elder', 'werewolf', 'aura_seer', 'villager', 'villager', 'villager']);
+  toJudge(g, g.P[0]);
+  g.P.filter(p => p.alive && p.id !== g.P[0].id).forEach(p => g.act(p, 'judge', { choice: 'kill' }));
+  g.untilPhase('VERDICT');
+  g.untilNightRole('aura_seer');
+  assert.equal(viewFor(g.s, g.P[2].id, 0, 1).me.task.powerless, true);
+  assert.throws(() => g.act(g.P[2], 'night', { target: g.P[1].id }), /mất chức năng/);
+});
+
+test('mix: once the village kills its Elder, the passive village powers are gone too', () => {
+  const g = setup(['prince', 'werewolf', 'mayor', 'tough_guy', 'villager', 'villager', 'villager']);
+  g.s.game.powersLost = true;
+  toJudge(g, g.P[0]);
+  g.act(g.P[2], 'judge', { choice: 'spare' });
+  g.act(g.P[3], 'judge', { choice: 'kill' });
+  g.act(g.P[4], 'judge', { choice: 'kill' });
+  g.act(g.P[5], 'judge', { choice: 'spare' });
+  g.act(g.P[6], 'judge', { choice: 'spare' });
+  g.act(g.P[1], 'judge', { choice: 'kill' });
+  g.untilPhase('VERDICT');
+  assert.equal(g.s.game.verdict.spare, 3, 'the mayor counts once');
+  const h = setup(['prince', 'werewolf', 'tough_guy', 'villager', 'villager', 'villager']);
+  h.s.game.powersLost = true;
+  toJudge(h, h.P[0]);
+  h.P.filter(p => p.alive && p.id !== h.P[0].id).forEach(p => h.act(p, 'judge', { choice: 'kill' }));
+  h.untilPhase('VERDICT');
+  assert.equal(h.P[0].alive, false, 'no royal pardon');
+  h.untilNightRole('werewolf');
+  h.act(h.P[1], 'night', { target: h.P[2].id });
+  h.untilPhase('MORNING');
+  assert.equal(h.P[2].alive, false, 'the tough guy dies at once');
+});
