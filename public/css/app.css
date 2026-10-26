@@ -629,3 +629,9 @@ dialog.sheet::backdrop { background: rgba(8, 10, 24, 0.75); }
 .log li.log-head { margin-top: 10px; font-weight: 700; color: var(--lantern); }
 .turn-row { margin-bottom: 8px; }
 .turn-row .end-turn { flex: 1; }
+.reveal-panel { text-align: center; }
+.reveal-card { min-height: 120px; font-size: 1.3rem; }
+.role-group { margin: 16px 0 2px; font-size: 0.95rem; }
+.role-group.v { color: #8fd3c8; }
+.role-group.w { color: #ff9a8a; }
+.role-group.t { color: #c58cff; }
