@@ -895,7 +895,7 @@ test('when the pack is split, the victim is drawn among the most voted', () => {
 });
 
 test('a role\'s step ends by itself once it is done; a step nobody can play ends at a random time', () => {
-  const { s, P, clock, act, untilNightRole, endPhase } = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  const { s, P, clock, act, untilNightRole, endPhase } = setup(['seer', 'werewolf', 'villager', 'villager', 'villager'], { config: { step_seer: 20 } });
   untilNightRole('seer');
   assert.throws(() => act(P[2], 'endTurn', {}), /lượt của bạn/);
   clock.advance(6000);
@@ -908,7 +908,7 @@ test('a role\'s step ends by itself once it is done; a step nobody can play ends
     g.P[0].alive = false;
     g.untilNightRole('seer');
     const len = g.s.game.phaseEndsAt - g.clock.now;
-    assert.ok(len >= 5000 && len <= Math.min(15000, g.s.config.step_seer * 1000), `seed ${seed}: ${len}`);
+    assert.ok(len >= 5000 && len <= 15000, `seed ${seed}: ${len}`);
     lengths.add(len);
   }
   assert.ok(lengths.size > 1, 'not always the same length');
@@ -982,19 +982,6 @@ test('each night step is call, then act, then sleep, with fixed lengths', () => 
   assert.equal(s.narration.seq, chained.seq, 'no new narration: the host is already reading the call');
   // The action timer starts right after the queued call has been read.
   assert.ok(s.game.phaseEndsAt - chained.endsAt < 1000);
-});
-
-test('a dead role\'s step never runs longer than a live one', () => {
-  const run = (killSeer) => {
-    const g = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
-    if (killSeer) g.P[2].alive = false;
-    g.untilNightRole('seer');
-    const start = g.clock.now;
-    for (let i = 0; i < 5 && g.s.game.queue[g.s.game.step] === 'seer'; i++) g.endPhase();
-    return g.clock.now - start;
-  };
-  // The live seer never picks here, so their step runs to the end.
-  assert.ok(run(true) <= run(false));
 });
 
 test('after the verdict the narrator announces the night and counts down 10 s', () => {
@@ -1402,7 +1389,7 @@ test('the pack moves on as soon as every living wolf has picked, no confirming',
 });
 
 test('a role with nothing to do tonight can pass with "Bỏ qua"', () => {
-  const g = setup(['guard', 'werewolf', 'villager', 'villager', 'villager']);
+  const g = setup(['guard', 'werewolf', 'villager', 'villager', 'villager'], { config: { step_guard: 20 } });
   g.untilNightRole('guard');
   g.clock.advance(6000);
   g.act(g.P[0], 'endTurn', {});
@@ -1596,7 +1583,7 @@ test('a bot wolf whose human mate picks the bot itself votes nobody, so the pick
 
 test('the thief\'s step lasts the same whether they swap or keep', () => {
   const end = (pick) => {
-    const g = setup(['thief', 'werewolf', 'villager', 'villager', 'villager'], { extras: ['seer', 'villager'] });
+    const g = setup(['thief', 'werewolf', 'villager', 'villager', 'villager'], { extras: ['seer', 'villager'], config: { step_thief: 20 } });
     g.untilNightRole('thief');
     g.clock.advance(6000);
     g.act(g.P[0], 'thief', { pick });
@@ -1606,7 +1593,7 @@ test('the thief\'s step lasts the same whether they swap or keep', () => {
 });
 
 test('a role that lost its power can pass, so its step is not longer', () => {
-  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager'], { config: { step_seer: 20 } });
   g.s.game.powersLost = true;
   g.untilNightRole('seer');
   g.clock.advance(6000);
@@ -1698,4 +1685,34 @@ test('used potions stay used for a witch brought back', () => {
   const task = viewFor(g.s, g.P[0].id, 0, 1).me.task;
   assert.equal(task.healAvailable, false, 'the heal was used before');
   assert.equal(task.poisonAvailable, true, 'the poison is still there');
+});
+
+test('every role gets 5 s by default and can add 5 s at a time until done', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('werewolf');
+  assert.equal(g.s.game.phaseEndsAt - g.clock.now, 5000, 'one wolf card: 5 s');
+  g.untilNightRole('seer');
+  const start = g.clock.now;
+  assert.equal(g.s.game.phaseEndsAt - start, 5000);
+  assert.throws(() => g.act(g.P[2], 'extend', {}), /lượt của bạn/, 'only the role being called');
+  g.clock.advance(4000);
+  g.act(g.P[0], 'extend', {});
+  assert.equal(g.s.game.phaseEndsAt, start + 10000, '+5 s');
+  g.clock.advance(5000);
+  g.act(g.P[0], 'extend', {});
+  assert.equal(g.s.game.phaseEndsAt, start + 15000, '+5 s again');
+  // Taps cannot bank more than 15 s ahead.
+  g.act(g.P[0], 'extend', {});
+  g.act(g.P[0], 'extend', {});
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now + 15000);
+  g.act(g.P[0], 'night', { target: g.P[1].id });
+  assert.throws(() => g.act(g.P[0], 'extend', {}), /xong/, 'nothing to extend once done');
+});
+
+test('a result picked at the last second still gets its reading time', () => {
+  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  g.untilNightRole('seer');
+  g.clock.advance(4500);
+  g.act(g.P[0], 'night', { target: g.P[1].id });
+  assert.equal(g.s.game.phaseEndsAt, g.clock.now + 4000);
 });

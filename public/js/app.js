@@ -44,8 +44,6 @@ let wakeLock = null;
 let ambienceOn = read('masoi_ambience') === 'on';
 let ambienceVolume = Number(read('masoi_ambience_volume') || 60);
 let ambienceTheme = THEME_IDS.includes(read('masoi_ambience_theme')) ? read('masoi_ambience_theme') : 'village';
-let ticksOn = read('masoi_ticks') !== 'off';
-let lastTick = null;
 let settingsOpen = false;
 // Players can also hear the narrator on their own phone (off by default).
 let localAudio = read('masoi_local_audio') === 'on';
@@ -733,7 +731,6 @@ function voicePanel() {
       <p class="small">${status}</p>
       <div class="row" style="flex-wrap:wrap">
         <button class="btn ${narrator.unlocked ? 'btn-ghost' : 'btn-primary'}" data-act="testVoice">${narrator.unlocked ? 'Nghe thử lại' : 'Bật âm thanh và nghe thử'}</button>
-        <label class="check" style="padding:0"><input type="checkbox" data-act="ticks" ${ticksOn ? 'checked' : ''} /> <span>Tích tắc 10 giây cuối</span></label>
       </div>
     </div>`;
 }
@@ -889,23 +886,28 @@ function judgeList(judge) {
 
 // The one "done" button. For the pack it marks this wolf as ready; the turn
 // ends when every living wolf is.
-// A turn ends by itself once the role has done its part. This button is only
-// for passing on what is left (not guarding anyone, keeping the gun where it
-// is…). The pack has none: a wolf picks "Không cắn ai" instead.
+// A turn ends by itself once the role has done its part. Below the choices:
+// "Thêm 5 giây" for a player who needs longer, and a button to pass on what
+// is left (not guarding anyone, keeping the gun where it is…). The pack has
+// no pass: a wolf picks "Không cắn ai" instead.
 function endTurnButton(m) {
   const t = m.task;
-  if (t.role === 'werewolf' || t.complete) return '';
-  // A role that lost its power passes like anyone else, so its turn is no
-  // longer than a normal one.
-  if (t.powerless) return '<button class="btn btn-ghost btn-block end-turn" data-act="endTurn">Đã hiểu</button>';
-  const keepAim = ['hunter', 'avenger'].includes(t.role) && !t.spent && t.lastAim && player(t.lastAim)?.alive;
-  const label = t.role === 'elder' ? 'Đã hiểu'
-    : keepAim ? 'Giữ nguyên mục tiêu'
-    : t.role === 'witch' && (t.healed || t.poisoned) ? 'Xong, không dùng thêm'
-    : t.role === 'witch' ? 'Không dùng bình nào'
-    : t.role === 'thief' ? '' : 'Bỏ qua lượt này';
-  if (!label) return '';
-  return `<button class="btn btn-ghost btn-block end-turn" data-act="endTurn">${label}</button>`;
+  if (t.complete) return '';
+  const extend = '<button class="btn btn-primary end-turn" data-act="extend">⏳ Thêm 5 giây</button>';
+  let pass = '';
+  if (t.powerless) pass = 'Đã hiểu';
+  else if (t.role !== 'werewolf' && t.role !== 'thief') {
+    const keepAim = ['hunter', 'avenger'].includes(t.role) && !t.spent && t.lastAim && player(t.lastAim)?.alive;
+    pass = t.role === 'elder' ? 'Đã hiểu'
+      : keepAim ? 'Giữ nguyên mục tiêu'
+      : t.role === 'witch' && (t.healed || t.poisoned) ? 'Xong, không dùng thêm'
+      : t.role === 'witch' ? 'Không dùng bình nào'
+      : 'Bỏ qua lượt này';
+  }
+  const passBtn = pass ? `<button class="btn btn-ghost end-turn" data-act="endTurn">${pass}</button>` : '';
+  // Nothing to decide (elder, lost power): just the one button.
+  if (t.powerless || t.role === 'elder') return `<div class="footer-row turn-row">${passBtn}</div>`;
+  return `<div class="footer-row turn-row">${extend}${passBtn}</div>`;
 }
 
 function renderGame() {
@@ -919,7 +921,7 @@ function renderGame() {
         <div id="hostBar"></div>
         <div id="hostTimers"></div>
         <section class="stage" id="stage"></section>
-        <section>
+        <section id="villageBox">
           <div class="row-between" style="margin-bottom:10px"><h3>Người chơi</h3><span class="muted small" id="aliveCount"></span></div>
           <div class="village" id="village"></div>
         </section>
@@ -959,6 +961,9 @@ function renderGame() {
   const total = view.players.filter(p => p.inGame).length;
   document.getElementById('aliveCount').textContent = `Còn sống ${alive}/${total}`;
   document.getElementById('village').innerHTML = view.players.filter(p => p.inGame).map(p => seat(p)).join('');
+  // While it is your turn the choices above already list everyone: one list
+  // is enough.
+  document.getElementById('villageBox').hidden = !!(view.phase === 'NIGHT' && view.me?.task);
   // The log reaches a moderator who does not play, or the host once the game
   // is over (then it opens by itself).
   const logBox = document.getElementById('logBox');
@@ -1538,24 +1543,9 @@ function updateClock() {
   label.textContent = secs >= 60 ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : `${secs}`;
   moon.classList.toggle('urgent', secs <= 5);
   moon.setAttribute('aria-label', `Còn ${secs} giây`);
-  tickCountdown(secs);
   highlightNarration();
 }
 
-// The host's phone ticks through the last 10 seconds of a timer, louder for
-// the final 3, so the whole table hears time running out. It stays quiet
-// while the narrator is talking.
-const TICK_PHASES = new Set(['NIGHT', 'DISCUSSION', 'VOTE', 'DEFENSE', 'JUDGE', 'VERDICT']);
-function tickCountdown(secs) {
-  if (!ticksOn || !audioOn() || !narrator.unlocked || narrator.speaking) return;
-  if (!TICK_PHASES.has(view.phase) || secs < 1 || secs > 10) return;
-  // At night only the action slot is timed; the call/sleep slots are speech.
-  if (view.phase === 'NIGHT' && view.game.nightStage !== 'act') return;
-  const key = `${view.phase}:${view.game.phaseEndsAt}:${secs}`;
-  if (key === lastTick) return;
-  lastTick = key;
-  narrator.sfx(secs <= 3 ? 'tickFinal' : 'tick');
-}
 setInterval(updateClock, 250);
 
 // ---------------------------------------------------------------------------
@@ -1626,10 +1616,6 @@ document.addEventListener('click', async (e) => {
       store('masoi_vibrate', vibrateOn ? 'on' : 'off');
       if (vibrateOn) navigator.vibrate?.(80);
       return;
-    case 'ticks':
-      ticksOn = el.checked;
-      store('masoi_ticks', ticksOn ? 'on' : 'off');
-      return;
     case 'ambience':
       return setAmbience(el.checked);
     case 'toggleAmbience':
@@ -1656,6 +1642,7 @@ document.addEventListener('click', async (e) => {
     case 'detectiveDone': return act('detectiveDone').then(() => act('endTurn'));
     case 'ack': return act('ack').then(() => act('endTurn'));
     case 'endTurn': return act('endTurn');
+    case 'extend': return act('extend');
     case 'thiefPick': {
       const card = view.me.task?.extras?.[Number(el.dataset.pick)];
       if (card && confirm(`Đổi sang lá ${ROLES[card].name}?`)) act('thief', { pick: Number(el.dataset.pick) });
