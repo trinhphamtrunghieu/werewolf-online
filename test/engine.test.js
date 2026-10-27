@@ -1766,67 +1766,49 @@ test('a result picked at the last second still gets its reading time', () => {
   assert.equal(g.s.game.phaseEndsAt, g.clock.now + 4000);
 });
 
-test('swap: one offer and one taker trade cards before the first night', () => {
+test('swap: two players in the pool trade cards; others only see how many', () => {
   const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
   const { s, P, act, untilPhase } = g;
   assert.equal(s.phase, 'SWAP');
-  assert.throws(() => act(P[1], 'swapAccept', {}), /Chưa có ai/);
-  act(P[0], 'swapRequest', {});
-  // Others only learn that someone wants to swap.
+  act(P[0], 'swapJoin', {});
   const other = viewFor(s, P[3].id, 0, 1);
-  assert.deepEqual(other.me.swap, { offers: 1, asked: false, accepted: false });
-  assert.ok(!JSON.stringify(other).includes('"requests"'));
-  assert.throws(() => act(P[0], 'swapAccept', {}), /muốn đổi/);
-  act(P[3], 'swapAccept', {});
+  assert.deepEqual(other.me.swap, { pool: 1, joined: false });
+  assert.ok(!JSON.stringify(other).includes(P[0].id + '"]'), 'nobody learns whose card is in the pool');
+  act(P[3], 'swapJoin', {});
+  assert.deepEqual(viewFor(s, P[3].id, 0, 1).me.swap, { pool: 2, joined: true });
   untilPhase('NIGHT');
   assert.equal(P[0].role, 'guard');
   assert.equal(P[3].role, 'seer');
   assert.ok(viewFor(s, P[0].id, 0, 1).me.notes.some(n => n.text.includes('Bảo Vệ')));
   assert.ok(!viewFor(s, P[0].id, 0, 1).me.notes.some(n => n.text.includes(P[3].name)), 'not told with whom');
-  assert.throws(() => act(P[2], 'swapRequest', {}), /trước đêm đầu/);
+  assert.throws(() => act(P[2], 'swapJoin', {}), /trước đêm đầu/);
 });
 
-test('swap: with several takers, the asker trades with one drawn at random', () => {
-  const partners = new Set();
-  for (let seed = 1; seed <= 12; seed++) {
-    const g = setup(['seer', 'werewolf', 'villager', 'guard', 'hunter', 'villager'], { config: { swapEnabled: true }, rng: seeded(seed) });
-    g.act(g.P[0], 'swapRequest', {});
-    [1, 3, 4].forEach(i => g.act(g.P[i], 'swapAccept', {}));
-    g.untilPhase('NIGHT');
-    const taker = [1, 3, 4].find(i => g.P[i].role === 'seer');
-    assert.ok(taker, 'someone took the seer card');
-    assert.equal(g.P[0].role, ['seer', 'werewolf', 'villager', 'guard', 'hunter'][taker]);
-    partners.add(taker);
-  }
-  assert.ok(partners.size > 1, 'not always the same taker');
-});
-
-test('swap: nobody accepts, nothing changes; two askers trade with each other', () => {
+test('swap: a card can be taken back out of the pool before time is up', () => {
   const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
-  g.act(g.P[0], 'swapRequest', {});
+  g.act(g.P[0], 'swapJoin', {});
+  g.act(g.P[3], 'swapJoin', {});
+  g.act(g.P[0], 'swapJoin', {});
   g.untilPhase('NIGHT');
   assert.equal(g.P[0].role, 'seer');
-  const h = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
-  h.act(h.P[0], 'swapRequest', {});
-  h.act(h.P[3], 'swapRequest', {});
-  h.untilPhase('NIGHT');
-  assert.equal(h.P[0].role, 'guard');
-  assert.equal(h.P[3].role, 'seer');
+  assert.equal(g.P[3].role, 'guard', 'alone in the pool: nothing changes');
+  assert.ok(viewFor(g.s, g.P[3].id, 0, 1).me.notes.some(n => n.text.includes('giữ nguyên')));
 });
 
-test('swap: a person who accepted is always picked before a bot', () => {
-  for (let seed = 1; seed <= 10; seed++) {
-    const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true }, rng: seeded(seed) });
-    g.P[1].isBot = true;
-    g.P[2].isBot = true;
-    g.act(g.P[0], 'swapRequest', {});
-    g.act(g.P[1], 'swapAccept', {});
-    g.act(g.P[2], 'swapAccept', {});
-    g.act(g.P[3], 'swapAccept', {});
-    g.untilPhase('REVEAL');
-    assert.equal(g.P[0].role, 'guard', `seed ${seed}`);
-    assert.equal(g.P[3].role, 'seer');
+test('swap: with several in the pool, everyone gets someone else\'s card at random', () => {
+  const outcomes = new Set();
+  for (let seed = 1; seed <= 20; seed++) {
+    const g = setup(['seer', 'werewolf', 'witch', 'guard', 'hunter', 'villager'], { config: { swapEnabled: true }, rng: seeded(seed) });
+    const before = [0, 2, 3, 4].map(i => g.P[i].role);
+    [0, 2, 3, 4].forEach(i => g.act(g.P[i], 'swapJoin', {}));
+    g.untilPhase('NIGHT');
+    const after = [0, 2, 3, 4].map(i => g.P[i].role);
+    after.forEach((role, k) => assert.notEqual(role, before[k], `seed ${seed}: someone kept their card`));
+    assert.deepEqual([...after].sort(), [...before].sort(), 'the same cards, dealt again');
+    assert.equal(g.P[1].role, 'werewolf', 'cards outside the pool stay put');
+    outcomes.add(after.join());
   }
+  assert.ok(outcomes.size > 1, 'not always the same deal');
 });
 
 // ---------------------------------------------------------------------------

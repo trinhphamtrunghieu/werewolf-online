@@ -446,6 +446,13 @@ function onTransitions(prev, next) {
   const task = next.me?.task;
   const taskKey = task ? `${phaseKey}:${task.role}` : null;
   if (taskKey && taskKey !== lastTaskKey && canVibrate && vibrateOn) navigator.vibrate([120, 80, 120]);
+  // A sheet left open (the card, the notes…) covers the whole screen: close
+  // it when the game starts and when it is your turn, so the choices can be
+  // tapped straight away.
+  const gameStarts = prev && ['SWAP', 'REVEAL'].includes(prev.phase) && next.phase === 'NIGHT';
+  if (gameStarts || (taskKey && taskKey !== lastTaskKey)) {
+    document.querySelectorAll('dialog[open]').forEach(d => d.close());
+  }
   lastTaskKey = taskKey;
 
   if (prev && prev.phase === 'LOBBY' && ['NIGHT', 'SWAP'].includes(next.phase) && next.me?.inGame) {
@@ -754,7 +761,7 @@ function musicControls() {
 }
 
 const SLIDERS = [
-  ['swapTime', 'Thời gian đổi vai', 5, 60, 5],
+  ['swapTime', 'Thời gian trao đổi vai', 5, 60, 5],
   ['discussionTime', 'Thảo luận', 30, 600, 15],
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
@@ -806,7 +813,7 @@ function settingsPanel() {
       </label>
       <label class="check">
         <input type="checkbox" data-config="swapEnabled" ${c.swapEnabled ? 'checked' : ''} />
-        <span><strong>Cho phép đổi vai</strong><span class="muted small">Sau khi chia bài, ai không thích vai của mình có thể đổi với người khác (ẩn danh) trước đêm đầu.</span></span>
+        <span><strong>Cho phép trao đổi vai</strong><span class="muted small">Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai” để đưa lá bài vào nhóm trao đổi; hết giờ các lá trong nhóm được chia lại ngẫu nhiên (ẩn danh).</span></span>
       </label>
       <p class="field-label" style="margin-top:8px">Thời gian thao tác của từng lượt đêm tính theo các lá bài trong ván.</p>
       ${timeSliders()}
@@ -891,7 +898,7 @@ const ROLE_GROUPS = [
 const PHASE_TITLE = {
   NIGHT: (g) => `Đêm ${g.day}`,
   MORNING: (g) => `Sáng ngày ${g.day}`,
-  SWAP: () => 'Đổi vai',
+  SWAP: () => 'Trao đổi vai',
   REVEAL: () => 'Xem lá bài',
   DISCUSSION: (g) => `Ngày ${g.day}: thảo luận`,
   VOTE: (g) => `Ngày ${g.day}: bỏ phiếu`,
@@ -1109,7 +1116,7 @@ function phaseSubtitle() {
       return `Quản trò đang gọi ${r.name} thức dậy.`;
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
-    case 'SWAP': return 'Ai muốn đổi lá bài thì đổi trước đêm đầu tiên.';
+    case 'SWAP': return 'Bấm “Trao đổi vai” nếu muốn nhận lá bài khác trước đêm đầu tiên.';
     case 'REVEAL': return 'Trò chơi sẽ bắt đầu sau 10 giây.';
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
@@ -1228,20 +1235,16 @@ function stage() {
     const hostSkip = isHost() ? '<button class="btn btn-ghost" data-act="skip">Bắt đầu đêm đầu tiên</button>' : '';
     if (!sw) {
       return `<div class="panel stack"><h2>Mọi người đang xem bài</h2>
-        <p class="lead">Người chơi có thể đổi lá bài với nhau trước đêm đầu tiên.</p>${hostSkip}</div>`;
+        <p class="lead">Người chơi có thể bấm “Trao đổi vai” trước đêm đầu tiên.</p>${hostSkip}</div>`;
     }
     return `
       <div class="panel stack">
         <h2>Xem lá bài của bạn</h2>
-        <p class="lead">Không thích vai của mình? Bạn có thể đề nghị đổi. Không ai biết ai đổi, cũng không ai biết vai gì được đổi.</p>
-        ${sw.offers ? `<p class="result">🔄 Có ${sw.offers} vai đang cần đổi.</p>` : '<p class="muted small">Chưa có ai cần đổi vai.</p>'}
-        ${sw.offers && !sw.asked
-          ? `<button class="btn ${sw.accepted ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapAccept" aria-pressed="${sw.accepted}">${sw.accepted ? '✅ Đã chấp nhận đổi (bấm để huỷ)' : 'Chấp nhận đổi'}</button>`
-          : ''}
-        <button class="btn btn-ghost btn-block" data-act="swapRequest" aria-pressed="${sw.asked}">${sw.asked ? 'Huỷ yêu cầu đổi vai' : '🔄 Tôi muốn đổi vai'}</button>
-        ${sw.asked ? '<p class="muted small">Đã gửi yêu cầu. Hết giờ, nếu có người nhận thì bạn sẽ đổi với một người trong số họ (chọn ngẫu nhiên).</p>' : ''}
-        ${sw.accepted ? '<p class="muted small">Hết giờ, nếu bạn được chọn thì lá bài của bạn sẽ được đổi.</p>' : ''}
-        <p class="muted small">Đổi xong, xem lại lá bài và 📜 Nhật ký.</p>
+        <p class="lead">Không thích vai của mình? Bấm “Trao đổi vai”: lá bài của bạn được đưa vào nhóm trao đổi. Hết giờ, các lá trong nhóm được chia lại ngẫu nhiên, mỗi người nhận lá của một người khác. Không ai biết ai trao đổi vai, cũng không biết vai gì.</p>
+        ${sw.pool ? `<p class="result">🔄 Đã có ${sw.pool} người bấm “Trao đổi vai”.</p>` : '<p class="muted small">Chưa có ai bấm “Trao đổi vai”.</p>'}
+        <button class="btn ${sw.joined ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapJoin" aria-pressed="${sw.joined}">${sw.joined ? '✅ Đã chọn trao đổi vai (bấm để huỷ)' : '🔄 Trao đổi vai'}</button>
+        ${sw.joined ? `<p class="muted small">${sw.pool > 1 ? 'Hết giờ bạn sẽ nhận lá bài của một người khác trong nhóm.' : 'Cần ít nhất một người nữa thì mới trao đổi được.'}</p>` : ''}
+        <p class="muted small">Sau khi trao đổi vai, xem lại lá bài và 📜 Nhật ký.</p>
         ${hostSkip}
       </div>`;
   }
@@ -1618,7 +1621,7 @@ function renderCard(reset = true) {
   if (m.wounded) extra.push('💪 Bạn đã bị Sói cắn: hết ngày hôm nay bạn sẽ chết vào đêm tới.');
   if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
-  if (m.swapped) extra.push('🔄 Bạn đã đổi lá bài với một người chơi khác trước đêm đầu.');
+  if (m.swapped) extra.push('🔄 Bạn đã trao đổi vai: lá bài này là của một người chơi khác.');
   if (m.turned) extra.push('🌑 Bạn là Sói Nguyền và đã bị Sói cắn: giờ bạn là Ma Sói, thức dậy và thắng cùng đàn Sói.');
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);
   if (m.charmed) {
@@ -1771,8 +1774,7 @@ document.addEventListener('click', async (e) => {
     case 'autoBalance': return act('autoBalance');
     case 'role': return act('role', { roleId: el.dataset.role, delta: Number(el.dataset.delta) });
     case 'pickRole': return act('pickRole', { roleId: el.dataset.role });
-    case 'swapRequest': return act('swapRequest');
-    case 'swapAccept': return act('swapAccept');
+    case 'swapJoin': return act('swapJoin');
     case 'start':
       narrator.unlock();
       return act('start');
