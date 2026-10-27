@@ -761,7 +761,7 @@ function musicControls() {
 }
 
 const SLIDERS = [
-  ['swapTime', 'Thời gian đổi vai', 5, 60, 5],
+  ['swapTime', 'Thời gian trao đổi vai', 5, 60, 5],
   ['discussionTime', 'Thảo luận', 30, 600, 15],
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
@@ -813,7 +813,7 @@ function settingsPanel() {
       </label>
       <label class="check">
         <input type="checkbox" data-config="swapEnabled" ${c.swapEnabled ? 'checked' : ''} />
-        <span><strong>Cho phép đổi vai</strong><span class="muted small">Sau khi chia bài, ai không thích vai của mình có thể đổi với người khác (ẩn danh) trước đêm đầu.</span></span>
+        <span><strong>Cho phép trao đổi vai</strong><span class="muted small">Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai” để đưa lá bài vào nhóm trao đổi; hết giờ các lá trong nhóm được chia lại ngẫu nhiên (ẩn danh).</span></span>
       </label>
       <p class="field-label" style="margin-top:8px">Thời gian thao tác của từng lượt đêm tính theo các lá bài trong ván.</p>
       ${timeSliders()}
@@ -1116,7 +1116,7 @@ function phaseSubtitle() {
       return `Quản trò đang gọi ${r.name} thức dậy.`;
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
-    case 'SWAP': return 'Ai muốn đổi vai thì bấm “Trao đổi vai” trước đêm đầu tiên.';
+    case 'SWAP': return 'Bấm “Trao đổi vai” nếu muốn nhận lá bài khác trước đêm đầu tiên.';
     case 'REVEAL': return 'Trò chơi sẽ bắt đầu sau 10 giây.';
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
@@ -1235,16 +1235,16 @@ function stage() {
     const hostSkip = isHost() ? '<button class="btn btn-ghost" data-act="skip">Bắt đầu đêm đầu tiên</button>' : '';
     if (!sw) {
       return `<div class="panel stack"><h2>Mọi người đang xem bài</h2>
-        <p class="lead">Người chơi có thể đổi lá bài với nhau trước đêm đầu tiên.</p>${hostSkip}</div>`;
+        <p class="lead">Người chơi có thể bấm “Trao đổi vai” trước đêm đầu tiên.</p>${hostSkip}</div>`;
     }
     return `
       <div class="panel stack">
         <h2>Xem lá bài của bạn</h2>
-        <p class="lead">Không thích vai của mình? Bấm “Trao đổi vai” để đưa lá bài vào nhóm trao đổi. Hết giờ, các lá trong nhóm được chia lại ngẫu nhiên, mỗi người nhận lá của một người khác. Không ai biết ai trao đổi, cũng không biết vai gì.</p>
-        ${sw.pool ? `<p class="result">🔄 Có ${sw.pool} lá bài trong nhóm trao đổi.</p>` : '<p class="muted small">Chưa có lá bài nào trong nhóm trao đổi.</p>'}
-        <button class="btn ${sw.joined ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapJoin" aria-pressed="${sw.joined}">${sw.joined ? '✅ Đã đưa lá bài vào (bấm để rút lại)' : '🔄 Trao đổi vai'}</button>
+        <p class="lead">Không thích vai của mình? Bấm “Trao đổi vai”: lá bài của bạn được đưa vào nhóm trao đổi. Hết giờ, các lá trong nhóm được chia lại ngẫu nhiên, mỗi người nhận lá của một người khác. Không ai biết ai trao đổi vai, cũng không biết vai gì.</p>
+        ${sw.pool ? `<p class="result">🔄 Đã có ${sw.pool} người bấm “Trao đổi vai”.</p>` : '<p class="muted small">Chưa có ai bấm “Trao đổi vai”.</p>'}
+        <button class="btn ${sw.joined ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapJoin" aria-pressed="${sw.joined}">${sw.joined ? '✅ Đã chọn trao đổi vai (bấm để huỷ)' : '🔄 Trao đổi vai'}</button>
         ${sw.joined ? `<p class="muted small">${sw.pool > 1 ? 'Hết giờ bạn sẽ nhận lá bài của một người khác trong nhóm.' : 'Cần ít nhất một người nữa thì mới trao đổi được.'}</p>` : ''}
-        <p class="muted small">Trao đổi xong, xem lại lá bài và 📜 Nhật ký.</p>
+        <p class="muted small">Sau khi trao đổi vai, xem lại lá bài và 📜 Nhật ký.</p>
         ${hostSkip}
       </div>`;
   }
@@ -1621,7 +1621,7 @@ function renderCard(reset = true) {
   if (m.wounded) extra.push('💪 Bạn đã bị Sói cắn: hết ngày hôm nay bạn sẽ chết vào đêm tới.');
   if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
   if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
-  if (m.swapped) extra.push('🔄 Bạn đã đổi lá bài với một người chơi khác trước đêm đầu.');
+  if (m.swapped) extra.push('🔄 Bạn đã trao đổi vai: lá bài này là của một người chơi khác.');
   if (m.turned) extra.push('🌑 Bạn là Sói Nguyền và đã bị Sói cắn: giờ bạn là Ma Sói, thức dậy và thắng cùng đàn Sói.');
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);
   if (m.charmed) {
