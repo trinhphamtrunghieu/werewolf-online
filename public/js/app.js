@@ -446,6 +446,13 @@ function onTransitions(prev, next) {
   const task = next.me?.task;
   const taskKey = task ? `${phaseKey}:${task.role}` : null;
   if (taskKey && taskKey !== lastTaskKey && canVibrate && vibrateOn) navigator.vibrate([120, 80, 120]);
+  // A sheet left open (the card, the notes…) covers the whole screen: close
+  // it when the game starts and when it is your turn, so the choices can be
+  // tapped straight away.
+  const gameStarts = prev && ['SWAP', 'REVEAL'].includes(prev.phase) && next.phase === 'NIGHT';
+  if (gameStarts || (taskKey && taskKey !== lastTaskKey)) {
+    document.querySelectorAll('dialog[open]').forEach(d => d.close());
+  }
   lastTaskKey = taskKey;
 
   if (prev && prev.phase === 'LOBBY' && ['NIGHT', 'SWAP'].includes(next.phase) && next.me?.inGame) {
@@ -891,7 +898,7 @@ const ROLE_GROUPS = [
 const PHASE_TITLE = {
   NIGHT: (g) => `Đêm ${g.day}`,
   MORNING: (g) => `Sáng ngày ${g.day}`,
-  SWAP: () => 'Đổi vai',
+  SWAP: () => 'Trao đổi vai',
   REVEAL: () => 'Xem lá bài',
   DISCUSSION: (g) => `Ngày ${g.day}: thảo luận`,
   VOTE: (g) => `Ngày ${g.day}: bỏ phiếu`,
@@ -1109,7 +1116,7 @@ function phaseSubtitle() {
       return `Quản trò đang gọi ${r.name} thức dậy.`;
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
-    case 'SWAP': return 'Ai muốn đổi lá bài thì đổi trước đêm đầu tiên.';
+    case 'SWAP': return 'Ai muốn đổi vai thì bấm “Trao đổi vai” trước đêm đầu tiên.';
     case 'REVEAL': return 'Trò chơi sẽ bắt đầu sau 10 giây.';
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
@@ -1233,15 +1240,11 @@ function stage() {
     return `
       <div class="panel stack">
         <h2>Xem lá bài của bạn</h2>
-        <p class="lead">Không thích vai của mình? Bạn có thể đề nghị đổi. Không ai biết ai đổi, cũng không ai biết vai gì được đổi.</p>
-        ${sw.offers ? `<p class="result">🔄 Có ${sw.offers} vai đang cần đổi.</p>` : '<p class="muted small">Chưa có ai cần đổi vai.</p>'}
-        ${sw.offers && !sw.asked
-          ? `<button class="btn ${sw.accepted ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapAccept" aria-pressed="${sw.accepted}">${sw.accepted ? '✅ Đã chấp nhận đổi (bấm để huỷ)' : 'Chấp nhận đổi'}</button>`
-          : ''}
-        <button class="btn btn-ghost btn-block" data-act="swapRequest" aria-pressed="${sw.asked}">${sw.asked ? 'Huỷ yêu cầu đổi vai' : '🔄 Tôi muốn đổi vai'}</button>
-        ${sw.asked ? '<p class="muted small">Đã gửi yêu cầu. Hết giờ, nếu có người nhận thì bạn sẽ đổi với một người trong số họ (chọn ngẫu nhiên).</p>' : ''}
-        ${sw.accepted ? '<p class="muted small">Hết giờ, nếu bạn được chọn thì lá bài của bạn sẽ được đổi.</p>' : ''}
-        <p class="muted small">Đổi xong, xem lại lá bài và 📜 Nhật ký.</p>
+        <p class="lead">Không thích vai của mình? Bấm “Trao đổi vai” để đưa lá bài vào nhóm trao đổi. Hết giờ, các lá trong nhóm được chia lại ngẫu nhiên, mỗi người nhận lá của một người khác. Không ai biết ai trao đổi, cũng không biết vai gì.</p>
+        ${sw.pool ? `<p class="result">🔄 Có ${sw.pool} lá bài trong nhóm trao đổi.</p>` : '<p class="muted small">Chưa có lá bài nào trong nhóm trao đổi.</p>'}
+        <button class="btn ${sw.joined ? 'btn-good' : 'btn-primary'} btn-block" data-act="swapJoin" aria-pressed="${sw.joined}">${sw.joined ? '✅ Đã đưa lá bài vào (bấm để rút lại)' : '🔄 Trao đổi vai'}</button>
+        ${sw.joined ? `<p class="muted small">${sw.pool > 1 ? 'Hết giờ bạn sẽ nhận lá bài của một người khác trong nhóm.' : 'Cần ít nhất một người nữa thì mới trao đổi được.'}</p>` : ''}
+        <p class="muted small">Trao đổi xong, xem lại lá bài và 📜 Nhật ký.</p>
         ${hostSkip}
       </div>`;
   }
@@ -1771,8 +1774,7 @@ document.addEventListener('click', async (e) => {
     case 'autoBalance': return act('autoBalance');
     case 'role': return act('role', { roleId: el.dataset.role, delta: Number(el.dataset.delta) });
     case 'pickRole': return act('pickRole', { roleId: el.dataset.role });
-    case 'swapRequest': return act('swapRequest');
-    case 'swapAccept': return act('swapAccept');
+    case 'swapJoin': return act('swapJoin');
     case 'start':
       narrator.unlock();
       return act('start');
