@@ -69,6 +69,9 @@ const PAD_LEVEL = 0.045;
 const WIND_LEVEL = 0.07;
 const RAIN_LEVEL = 0.05;
 const DUCKED = 0.3; // fraction of the volume left while the narrator talks
+// How loud each mood plays, against the volume the player set: quieter by day
+// (discussion and votes) so people can hear each other.
+const MOOD_LEVEL = { night: 1, day: 0.35, tense: 0.45 };
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
@@ -195,6 +198,7 @@ export class Ambience {
     this.mood = mood;
     this.moodName = moodName;
     this.padVoices.forEach((o, i) => o.frequency.setTargetAtTime(mood.pad[i], t, 0.8));
+    this.applyLevel(3);
     this.windGain.gain.setTargetAtTime(WIND_LEVEL * mood.wind, t, 1.2);
     this.rainGain.gain.setTargetAtTime(RAIN_LEVEL * (mood.rain || 0), t, 1.2);
   }
@@ -211,7 +215,9 @@ export class Ambience {
 
   applyLevel(seconds) {
     if (!this.running) return;
-    const level = Math.max(0.0001, this.volume * (this.ducked ? DUCKED : 1));
+    // By day the village talks: the music steps back on its own.
+    const mood = MOOD_LEVEL[this.moodName] ?? 1;
+    const level = Math.max(0.0001, this.volume * mood * (this.ducked ? DUCKED : 1));
     this.master.gain.setTargetAtTime(level, this.ctx.currentTime, seconds / 3);
   }
 
