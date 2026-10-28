@@ -2337,3 +2337,27 @@ test('the Hồn Ma never watches, since it still talks to the village', () => {
   g.untilPhase('MORNING');
   assert.ok(!viewFor(g.s, g.P[0].id, 0, 1).me.spectator);
 });
+
+test('the dead only watch when nobody can come back at all', () => {
+  // No Thầy Đồng in the game: watching at once.
+  const a = setup(['seer', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  bite(a, a.P[1], a.P[3]);
+  a.untilPhase('MORNING');
+  assert.equal(viewFor(a.s, a.P[3].id, 0, 1).me.spectator, true);
+  // A Kẻ Song Trùng who chose the Thầy Đồng takes over when the Thầy Đồng
+  // dies, power and all: still no watching.
+  const b = setup(['medium', 'werewolf', 'doppelganger', 'villager', 'villager', 'villager', 'villager']);
+  b.untilNightRole('doppelganger');
+  b.act(b.P[2], 'night', { target: b.P[0].id });
+  bite(b, b.P[1], b.P[0]);
+  b.untilPhase('MORNING');
+  assert.equal(b.P[2].role, 'medium');
+  assert.ok(!viewFor(b.s, b.P[0].id, 0, 1).me.spectator, 'the new Thầy Đồng could still revive');
+  // The Thầy Đồng lost the power with the Elder: nobody can come back.
+  const c = setup(['medium', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  bite(c, c.P[1], c.P[3]);
+  c.untilPhase('MORNING');
+  assert.ok(!viewFor(c.s, c.P[3].id, 0, 1).me.spectator);
+  c.s.game.powersLost = true;
+  assert.equal(viewFor(c.s, c.P[3].id, 0, 1).me.spectator, true);
+});
