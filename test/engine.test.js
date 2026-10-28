@@ -2361,7 +2361,9 @@ test('the dead only watch when nobody can come back at all', () => {
   c.untilPhase('MORNING');
   assert.ok(!viewFor(c.s, c.P[3].id, 0, 1).me.spectator);
   c.s.game.powersLost = true;
-  assert.equal(viewFor(c.s, c.P[3].id, 0, 1).me.spectator, true);
+  nextNight(c);
+  c.untilNightRole('werewolf');
+  assert.equal(viewFor(c.s, c.P[3].id, 0, 1).me.spectator, true, 'from the next night');
 });
 
 test('with cards turned over on death, a dead Kẻ Song Trùng shows its own card', () => {
@@ -2377,4 +2379,40 @@ test('with cards turned over on death, a dead Kẻ Song Trùng shows its own car
   const v = viewFor(g.s, g.P[4].id, 0, 1);
   assert.equal(v.players[2].role, 'seer');
   assert.equal(v.players[0].role, 'doppelganger', 'not a second Seer');
+});
+
+test('the dead start watching only the night after the Thầy Đồng used the power', () => {
+  const g = setup(['medium', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  bite(g, g.P[1], g.P[3]);
+  g.untilPhase('MORNING');
+  nextNight(g);
+  bite(g, g.P[1], g.P[4]);
+  g.untilNightRole('medium');
+  g.act(g.P[0], 'night', { target: g.P[3].id });
+  // The power is spent, but this night stays closed: the one coming back
+  // must not see anything.
+  assert.ok(!viewFor(g.s, g.P[3].id, 0, 1).me.spectator, 'the one being revived sees nothing');
+  assert.equal(viewFor(g.s, g.P[3].id, 0, 1).players[1].role, null);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[3].alive, true);
+  assert.equal(g.P[4].alive, false);
+  assert.ok(!viewFor(g.s, g.P[4].id, 0, 1).me.spectator, 'not by day either');
+  nextNight(g);
+  g.untilNightRole('werewolf');
+  assert.equal(viewFor(g.s, g.P[4].id, 0, 1).me.spectator, true, 'the next night it opens');
+  assert.ok(!viewFor(g.s, g.P[3].id, 0, 1).me.spectator, 'the revived one is alive');
+});
+
+test('the dead start watching only the night after the Thầy Đồng died', () => {
+  const g = setup(['medium', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  bite(g, g.P[1], g.P[3]);
+  g.untilPhase('MORNING');
+  nextNight(g);
+  bite(g, g.P[1], g.P[0]);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].alive, false);
+  assert.ok(!viewFor(g.s, g.P[3].id, 0, 1).me.spectator, 'not the morning it died');
+  nextNight(g);
+  g.untilNightRole('werewolf');
+  assert.equal(viewFor(g.s, g.P[3].id, 0, 1).me.spectator, true);
 });
