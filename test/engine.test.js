@@ -2305,9 +2305,11 @@ test('the dead watch the whole game once nobody can bring them back', () => {
   g.untilPhase('MORNING');
   const v = viewFor(g.s, g.P[3].id, 0, 1);
   assert.equal(v.me.spectator, true);
-  assert.equal(v.players[1].role, 'werewolf', 'roles shown');
+  assert.equal(v.players[1].role, null, 'no roles by day');
+  assert.deepEqual(v.game.log, [], 'nor the log');
   nextNight(g);
   g.untilNightRole('werewolf');
+  assert.equal(viewFor(g.s, g.P[3].id, 0, 1).players[1].role, 'werewolf', 'roles shown by night');
   g.act(g.P[1], 'night', { target: g.P[4].id });
   const w = viewFor(g.s, g.P[3].id, 0, 1).me.watch;
   assert.match(w.live, /Ma Sói|Bầy Sói|Sói/);
@@ -2360,4 +2362,19 @@ test('the dead only watch when nobody can come back at all', () => {
   assert.ok(!viewFor(c.s, c.P[3].id, 0, 1).me.spectator);
   c.s.game.powersLost = true;
   assert.equal(viewFor(c.s, c.P[3].id, 0, 1).me.spectator, true);
+});
+
+test('with cards turned over on death, a dead Kẻ Song Trùng shows its own card', () => {
+  const g = setup(['doppelganger', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager'], { config: { revealRoleOnDeath: true } });
+  g.untilNightRole('doppelganger');
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  bite(g, g.P[1], g.P[2]);
+  g.untilPhase('MORNING');
+  assert.equal(g.P[0].role, 'seer');
+  nextNight(g);
+  bite(g, g.P[1], g.P[0]);
+  g.untilPhase('MORNING');
+  const v = viewFor(g.s, g.P[4].id, 0, 1);
+  assert.equal(v.players[2].role, 'seer');
+  assert.equal(v.players[0].role, 'doppelganger', 'not a second Seer');
 });

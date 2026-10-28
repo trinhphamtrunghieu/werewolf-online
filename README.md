@@ -33,7 +33,7 @@ Trạng thái kết nối chỉ hiện cho chủ phòng. Nếu chủ phòng cũn
 3. **Bảo Vệ**: chọn 1 người để bảo vệ (không trùng người của đêm trước; đêm đầu không được tự bảo vệ mình).
 4. **Ma Sói** (cùng Sói Con, Sói Báo Thù và Sói Đơn Độc): nhận diện đồng đội và thống nhất chọn nạn nhân (cắn cả đồng bọn hay chính mình cũng được), hoặc chọn không cắn ai. Mỗi con Sói thấy các con khác đang chọn gì và đàn đã thống nhất chưa. "Không cắn ai" không tính là phiếu. Hết giờ mà chưa thống nhất thì người được chọn nhiều nhất bị cắn (hoà thì bốc thăm); chỉ khi không con nào chọn ai mới không ai bị cắn. Nhật ký ván ghi lại từng con Sói đã chọn ai (2 nạn nhân vào đêm sau khi Sói Con chết).
 
-**Người đã chết theo dõi ván:** khi không còn ai hồi sinh được (không có Thầy Đồng còn sống chưa dùng năng lực), người đã chết thấy vai của mọi người, nhật ký ván và diễn biến từng lượt đêm (Sói đang chọn ai, Phù Thủy làm gì…). Hồn Ma không được xem vì vẫn gửi chữ cho dân làng.
+**Người đã chết theo dõi ván:** khi không còn ai hồi sinh được (không có Thầy Đồng còn sống chưa dùng năng lực), người đã chết được theo dõi **ban đêm**: vai của mọi người, nhật ký ván và diễn biến từng lượt (Sói đang chọn ai, Phù Thủy làm gì…). **Ban ngày** màn hình của họ không hiện vai của ai, để người ngồi cạnh liếc qua cũng không biết gì. Hồn Ma không được xem vì vẫn gửi chữ cho dân làng.
 
 **Nhạc nền** tự nhỏ lại vào ban ngày (thảo luận, bỏ phiếu) để mọi người nghe rõ nhau, và to lại khi đêm xuống.
 5. **Sói Báo Thù**: chọn người sẽ chết theo nếu mình bị treo cổ.
