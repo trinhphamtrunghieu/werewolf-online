@@ -1149,7 +1149,7 @@ function seat(p, opts = {}) {
   // mates (a neighbour could glance at it): your own role and wolf mates live
   // in the card sheet and night panel. Shown at the end, to a moderator who
   // is not playing, and for the dead when the host turned that on.
-  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || (!p.alive && view.config.revealRoleOnDeath);
+  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || view.me?.spectator || (!p.alive && view.config.revealRoleOnDeath);
   const role = p.role && showRole ? ROLES[p.role] : null;
   const roleName = role && (p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name);
   const isMe = p.id === view.me?.id;
@@ -1190,6 +1190,7 @@ function dayNews() {
   if (g.ghostLetter) items.push(`<p>👻 Hồn Ma để lại chữ: <span class="ghost-letter">${esc(g.ghostLetter)}</span></p>`);
   if (g.banished) items.push(`<p>🧙‍♀️ <strong>${esc(nameOnly(g.banished))}</strong> bị đuổi khỏi làng hôm nay: không thảo luận, không bỏ phiếu, không bị bỏ phiếu.</p>`);
   if (g.muted) items.push(`<p>🤐 <strong>${esc(nameOnly(g.muted))}</strong> bị phong ấn: không được nói hôm nay (vẫn bỏ phiếu được).</p>`);
+  if (view.me?.spectator) items.push('<p class="muted small">👁️ Bạn đã chết và không còn ai hồi sinh được: bạn thấy vai của mọi người và nhật ký ván. Hãy giữ im lặng.</p>');
   return items.length ? `<div class="day-news panel">${items.join('')}</div>` : '';
 }
 
@@ -1200,7 +1201,7 @@ function stage() {
 
   if (view.phase === 'NIGHT') {
     if (task) return nightTask(task);
-    if (m.moderatorNight) return moderatorNight();
+    if (m.watch) return watchNight();
     const r = stepInfo(g.activeRole);
     return `
       <div class="panel sleep">
@@ -1430,13 +1431,24 @@ function nightTask(task) {
     };
     const packList = pack.length > 1 ? `<ul class="vote-list">${pack.map(id => `
       <li><strong>${esc(seatName(id))}${id === m.id ? ' (bạn)' : ''}</strong> → ${pickOf(id)}</li>`).join('')}</ul>` : '';
+    // Where the pack stands: agreed (a few seconds to look), split, or still choosing.
+    const picked = pack.filter(id => task.votes[id]?.length);
+    const leaders = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const agreedOn = task.complete
+      ? (Object.keys(counts).length ? esc(Object.keys(counts).map(seatName).join(' và ')) : 'không cắn ai')
+      : null;
+    const status = task.complete
+      ? `<p class="result result-wolf" style="margin-top:12px">✅ Cả đàn đã thống nhất: <strong>${agreedOn}</strong>. Còn vài giây để đổi ý, nếu không sẽ nhắm mắt.</p>`
+      : picked.length === pack.length && pack.length > 1
+      ? `<p class="result" style="margin-top:12px">⚠️ Đàn chưa thống nhất${leaders.length ? ` (nhiều phiếu nhất: <strong>${esc(seatName(leaders[0][0]))}</strong>, ${leaders[0][1]} phiếu)` : ''}. Hãy chọn lại cho trùng nhau. Hết giờ mà vẫn chưa thống nhất thì người nhiều phiếu nhất bị cắn (hoà thì bốc thăm).</p>`
+      : pack.length > 1 ? `<p class="muted small" style="margin-top:12px">Đã chọn: ${picked.length}/${pack.length} con Sói.</p>` : '';
     return `<div class="panel">${head('werewolf', two ? 'Sói Con đã chết: đêm nay cắn 2 người' : 'Chọn con mồi', mates.length
-      ? `Chọn ${two ? 'hai người' : 'một người'} để cắn (cắn cả đồng bọn cũng được). Cả đàn chọn xong là sang lượt tiếp; người được chọn nhiều nhất bị cắn. "Không cắn ai" không tính là phiếu.`
+      ? `Chọn ${two ? 'hai người' : 'một người'} để cắn (cắn cả đồng bọn hay chính mình cũng được). Lượt chỉ kết thúc sớm khi cả đàn chọn trùng nhau; "Không cắn ai" không tính là phiếu.`
       : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn, hoặc không cắn ai.`)}
       ${packList}
-      ${task.complete ? '<p class="result" style="margin-top:12px">Cả đàn đã chọn xong. Chuẩn bị nhắm mắt…</p>' : ''}
-      ${`${pickGrid('night', { exclude: [m.id], selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])) })}
-          <button class="btn ${mineNone ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:12px" data-act="noKill" aria-pressed="${mineNone}">🚫 Không cắn ai${noKillVotes ? ` (${noKillVotes})` : ''}</button>`}</div>`;
+      ${status}
+      ${pickGrid('night', { selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: { ...Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])), [m.id]: 'Bạn' } })}
+      <button class="btn ${mineNone ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:12px" data-act="noKill" aria-pressed="${mineNone}">🚫 Không cắn ai${noKillVotes ? ` (${noKillVotes})` : ''}</button></div>`;
   }
   if (task.role === 'detective') {
     if (task.result) {
@@ -1576,30 +1588,22 @@ function nightTask(task) {
   return '';
 }
 
-function moderatorNight() {
-  const g = view.game;
-  const n = view.me.moderatorNight;
-  const r = stepInfo(g.activeRole);
-  const line = (label, id) => id ? `<p class="small">${label}: <strong>${esc(nameOnly(id))}</strong></p>` : '';
-  const names = (ids) => esc(ids.map(nameOnly).join(', '));
+// The whole night as it happens, for a moderator who does not play and for
+// the dead once nobody can bring them back.
+function watchNight() {
+  const w = view.me.watch;
+  const lead = view.me.spectator
+    ? 'Bạn đã chết và không còn ai hồi sinh được, nên bạn được xem toàn bộ diễn biến. Hãy giữ im lặng, đừng để lộ cho người còn sống.'
+    : 'Chỉ bạn thấy được bảng này.';
   return `
     <div class="panel stack">
-      <h2>Bảng quản trò</h2>
-      <p class="lead">${r ? `Đang gọi ${r.name}.` : ''} Chỉ bạn thấy được bảng này.</p>
-      ${n.thiefExtras?.length ? `<p class="small">Lá dư: <strong>${n.thiefExtras.map(id => ROLES[id].name).join(', ')}</strong>${n.thiefTook ? `. Ăn Trộm đã lấy ${ROLES[n.thiefTook].name}` : ''}</p>` : ''}
-      ${n.lovers.length ? `<p class="small">Tình Nhân: <strong>${esc(n.lovers.map(nameOnly).join(' và '))}</strong></p>` : ''}
-      ${n.piperPicks.length ? `<p class="small">Thổi Sáo chọn đêm nay: <strong>${names(n.piperPicks)}</strong></p>` : ''}
-      ${n.charmed.length ? `<p class="small">Đã bị thôi miên: <strong>${names(n.charmed)}</strong></p>` : ''}
-      ${line('Bảo Vệ chọn', n.guard)}
-      ${line('Thợ Săn chĩa súng', n.hunterAim)}
-      ${n.wolfTargets?.length ? `<p class="small">Sói cắn${n.wolfKills === 2 ? ' (2 người)' : ''}: <strong>${names(n.wolfTargets)}</strong></p>` : ''}
-      ${line('Mục Sư vẩy nước thánh', n.holy)}
-      ${line('Thầy Đồng hồi sinh', n.revive)}
-      ${line('Sói Báo Thù nhắm', n.avengerAim)}
-      ${n.detectivePicks?.length ? `<p class="small">Thám Tử kiểm tra: <strong>${names(n.detectivePicks)}</strong>${n.detectiveResult ? ` (${n.detectiveResult === 'same' ? 'cùng phe' : 'khác phe'})` : ''}</p>` : ''}
-      ${line('Tiên Tri soi', n.seerTarget)}
-      ${n.heal ? '<p class="small">Phù Thủy đã dùng bình Cứu.</p>' : ''}
-      ${line('Phù Thủy đầu độc', n.poison)}
+      <h2>${view.me.spectator ? '👁️ Theo dõi đêm nay' : 'Bảng quản trò'}</h2>
+      <p class="lead">${lead}</p>
+      ${w.live ? `<p class="result">${esc(w.live)}</p>` : ''}
+      ${w.thiefExtras?.length ? `<p class="small">Lá dư của Ăn Trộm: <strong>${w.thiefExtras.map(id => ROLES[id]?.name || id).join(', ')}</strong></p>` : ''}
+      ${w.lines.length
+        ? `<ul class="log">${w.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>`
+        : '<p class="muted small">Đêm nay chưa có gì xảy ra.</p>'}
     </div>`;
 }
 
