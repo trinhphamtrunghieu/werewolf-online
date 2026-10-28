@@ -1190,7 +1190,7 @@ function dayNews() {
   if (g.ghostLetter) items.push(`<p>👻 Hồn Ma để lại chữ: <span class="ghost-letter">${esc(g.ghostLetter)}</span></p>`);
   if (g.banished) items.push(`<p>🧙‍♀️ <strong>${esc(nameOnly(g.banished))}</strong> bị đuổi khỏi làng hôm nay: không thảo luận, không bỏ phiếu, không bị bỏ phiếu.</p>`);
   if (g.muted) items.push(`<p>🤐 <strong>${esc(nameOnly(g.muted))}</strong> bị phong ấn: không được nói hôm nay (vẫn bỏ phiếu được).</p>`);
-  if (view.me?.spectator) items.push('<p class="muted small">👁️ Bạn đã chết và không còn ai hồi sinh được: bạn thấy vai của mọi người và nhật ký ván. Hãy giữ im lặng.</p>');
+  if (view.me?.spectator) items.push('<p class="muted small">👁️ Bạn đã chết và không còn ai hồi sinh được: ban đêm bạn được theo dõi diễn biến và vai của mọi người. Ban ngày màn hình không hiện vai của ai; hãy giữ im lặng.</p>');
   return items.length ? `<div class="day-news panel">${items.join('')}</div>` : '';
 }
 
