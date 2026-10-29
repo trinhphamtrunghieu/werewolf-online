@@ -1624,7 +1624,10 @@ function renderCard(reset = true) {
   if (m.copied) extra.push('🎭 Bạn là Kẻ Song Trùng và đã nhận vai này từ người bạn theo bóng.');
   if (m.wounded) extra.push('💪 Bạn đã bị Sói cắn: hết ngày hôm nay bạn sẽ chết vào đêm tới.');
   if (m.avengerTarget) extra.push(`🗡️ Nếu bạn bị treo cổ, ${seatName(m.avengerTarget)} sẽ chết theo.`);
-  if (m.lover) extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}`);
+  if (m.lover) {
+    const lr = player(m.lover)?.role;
+    extra.push(`💘 Người yêu của bạn: ${seatName(m.lover)}${lr ? ` (${player(m.lover).turned ? 'Sói Nguyền đã hoá Sói' : ROLES[lr].name})` : ''}`);
+  }
   if (m.swapped) extra.push('🔄 Bạn đã trao đổi vai: lá bài này là của một người chơi khác.');
   if (m.turned) extra.push('🌑 Bạn là Sói Nguyền và đã bị Sói cắn: giờ bạn là Ma Sói, thức dậy và thắng cùng đàn Sói.');
   if (m.wasThief && m.role !== 'thief') extra.push(`🦝 Bạn là Ăn Trộm và đã đổi sang lá ${r.name}.`);

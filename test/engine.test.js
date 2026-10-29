@@ -584,6 +584,8 @@ test('no player ever learns another player\'s role or secret before the game end
         }
         for (const o of v.players) {
           if (o.id === p.id || !o.role) continue;
+          // The couple see each other's card.
+          if (s.game.lovers.includes(p.id) && s.game.lovers.includes(o.id)) continue;
           const pack = ['werewolf', 'wolf_cub', 'avenger'];
           assert.ok(pack.includes(p.role) && pack.includes(o.role), `seed ${seed}: ${p.role} saw a ${o.role}`);
         }
@@ -2415,4 +2417,42 @@ test('the dead start watching only the night after the Thầy Đồng died', () 
   nextNight(g);
   g.untilNightRole('werewolf');
   assert.equal(viewFor(g.s, g.P[3].id, 0, 1).me.spectator, true);
+});
+
+test('lovers see each other\'s card once paired', () => {
+  const g = setup(['cupid', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
+  g.untilNightRole('cupid');
+  g.act(g.P[0], 'night', { target: g.P[1].id });
+  g.act(g.P[0], 'night', { target: g.P[2].id });
+  g.untilPhase('MORNING');
+  assert.equal(viewFor(g.s, g.P[2].id, 0, 1).players[1].role, 'werewolf');
+  assert.equal(viewFor(g.s, g.P[1].id, 0, 1).players[2].role, 'seer');
+  assert.equal(viewFor(g.s, g.P[0].id, 0, 1).players[1].role, null, 'Cupid does not');
+});
+
+test('a cross-side couple is its own side: the wolf in love does not count with the pack', () => {
+  const g = setup(['cupid', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  g.s.game.lovers = [g.P[1].id, g.P[3].id]; // a wolf and a villager
+  // Alive: wolf P2, the couple P1+P3, villager P4 → 1 wolf against 3: not over.
+  [0, 5, 6, 7].forEach(i => { g.P[i].alive = false; });
+  assert.equal(checkWin(g.s), null);
+  // Alive: wolf P2 and the couple → 1 wolf against 2: still not over
+  // (before, the wolf in love counted with the pack and the wolves won).
+  g.P[4].alive = false;
+  assert.equal(checkWin(g.s), null);
+  // The plain wolf dies: no wolves left, but the couple is alive → not the village's win.
+  g.P[2].alive = false;
+  assert.equal(checkWin(g.s).winner, 'lovers', 'the couple are the last two');
+  const h = setup(['cupid', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'villager']);
+  h.s.game.lovers = [h.P[1].id, h.P[3].id];
+  [0, 2, 5, 6].forEach(i => { h.P[i].alive = false; });
+  // Alive: the couple and two villagers, no other wolf: the village has not won yet.
+  assert.equal(checkWin(h.s), null);
+});
+
+test('a same-side couple plays with its side as before', () => {
+  const g = setup(['cupid', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+  g.s.game.lovers = [g.P[2].id, g.P[3].id];
+  g.P[1].alive = false;
+  assert.equal(checkWin(g.s).winner, 'village');
 });
