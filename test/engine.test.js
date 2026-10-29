@@ -2456,3 +2456,23 @@ test('a same-side couple plays with its side as before', () => {
   g.P[1].alive = false;
   assert.equal(checkWin(g.s).winner, 'village');
 });
+
+test('the Thám Tử sees a cross-side couple as a side of its own; the Seer still sees the wolf', () => {
+  const run = (a, b) => {
+    const g = setup(['detective', 'werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager']);
+    g.s.game.lovers = [g.P[1].id, g.P[4].id]; // a wolf and a villager
+    g.untilNightRole('detective');
+    g.act(g.P[0], 'night', { target: g.P[a].id });
+    g.act(g.P[0], 'night', { target: g.P[b].id });
+    return g.s.game.night.detectiveResult;
+  };
+  assert.equal(run(1, 4), 'same', 'the couple');
+  assert.equal(run(1, 2), 'different', 'the wolf in love and another wolf');
+  assert.equal(run(4, 5), 'different', 'the villager in love and another villager');
+  assert.equal(run(2, 6), 'different', 'a plain wolf and a villager, as ever');
+  const g = setup(['detective', 'werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager']);
+  g.s.game.lovers = [g.P[1].id, g.P[4].id];
+  g.untilNightRole('seer');
+  g.act(g.P[3], 'night', { target: g.P[1].id });
+  assert.equal(g.s.game.night.seerResult, 'werewolf');
+});
