@@ -150,7 +150,7 @@ export const ROLES = {
     icon: '💘',
     color: '#ff8cc6',
     short: 'Đêm đầu ghép đôi 2 người thành Tình Nhân.',
-    description: 'Đêm đầu tiên chọn 2 người làm Tình Nhân (có thể chọn chính mình). Cặp đôi không bị gọi dậy: tên người kia hiện trên lá bài của họ. Nếu 1 người chết, người kia chết theo. Nếu cặp đôi khác phe và là 2 người cuối cùng còn sống, họ cùng thắng.',
+    description: 'Đêm đầu tiên chọn 2 người làm Tình Nhân (có thể chọn chính mình). Cặp đôi không bị gọi dậy: tên và vai của người kia hiện trên lá bài của họ. Nếu 1 người chết, người kia chết theo. Cặp đôi cùng phe thì thắng cùng phe đó. Cặp đôi khác phe thành một phe riêng (không còn tính vào phe cũ) và chỉ thắng khi là 2 người cuối cùng còn sống.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <path d="M50 78C50 78 22 58 22 38C22 27 31 20 40 20C46 20 50 25 50 28C50 25 54 20 60 20C69 20 78 27 78 38C78 58 50 78 50 78Z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/>
       <path d="M22 76L78 24M78 24H64M78 24V38" stroke="#fbcfe8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -225,7 +225,7 @@ export const ROLES = {
     icon: '🕵️',
     color: '#8fd3c8',
     short: 'Mỗi đêm chọn 2 người, biết họ có cùng phe không.',
-    description: 'Mỗi đêm chọn 2 người. Bạn sẽ biết hai người đó có cùng phe hay không (có 3 phe: Sói, Dân và phe thứ ba gồm Người Thổi Sáo, Kẻ Cuồng Loạn), nhưng không biết họ thuộc phe nào.',
+    description: 'Mỗi đêm chọn 2 người. Bạn sẽ biết hai người đó có cùng phe hay không (các phe: Sói, Dân, phe thứ ba như Người Thổi Sáo, Kẻ Cuồng Loạn, Kẻ Côn Đồ; cặp Tình Nhân khác phe còn sống cả hai được tính là một phe riêng), nhưng không biết họ thuộc phe nào. Phe được xét theo hiện tại (Sói Nguyền đã hoá Sói tính là Sói).',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="44" cy="44" r="20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="4"/>
       <path d="M58 58L78 78" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
