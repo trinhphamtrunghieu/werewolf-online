@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createRoom, joinRoom, applyAction, tick, viewFor, checkWin, authenticate, cleanName, GameError, resolveHostVote
+  createRoom, joinRoom, applyAction, tick, viewFor, checkWin, isWinner, sideOf, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
 import { computeBalancedRoles, validateRoleCounts, totalRoles, balanceScore, emptyRoleCounts as emptyCounts, MAX_PLAYERS } from '../public/shared/roles.js';
 import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests } from '../lib/store.js';
@@ -207,6 +207,45 @@ test('hunter aims at night; when lynched, the aimed player dies too and win is c
   assert.equal(s.phase, 'GAME_OVER');
   assert.equal(s.game.winner, 'village');
   assert.ok(!s.narration.clips.some(c => c.k === 'hunter_fire'), 'no gunshot line: it would expose the Hunter');
+});
+
+test('the leaderboard counts each finished game by player and side', () => {
+  const { s, P, act, endPhase, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'minion']);
+  untilNightRole('hunter');
+  act(P[0], 'night', { target: P[1].id });
+  untilPhase('VOTE');
+  const voters = P.filter(p => p.alive && p.id !== P[0].id);
+  voters.forEach(v => act(v, 'vote', { target: P[0].id }));
+  untilPhase('JUDGE');
+  voters.forEach(v => act(v, 'judge', { choice: 'kill' }));
+  endPhase();
+  assert.equal(s.game.winner, 'village');
+  const st = viewFor(s, P[2].id, 0, 1).stats;
+  assert.equal(st.games, 1);
+  assert.deepEqual(st.sideWins, { village: 1 });
+  // Dead or alive, the village side won; the wolf and the Tay Sai lost.
+  assert.deepEqual(st.players[P[0].id].sides, { village: { played: 1, wins: 1 } });
+  assert.equal(st.players[P[1].id].wins, 0);
+  assert.deepEqual(st.players[P[4].id].sides, { werewolf: { played: 1, wins: 0 } });
+  // It survives going back to the lobby; aborted games are not counted.
+  act(P[0], 'restart', {});
+  assert.equal(viewFor(s, P[2].id, 0, 1).stats.games, 1);
+});
+
+test('the leaderboard: a turned Sói Nguyền wins with the pack, the Sói Đơn Độc does not', () => {
+  const { s, P } = setup(['cursed', 'werewolf', 'lone_wolf', 'villager', 'villager']);
+  P[0].role = 'werewolf';
+  P[0].turned = true;
+  s.game.winner = 'werewolf';
+  assert.equal(isWinner(s, P[0]), true);
+  assert.equal(isWinner(s, P[1]), true);
+  assert.equal(isWinner(s, P[2]), false);
+  assert.equal(isWinner(s, P[3]), false);
+  s.game.winner = 'lone_wolf';
+  assert.equal(isWinner(s, P[2]), true);
+  assert.equal(isWinner(s, P[1]), false);
+  assert.equal(sideOf('lone_wolf'), 'werewolf');
+  assert.equal(sideOf('piper'), 'third');
 });
 
 test('a bitten hunter takes his target along, announced as plain deaths', () => {

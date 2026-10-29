@@ -46,6 +46,9 @@ let ambienceOn = read('masoi_ambience') === 'on';
 let ambienceVolume = Number(read('masoi_ambience_volume') || 60);
 let ambienceTheme = THEME_IDS.includes(read('masoi_ambience_theme')) ? read('masoi_ambience_theme') : 'village';
 let settingsOpen = false;
+// Lobby: the host's "Chuẩn bị ván" step, and the deck editor.
+let setupOpen = false;
+let deckEdit = false;
 // Players can also hear the narrator on their own phone (off by default).
 let localAudio = read('masoi_local_audio') === 'on';
 let botCount = 1; // how many computer players the host's next tap adds
@@ -481,6 +484,8 @@ function render() {
   const next = screenFor(view);
   if (next !== screen) {
     screen = next;
+    setupOpen = false;
+    deckEdit = false;
     window.scrollTo(0, 0);
   }
   if (screen === 'home') renderHome();
@@ -499,18 +504,30 @@ function topbar(extra = '') {
     </header>`;
 }
 
-function moonSvg(fraction, day = false) {
-  // fraction 1 = full disc, 0 = fully in shadow.
+// The phase timer: a brass ring that empties clockwise from the top.
+// fraction 1 = full ring, 0 = time is up.
+function dialSvg(fraction, day = false) {
   const f = Math.max(0, Math.min(1, fraction));
-  const shadowX = 50 + 96 * f;
-  const lit = day ? '#f2c46b' : 'var(--moon)';
+  const stroke = day ? '#e8b85a' : 'var(--brass)';
+  const a = (f * 360 - 90) * Math.PI / 180;
+  const x = (28 + 25 * Math.cos(a)).toFixed(1);
+  const y = (28 + 25 * Math.sin(a)).toFixed(1);
+  const arc = f >= 0.999
+    ? `<circle cx="28" cy="28" r="25" fill="none" stroke="${stroke}" stroke-width="3"/>`
+    : f > 0 ? `<path d="M28 3 A25 25 0 ${f > 0.5 ? 1 : 0} 1 ${x} ${y}" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round"/>` : '';
   return `
-    <svg viewBox="0 0 100 100" aria-hidden="true">
-      <defs><clipPath id="moonClip"><circle cx="50" cy="50" r="46"/></clipPath></defs>
-      <circle cx="50" cy="50" r="46" fill="${lit}"/>
-      <circle cx="${shadowX.toFixed(1)}" cy="50" r="46" fill="#232a52" opacity="0.92" clip-path="url(#moonClip)"/>
-      <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(239,228,200,.35)" stroke-width="2"/>
+    <svg viewBox="0 0 56 56" aria-hidden="true">
+      <circle cx="28" cy="28" r="25" fill="var(--felt-3)" stroke="var(--brass)" stroke-opacity="0.35" stroke-width="2"/>
+      ${arc}
     </svg>`;
+}
+
+// A crescent moon on a card back.
+function crescentSvg() {
+  return `<svg viewBox="0 0 92 92" aria-hidden="true">
+    <circle cx="46" cy="46" r="40" fill="var(--face)" stroke="var(--brass)" stroke-width="2"/>
+    <path d="M58 22a26 26 0 1 0 10 40a22 22 0 1 1-10-40z" fill="var(--token)"/>
+  </svg>`;
 }
 
 // ---------- Home ----------
@@ -527,10 +544,7 @@ function renderHome() {
     ${topbar()}
     <div id="resumeSlot">${resumeBanner()}</div>
     <section class="hero">
-      <svg class="hero-moon" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="46" fill="var(--moon)"/>
-        <circle cx="70" cy="40" r="44" fill="#232a57"/>
-      </svg>
+      <div class="hero-card" aria-hidden="true">${crescentSvg()}</div>
       <h1>Ma Sói</h1>
       <p>Mỗi người một điện thoại, một lá bài bí mật. Máy của chủ phòng làm quản trò và đọc lời dẫn cho cả làng nghe.</p>
     </section>
@@ -599,78 +613,166 @@ function botAdder() {
 
 function renderLobby() {
   const host = isHost();
-  const focusInSettings = document.activeElement?.closest?.('#settings');
-  if (!document.getElementById('lobbyRoot')) {
-    app.innerHTML = `
+  // The host goes through "Chuẩn bị ván" (voice, rules, times) before dealing.
+  const mode = host && setupOpen ? 'setup' : 'lobby';
+  const root = document.getElementById('lobbyRoot');
+  const focusInSettings = document.activeElement?.closest?.('#rulesStep, #timesStep');
+  if (!root || root.dataset.mode !== mode) {
+    app.innerHTML = mode === 'setup' ? `
       ${topbar('<button class="btn btn-ghost btn-small" data-act="leave">Rời phòng</button>')}
-      <div id="lobbyRoot" class="stack-lg">
+      <div id="lobbyRoot" data-mode="setup" class="stack-lg">
         <div id="hostAlert"></div>
-        <section class="panel stack" id="roomInfo"></section>
-        <section class="panel" id="players"></section>
-        <section id="hostVoice"></section>
-        <section id="settings"></section>
+        <header>
+          <h1 style="font-size:2.3rem">Chuẩn bị ván</h1>
+          <p class="muted small" style="margin-top:6px">Bước cuối trước khi chia bài. Chỉ chủ phòng thấy màn hình này, mọi người đang chờ.</p>
+        </header>
+        <ol class="setup-steps">
+          <li class="panel current">
+            <div class="step-head"><span class="step-num">1</span><h2>Giọng quản trò</h2></div>
+            <div id="hostVoice" class="stack"></div>
+          </li>
+          <li class="panel" id="rulesStep"></li>
+          <li class="panel" id="timesStep"></li>
+        </ol>
+      </div>
+      <div class="bottom-bar"><div class="bottom-bar-inner" id="lobbyFooter"></div></div>` : `
+      ${topbar('<button class="btn btn-ghost btn-small" data-act="leave">Rời phòng</button>')}
+      <div id="lobbyRoot" data-mode="lobby" class="stack-lg">
+        <div id="hostAlert"></div>
+        <header id="roomInfo"></header>
+        <section id="players"></section>
         <section class="panel" id="roles"></section>
+        <section id="hostVoice"></section>
+        <section class="panel" id="board"></section>
       </div>
       <div class="bottom-bar"><div class="bottom-bar-inner" id="lobbyFooter"></div></div>`;
   }
 
   renderHostAlert();
   const participants = view.players.filter(p => !(p.isHost && !view.config.hostPlays));
-  document.getElementById('roomInfo').innerHTML = `
-    <div class="row-between">
-      <div>
-        <p class="muted small">Mã phòng</p>
-        <p class="room-code">${esc(view.code)}</p>
-      </div>
-      <button class="btn btn-primary" data-act="share">Mời bạn bè</button>
-    </div>
-    <p class="muted small" id="conn">${connectionHtml()}</p>`;
-
-  document.getElementById('players').innerHTML = `
-    <div class="row-between" style="margin-bottom:6px">
-      <h3>Người trong phòng</h3>
-      <span class="muted small">${participants.length} người chơi</span>
-    </div>
-    ${host ? botAdder() : ''}
-    ${view.players.map(p => `
-      <div class="player-row">
-        <div class="seat" style="min-height:0;padding:0"><span class="disc" style="width:40px;height:40px;font-size:1.1rem">${p.seat ?? '★'}</span></div>
-        <div class="name">
-          ${esc(p.name)}
-          ${p.isHost ? `<span class="tag tag-host">${view.config.hostPlays ? 'Chủ phòng' : 'Quản trò'}</span>` : ''}
-          ${p.id === view.me.id ? '<span class="tag">Bạn</span>' : ''}
-          ${!isOnline(p) ? '<span class="tag tag-off">Mất kết nối</span>' : ''}
-        </div>
-        ${host && !p.isHost ? `<button class="btn btn-ghost btn-small" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">Mời ra</button>` : ''}
-      </div>`).join('')}
-    ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
-
-  renderVoicePanel(host);
-
-  if (!focusInSettings) {
-    document.getElementById('settings').innerHTML = host ? settingsPanel() : '';
-  }
-
-  document.getElementById('roles').innerHTML = rolesPanel(participants.length, host);
-
   const problem = participants.length < MIN_PLAYERS
     ? `Cần thêm ${MIN_PLAYERS - participants.length} người nữa để bắt đầu.`
     : validateRoleCounts(view.roleCounts, participants.length);
+  renderVoicePanel(host);
+
+  if (mode === 'setup') {
+    if (!focusInSettings) {
+      document.getElementById('rulesStep').innerHTML = setupRules();
+      document.getElementById('timesStep').innerHTML = setupTimes();
+    }
+    document.getElementById('lobbyFooter').innerHTML = `
+      ${problem ? `<p class="note">${esc(problem)}</p>` : ''}
+      <div class="bar-row">
+        <button class="btn btn-ghost btn-big btn-back" data-act="setupClose">Quay lại</button>
+        <button class="btn btn-primary btn-big btn-go" data-act="start" ${problem ? 'disabled' : ''}>Chia bài và bắt đầu</button>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('roomInfo').innerHTML = `
+    <div class="lobby-head">
+      <div>
+        <p class="muted small">Mã phòng</p>
+        <h1 class="room-code">${esc(view.code)}</h1>
+      </div>
+      <button class="btn btn-ghost" data-act="share">Mời bạn</button>
+    </div>
+    <p class="muted small" id="conn" style="margin-top:6px">${connectionHtml()}</p>`;
+
+  document.getElementById('players').innerHTML = `
+    <div class="section-head">
+      <p class="muted small">Người chơi đã vào: ${participants.length}</p>
+    </div>
+    ${host ? botAdder() : ''}
+    <ul class="tokens">
+      ${view.players.map(p => `
+        <li class="${p.id === view.me.id ? 'me' : ''}">
+          <span class="token ${isOnline(p) ? '' : 'off'}">${p.seat ?? '★'}</span>
+          <span class="name">${esc(p.name)}</span>
+          ${p.isHost ? `<span class="tag tag-host">${view.config.hostPlays ? 'Chủ phòng' : 'Quản trò'}</span>` : ''}
+          ${!isOnline(p) ? '<span class="tag tag-off">Mất kết nối</span>' : ''}
+          ${host && !p.isHost ? `<button class="kick" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">✕</button>` : ''}
+        </li>`).join('')}
+    </ul>
+    ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
+
+  document.getElementById('roles').innerHTML = host && deckEdit
+    ? `${rolesPanel(participants.length, host)}<button class="btn btn-primary btn-block" style="margin-top:14px" data-act="deckEdit">Xong</button>`
+    : deckPanel(participants.length, host);
+
+  const board = document.getElementById('board');
+  board.hidden = !view.stats?.games;
+  if (!board.hidden) board.innerHTML = leaderboard();
+
   document.getElementById('lobbyFooter').innerHTML = host
-    ? `${problem ? `<p class="note">${esc(problem)}</p>` : ''}
-       <button class="btn btn-primary btn-block" data-act="start" ${problem ? 'disabled' : ''}>Chia bài và bắt đầu</button>`
+    ? `<p class="note">${esc(problem || 'Tiếp theo: thử giọng quản trò, chỉnh luật và thời gian')}</p>
+       <button class="btn btn-primary btn-block btn-big" data-act="setupOpen" ${problem ? 'disabled' : ''}>Tiếp tục</button>`
     : `<p class="note">Đang chờ chủ phòng bắt đầu ván chơi…</p>`;
+}
+
+// The deck as a hand of small cards, wolves first, with the balance above.
+function deckPanel(count, host) {
+  const counts = view.roleCounts;
+  const total = totalRoles(counts);
+  const score = balanceScore(counts);
+  const pos = 50 + Math.max(-20, Math.min(20, score)) * 2.5;
+  const groups = [ROLE_GROUPS[1], ROLE_GROUPS[0], ROLE_GROUPS[2]];
+  const cards = groups.flatMap(group => ROLE_IDS
+    .filter(id => group.teams.includes(ROLES[id].team) && counts[id] > 0)
+    .sort(group.order)
+    .map(id => `<li class="${group.cls}"><span class="ic" aria-hidden="true">${ROLES[id].icon}</span><span class="nm">${ROLES[id].name}</span><span class="n">${counts[id]}</span></li>`));
+  return `
+    <div class="section-head">
+      <h2>Bộ bài</h2>
+      <p class="muted small">${total} lá cho ${count} người${counts.thief ? ' (dư 2 lá cho Ăn Trộm)' : ''}</p>
+    </div>
+    <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
+    <p class="balance-legend"><span>Nghiêng về Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Nghiêng về Dân</span></p>
+    <ul class="deck-mini">
+      ${cards.join('')}
+      <li class="edit-slot"><button class="edit" data-act="${host ? 'deckEdit' : 'deck'}">${host ? 'Sửa bộ bài' : 'Xem mô tả vai'}</button></li>
+    </ul>`;
+}
+
+// "Chuẩn bị ván", step 2: the house rules for this game.
+function setupRules() {
+  const c = view.config;
+  const row = (key, title, desc) => `
+    <label class="toggle-row">
+      <span><strong>${title}</strong><span class="muted">${desc}</span></span>
+      <input type="checkbox" data-config="${key}" ${c[key] ? 'checked' : ''} />
+    </label>`;
+  return `
+    <div class="step-head"><span class="step-num">2</span><h2>Luật ván này</h2></div>
+    ${row('hostPlays', 'Tôi cũng nhận bài và chơi', 'Bỏ chọn nếu bạn chỉ làm quản trò. Khi đó bạn thấy được mọi vai trò.')}
+    ${row('swapEnabled', 'Cho phép trao đổi vai', 'Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai”; hết giờ các lá được chia lại ngẫu nhiên, ẩn danh.')}
+    ${row('revealRoleOnDeath', 'Lật bài người chết', 'Cả làng thấy vai trò của người vừa bị loại.')}`;
+}
+
+// "Chuẩn bị ván", step 3: how long each part lasts. The day's main steps
+// up front, the rest (each night role, defence, verdict) folded away.
+function setupTimes() {
+  const main = ['discussionTime', 'voteTime', ...(view.config.swapEnabled ? ['swapTime'] : [])];
+  const all = [...SLIDERS, ...stepSliders()];
+  return `
+    <div class="step-head"><span class="step-num">3</span><h2>Thời gian</h2></div>
+    ${sliderRows(all.filter(s => main.includes(s[0])))}
+    <details class="section" id="settingsBox" ${settingsOpen ? 'open' : ''}>
+      <summary><span class="btn-link">Chỉnh từng vai ban đêm, biện hộ, phán quyết</span></summary>
+      ${sliderRows(all.filter(s => !main.includes(s[0])))}
+    </details>`;
 }
 
 // Don't redraw under the host's finger (e.g. while dragging the volume).
 function renderVoicePanel(host) {
   const el = document.getElementById('hostVoice');
   if (!el || document.activeElement?.matches?.('#hostVoice input[type=range], #hostVoice select')) return;
-  el.innerHTML = host ? voicePanel() + deviceOptions() : deviceOptions(true);
+  // The host tests the voice in "Chuẩn bị ván"; other phones get their own options.
+  el.innerHTML = host ? (setupOpen ? voicePanel() + deviceRows() : '') : deviceOptions(true);
 }
 
 // Per-phone options, stored on this phone only.
-function deviceOptions(panel = false) {
+function deviceRows() {
   const items = [];
   if (!isHost()) {
     items.push(`<label class="check" style="padding:0"><input type="checkbox" data-act="localAudio" ${localAudio ? 'checked' : ''} /> <span>Phát âm thanh trên máy này</span></label>`);
@@ -678,16 +780,13 @@ function deviceOptions(panel = false) {
   if (canVibrate) {
     items.push(`<label class="check" style="padding:0"><input type="checkbox" data-act="vibrate" ${vibrateOn ? 'checked' : ''} /> <span>Rung khi đến lượt</span></label>`);
   }
-  const row = `<div class="row" style="flex-wrap:wrap;gap:16px">${items.join('')}</div>${musicControls()}`;
-  return panel
-    ? `<div class="panel stack"><h3>Trên máy này</h3><p class="muted small">Chỉ áp dụng cho điện thoại của bạn.</p>${row}</div>`
-    : `<div class="panel stack" style="margin-top:12px"><h3>Trên máy này</h3>${row}</div>`;
+  return `${items.length ? `<div class="row" style="flex-wrap:wrap;gap:16px">${items.join('')}</div>` : ''}${musicControls()}`;
 }
 
-// In game: the same per-phone options under the narration, for players.
-function playerAudioBar() {
-  const opts = deviceOptions();
-  return `<details class="section device-options"><summary class="muted small">Tuỳ chọn trên máy này (nhạc nền, âm thanh)</summary>${opts}</details>`;
+function deviceOptions(panel = false) {
+  return panel
+    ? `<div class="panel stack"><h3>Trên máy này</h3><p class="muted small">Chỉ áp dụng cho điện thoại của bạn.</p>${deviceRows()}</div>`
+    : `<div class="stack">${deviceRows()}</div>`;
 }
 
 // Shown to everyone while the host phone is unreachable.
@@ -733,14 +832,9 @@ function voicePanel() {
       ? `Đang dùng giọng của trình duyệt: ${esc(narrator.voice.name)}.`
       : 'Máy này chưa có giọng tiếng Việt. Hãy dùng Chrome hoặc Edge, hoặc tạo file giọng đọc (xem README).';
   return `
-    <div class="panel stack">
-      <h3>Giọng quản trò</h3>
-      <p class="muted small">Chỉ máy của bạn phát tiếng. Hãy đặt máy ở giữa bàn và bật âm lượng to.</p>
-      <p class="small">${status}</p>
-      <div class="row" style="flex-wrap:wrap">
-        <button class="btn ${narrator.unlocked ? 'btn-ghost' : 'btn-primary'}" data-act="testVoice">${narrator.unlocked ? 'Nghe thử lại' : 'Bật âm thanh và nghe thử'}</button>
-      </div>
-    </div>`;
+    <p class="small" style="color:var(--soft)">Máy này sẽ đọc lời dẫn. Đặt máy giữa bàn, bật âm lượng to.</p>
+    <p class="muted small">${status}</p>
+    <button class="btn btn-block ${narrator.unlocked ? 'btn-ghost' : 'btn-primary'}" data-act="testVoice">${narrator.unlocked ? 'Nghe thử lại' : 'Bật âm thanh và nghe thử'}</button>`;
 }
 
 // Background music: on/off, theme and volume, stored on this phone only.
@@ -778,8 +872,12 @@ function stepSliders() {
 }
 
 function timeSliders() {
+  return sliderRows([...SLIDERS, ...stepSliders()]);
+}
+
+function sliderRows(list) {
   const c = view.config;
-  return [...SLIDERS, ...stepSliders()].map(([key, label, min, max, step]) => `
+  return list.map(([key, label, min, max, step]) => `
     <div class="slider">
       <div class="row-between"><label for="cfg-${key}">${label}</label><span class="slider-value" id="val-${key}">${fmtSeconds(c[key])}</span></div>
       <input type="range" id="cfg-${key}" data-config="${key}" min="${min}" max="${max}" step="${step}" value="${c[key]}" />
@@ -797,28 +895,6 @@ function hostTimers() {
 }
 
 const fmtSeconds = (s) => s >= 60 ? `${Math.floor(s / 60)} phút${s % 60 ? ` ${s % 60} giây` : ''}` : `${s} giây`;
-
-function settingsPanel() {
-  const c = view.config;
-  return `
-    <details class="panel section" id="settingsBox" ${settingsOpen ? 'open' : ''}>
-      <summary><h3>Cài đặt ván chơi</h3></summary>
-      <label class="check">
-        <input type="checkbox" data-config="hostPlays" ${c.hostPlays ? 'checked' : ''} />
-        <span><strong>Tôi cũng nhận bài và chơi</strong><span class="muted small">Bỏ chọn nếu bạn chỉ làm quản trò. Khi đó bạn thấy được mọi vai trò.</span></span>
-      </label>
-      <label class="check">
-        <input type="checkbox" data-config="revealRoleOnDeath" ${c.revealRoleOnDeath ? 'checked' : ''} />
-        <span><strong>Lật bài người chết</strong><span class="muted small">Cả làng thấy vai trò của người vừa bị loại.</span></span>
-      </label>
-      <label class="check">
-        <input type="checkbox" data-config="swapEnabled" ${c.swapEnabled ? 'checked' : ''} />
-        <span><strong>Cho phép trao đổi vai</strong><span class="muted small">Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai” để đưa lá bài vào nhóm trao đổi; hết giờ các lá trong nhóm được chia lại ngẫu nhiên (ẩn danh).</span></span>
-      </label>
-      <p class="field-label" style="margin-top:8px">Thời gian thao tác của từng lượt đêm tính theo các lá bài trong ván.</p>
-      ${timeSliders()}
-    </details>`;
-}
 
 function rolesPanel(count, host) {
   const counts = view.roleCounts;
@@ -958,62 +1034,75 @@ function endTurnButton(m) {
 function renderGame() {
   if (!document.getElementById('gameRoot')) {
     app.innerHTML = `
-      ${topbar('<button class="btn btn-ghost btn-small" data-act="deck">📋 Vai trò</button><button class="btn btn-ghost btn-small" data-act="leave">Rời</button>')}
+      ${topbar('<button class="btn btn-ghost btn-small" data-act="deck">Bộ bài</button><button class="btn btn-ghost btn-small" data-act="leave">Rời</button>')}
       <div id="gameRoot" class="stack-lg">
-        <section class="sky" id="sky"></section>
+        <header class="ribbon" id="sky"></header>
+        <ol class="night-strip" id="nightStrip" aria-label="Thứ tự gọi đêm nay"></ol>
         <div id="hostAlert"></div>
         <div id="narration"></div>
-        <div id="hostBar"></div>
-        <div id="hostTimers"></div>
         <section class="stage" id="stage"></section>
-        <section id="villageBox">
-          <div class="row-between" style="margin-bottom:10px"><h3>Người chơi</h3><span class="muted small" id="aliveCount"></span></div>
-          <div class="village" id="village"></div>
-        </section>
+        <section id="villageBox" aria-label="Bàn tròn"></section>
+        <section class="panel" id="boardBox"></section>
+        <details class="drawer section" id="drawer">
+          <summary><h3 id="drawerTitle"></h3></summary>
+          <div id="hostBar"></div>
+          <div id="hostTimers"></div>
+        </details>
         <details class="panel section" id="logBox">
           <summary><h3>Nhật ký ván chơi</h3></summary>
-          <button class="btn btn-ghost btn-small" style="margin-top:10px" data-act="exportLog">⬇️ Tải nhật ký (.txt)</button>
+          <button class="btn btn-ghost btn-small" style="margin-top:10px" data-act="exportLog">Tải nhật ký (.txt)</button>
           <ul class="log" id="log"></ul>
         </details>
         <p class="muted small" id="conn">${connectionHtml()}</p>
       </div>
-      <div class="bottom-bar"><div class="bottom-bar-inner" id="gameFooter"></div></div>`;
+      <div class="bottom-bar with-hand"><div class="bottom-bar-inner" id="gameFooter"></div></div>`;
   }
   const g = view.game;
   document.getElementById('sky').innerHTML = `
-    <div class="moon-timer" id="moon">${moonSvg(1)}<span class="time" id="timeLeft"></span></div>
+    <div class="dial" id="moon">${dialSvg(1)}<span class="time" id="timeLeft"></span></div>
     <div>
       <h1>${PHASE_TITLE[view.phase](g)}</h1>
       <p class="phase-sub">${phaseSubtitle()}</p>
     </div>`;
   updateClock();
+  const strip = nightStrip();
+  const stripEl = document.getElementById('nightStrip');
+  stripEl.innerHTML = strip;
+  stripEl.hidden = !strip;
 
   // Before the first night (swap, then a look at the cards) the screen is
   // kept to the card and the swap: the rest appears when the game starts.
   const opening = ['SWAP', 'REVEAL'].includes(view.phase);
   document.getElementById('narration').hidden = opening;
   renderNarration();
-  // Leave the bar alone while a control in it is in use (dragging the volume,
-  // choosing a theme), and keep the options open across redraws.
+  // The host's tools and this phone's sound options, folded under the table.
+  // Leave them alone while a control in them is in use (dragging the volume,
+  // choosing a theme).
+  const drawer = document.getElementById('drawer');
+  document.getElementById('drawerTitle').textContent = isHost() ? 'Bàn quản trò' : 'Âm thanh trên máy này';
   const bar = document.getElementById('hostBar');
   if (!bar.contains(document.activeElement) || !document.activeElement.matches('input[type=range], select')) {
-    const open = bar.querySelector('details.device-options')?.open;
-    bar.innerHTML = (isHost() ? hostBar() : '') + playerAudioBar();
-    if (open) bar.querySelector('details.device-options').open = true;
+    bar.innerHTML = (isHost() ? hostBar() : '') + deviceOptions();
   }
   const timers = document.getElementById('hostTimers');
   if (!timers.contains(document.activeElement)) timers.innerHTML = isHost() && view.phase !== 'GAME_OVER' && !opening ? hostTimers() : '';
-  bar.hidden = opening && !isHost();
+  drawer.hidden = opening && !isHost();
   renderHostAlert();
   document.getElementById('stage').innerHTML = stage();
 
-  const alive = view.players.filter(p => p.inGame && p.alive).length;
-  const total = view.players.filter(p => p.inGame).length;
-  document.getElementById('aliveCount').textContent = `Còn sống ${alive}/${total}`;
-  document.getElementById('village').innerHTML = view.players.filter(p => p.inGame).map(p => seat(p)).join('');
-  // While it is your turn the choices above already list everyone: one list
-  // is enough.
-  document.getElementById('villageBox').hidden = opening || !!(view.phase === 'NIGHT' && view.me?.task);
+  // The round table, by day. At night a sleeping player sees only the back
+  // of a card; while voting the table is the ballot itself.
+  const box = document.getElementById('villageBox');
+  const night = view.phase === 'NIGHT';
+  box.hidden = opening || view.phase === 'VOTE' || (night && !view.me?.watch);
+  if (!box.hidden) {
+    const seated = view.players.filter(p => p.inGame);
+    const alive = seated.filter(p => p.alive).length;
+    box.innerHTML = roundTable(seated, { center: `<span><strong>${alive}/${seated.length}</strong>còn sống</span>` });
+  }
+  const boardBox = document.getElementById('boardBox');
+  boardBox.hidden = view.phase !== 'GAME_OVER';
+  if (!boardBox.hidden) boardBox.innerHTML = leaderboard();
   // The log reaches a moderator who does not play, or the host once the game
   // is over (then it opens by itself).
   const logBox = document.getElementById('logBox');
@@ -1027,19 +1116,91 @@ function renderGame() {
 
   const m = view.me;
   const myTurn = view.phase === 'NIGHT' && m.task;
-  // On the look-at-your-card screen the card button is the screen itself.
+  // Your card and your notes, held at the bottom of the screen. On the
+  // look-at-your-card screen the card is the screen itself.
   document.getElementById('gameFooter').innerHTML = m.inGame && view.phase !== 'REVEAL'
     ? `${myTurn ? endTurnButton(m) : ''}
-      <div class="footer-row">
-        <button class="btn ${myTurn ? 'btn-ghost' : 'btn-primary'} btn-block card-button" data-act="card">
-          <span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span>
-          <span class="card-button-hint">Vai trò, đồng đội, người yêu… chỉ mình bạn thấy</span>
-        </button>
-        <button class="btn btn-ghost notes-button" data-act="notes"><span aria-hidden="true">📜</span><span>Nhật ký</span></button>
-      </div>`
+      <nav class="hand" aria-label="Bài trên tay">
+        <button class="hand-card" data-act="card">Lá bài của tôi</button>
+        <button class="hand-card notes" data-act="notes">Nhật ký</button>
+      </nav>`
     : '';
   if (document.getElementById('cardSheet').open) renderCard(false);
   if (document.getElementById('notesSheet').open) renderNotes();
+}
+
+// Tonight's calling order, from the cards in the deck (public), as a strip
+// of bars: called, being called, still to come. Long nights show a window
+// around the role being called.
+function nightStrip() {
+  if (view.phase !== 'NIGHT') return '';
+  const g = view.game;
+  const counts = view.roleCounts || {};
+  let steps = NIGHT_STEPS
+    .filter(st => [st.role, ...(st.also || [])].some(id => counts[id] > 0))
+    .filter(st => (!st.firstNightOnly || g.day === 1) && (!st.notFirstNight || g.day > 1));
+  // The Medium is left out of the night once there is nobody to bring back
+  // or the power is spent: the server's step count tells.
+  if (steps.length > g.steps) steps = steps.filter(st => st.id !== 'medium');
+  if (!steps.length) return '';
+  const now = steps.findIndex(st => st.id === g.activeRole);
+  const size = 5;
+  const from = Math.max(0, Math.min(now - 1, steps.length - size));
+  return steps.slice(from, from + size).map((st, i) => {
+    const at = from + i;
+    const cls = now < 0 ? '' : at < now ? 'done' : at === now ? 'now' : '';
+    return `<li class="${cls}" ${at === now ? 'aria-current="step"' : ''}><span class="bar"></span><span class="nm">${esc(stepInfo(st.id).name)}</span></li>`;
+  }).join('');
+}
+
+// Seats around a felt table, the first seat at the top, clockwise. Big rooms
+// fall back to a grid.
+function roundTable(pool, { center = '', ...opts } = {}) {
+  const n = pool.length;
+  if (n > 14) return `<div class="village">${pool.map(p => seat(p, opts.seatOpts?.(p) || {})).join('')}</div>`;
+  const r = n > 10 ? 41 : 39;
+  return `<div class="table ${n > 10 ? 'crowded' : ''}">
+    <div class="table-felt">${center}</div>
+    ${pool.map((p, i) => {
+      const a = (i / n) * 2 * Math.PI - Math.PI / 2;
+      const style = `left:${(50 + r * Math.cos(a)).toFixed(2)}%;top:${(50 + r * Math.sin(a)).toFixed(2)}%`;
+      return seat(p, { ...(opts.seatOpts?.(p) || {}), style });
+    }).join('')}
+  </div>`;
+}
+
+// The room's leaderboard: games won by each player, overall or on one side.
+let boardSide = 'all';
+const BOARD_TABS = [['all', 'Tổng'], ['village', 'Phe Dân'], ['werewolf', 'Phe Sói'], ['third', 'Thứ ba']];
+function leaderboard() {
+  const st = view.stats || { games: 0, sideWins: {}, players: {} };
+  const head = `<div class="section-head"><h3>Bảng xếp hạng</h3><span class="muted small">${st.games} ván đã chơi</span></div>`;
+  if (!st.games) return `${head}<p class="muted small">Chưa có ván nào kết thúc trong phòng này. Thắng thua của từng người sẽ được ghi ở đây.</p>`;
+  const sideWins = `<p class="side-wins">
+    <span><i class="dot v"></i>Phe Dân thắng <strong>${st.sideWins.village || 0}</strong></span>
+    <span><i class="dot w"></i>Phe Sói thắng <strong>${st.sideWins.werewolf || 0}</strong></span>
+    ${st.sideWins.third ? `<span><i class="dot t"></i>Phe thứ ba thắng <strong>${st.sideWins.third}</strong></span>` : ''}
+  </p>`;
+  const rows = Object.entries(st.players).map(([id, p]) => {
+    const s = boardSide === 'all' ? p : (p.sides[boardSide] || { played: 0, wins: 0 });
+    return { id, name: p.name, isBot: p.isBot, wins: s.wins, played: s.played };
+  }).filter(r => r.played > 0)
+    .sort((a, b) => b.wins - a.wins || (b.wins / b.played) - (a.wins / a.played) || a.name.localeCompare(b.name, 'vi'));
+  const tabs = `<div class="board-tabs" role="group" aria-label="Xếp theo phe">${BOARD_TABS.map(([id, label]) =>
+    `<button data-act="boardSide" data-side="${id}" aria-pressed="${boardSide === id}">${label}</button>`).join('')}</div>`;
+  // Ties share a rank.
+  let rank = 0;
+  const list = rows.map((r, i) => {
+    if (i === 0 || r.wins !== rows[i - 1].wins) rank = i + 1;
+    return `<li>
+      <span class="rank">${rank}</span>
+      <span class="who">${esc(r.name)}${r.id === view.me?.id ? ' (bạn)' : ''}</span>
+      <span class="score"><strong>${r.wins}</strong> thắng<span class="muted">${r.played} ván · ${Math.round((r.wins / r.played) * 100)}%</span></span>
+    </li>`;
+  }).join('');
+  return `${head}${sideWins}${tabs}${rows.length
+    ? `<ol class="leaderboard">${list}</ol>`
+    : '<p class="muted small">Chưa ai chơi ở phe này.</p>'}`;
 }
 
 // Seat clips ("Người chơi số ba") have no punctuation of their own; end the
@@ -1144,7 +1305,7 @@ function hostBar() {
 }
 
 function seat(p, opts = {}) {
-  const { selectable = false, pressed = false, disabled = false, count = 0, sub = '', act = '' } = opts;
+  const { selectable = false, pressed = false, disabled = false, count = 0, sub = '', act = '', style = '' } = opts;
   // Keep roles off the village grid while playing, even a wolf's dead pack
   // mates (a neighbour could glance at it): your own role and wolf mates live
   // in the card sheet and night panel. Shown at the end, to a moderator who
@@ -1164,8 +1325,9 @@ function seat(p, opts = {}) {
     <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', role ? roleName : '', !p.alive ? 'Đã chết' : '',
       p.alive && view.game.banished === p.id ? '🚪 Rời làng' : '', p.alive && view.game.muted === p.id ? '🤐 Bị câm' : ''].filter(Boolean).join(' · ')}</span>`;
   const cls = `seat ${p.alive ? '' : 'dead'} ${isMe ? 'me' : ''}`;
-  if (!selectable) return `<div class="${cls}">${inner}</div>`;
-  return `<button class="${cls}" data-act="${act}" data-id="${esc(p.id)}" aria-pressed="${pressed}" ${disabled ? 'disabled' : ''}>${inner}</button>`;
+  const at = style ? ` style="${style}"` : '';
+  if (!selectable) return `<div class="${cls}"${at}>${inner}</div>`;
+  return `<button class="${cls}"${at} data-act="${act}" data-id="${esc(p.id)}" aria-pressed="${pressed}" ${disabled ? 'disabled' : ''}>${inner}</button>`;
 }
 
 const alivePlayers = () => view.players.filter(p => p.inGame && p.alive);
@@ -1202,13 +1364,14 @@ function stage() {
   if (view.phase === 'NIGHT') {
     if (task) return nightTask(task);
     if (m.watch) return watchNight();
-    const r = stepInfo(g.activeRole);
     return `
-      <div class="panel sleep">
-        <div class="zz" aria-hidden="true">🌙</div>
-        <h2>${m.inGame && m.alive ? 'Nhắm mắt lại nhé' : 'Màn đêm đang trôi qua'}</h2>
-        <p class="lead">${r ? `${r.name} đang thức dậy.` : ''}${canVibrate && vibrateOn ? ' Điện thoại sẽ rung khi đến lượt bạn.' : ''}</p>
-      </div>`;
+      <div class="sleep-card" role="img" aria-label="${m.inGame && m.alive ? 'Bạn đang ngủ' : 'Màn đêm đang trôi qua'}">
+        ${crescentSvg()}
+        <h2>${m.inGame && m.alive ? 'Nhắm mắt lại' : 'Màn đêm đang trôi qua'}</h2>
+      </div>
+      <p class="sleep-note">${m.inGame && m.alive
+        ? `${canVibrate && vibrateOn ? 'Điện thoại sẽ rung khi tới lượt bạn. ' : ''}Úp máy xuống bàn để không ai nhìn thấy.`
+        : 'Giữ im lặng cho tới sáng.'}</p>`;
   }
 
   if (view.phase === 'MORNING') {
@@ -1275,11 +1438,15 @@ function stage() {
           ? (mine ? `Bạn đã chọn ${esc(seatName(mine))}. Có thể đổi trước khi hết giờ.` : 'Chạm vào người bạn nghi là Sói.')
           : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
         <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
-        ${canVote
-          ? pickGrid('vote', { exclude: [m.id, g.banished].filter(Boolean), selected: mine ? [mine] : [], counts })
-          : `<div class="village" style="margin-top:14px">${alivePlayers().map(p => seat(p, { count: counts[p.id] || 0 })).join('')}</div>`}
         ${voteList(g.votes)}
-      </div>`;
+      </div>
+      ${roundTable(view.players.filter(p => p.inGame), {
+        center: canVote ? 'Chạm vào người bạn nghi là Sói' : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
+        seatOpts: (p) => {
+          const pickable = canVote && p.alive && p.id !== m.id && p.id !== g.banished;
+          return { selectable: pickable, act: 'vote', pressed: mine === p.id, count: counts[p.id] || 0 };
+        }
+      })}`;
   }
 
   if (view.phase === 'DEFENSE') {
@@ -1353,8 +1520,8 @@ function nightTask(task) {
   const head = (step, title, lead) => {
     const info = stepInfo(step);
     return `
-    <span class="tag" style="margin:0;background:${info.color}22;color:${info.color}">${info.icon} Lượt của ${info.name}</span>
-    <h2 style="margin-top:10px">${title}</h2>
+    <p class="card-kicker"><span>Lượt của ${info.name}</span><span class="icon" aria-hidden="true">${info.icon}</span></p>
+    <h2>${title}</h2>
     <p class="lead">${lead}</p>`;
   };
   // Every role finishes with the one green "Xong lượt" button at the bottom.
@@ -1639,23 +1806,22 @@ function renderCard(reset = true) {
   if (m.charmedList?.length) extra.push(`🎶 Đã thôi miên: ${m.charmedList.map(seatName).join(', ')}`);
   if (m.powerless) extra.push('👴 Già Làng đã chết dưới tay dân làng: bạn đã mất chức năng đến hết ván. Hãy giữ bí mật điều này.');
   if (!m.alive) extra.push('Bạn đã bị loại, hãy giữ im lặng nhé.');
+  const teamColor = { village: 'var(--village)', werewolf: '#e0766b' }[r.team] || 'var(--third)';
   body.innerHTML = `
-    <div class="sheet-head">
-      <h3 id="cardSheetTitle">Lá bài của bạn</h3>
-      <button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button>
-    </div>
+    <h3 id="cardSheetTitle" class="hidden">Lá bài của bạn</h3>
     <button class="card ${revealed ? 'revealed' : ''}" data-act="flip" aria-label="Lật lá bài">
       <div class="card-inner">
-        <div class="card-face card-back"><p>Chạm để lật bài<br><span class="small muted">Che màn hình khỏi người bên cạnh</span></p></div>
-        <div class="card-face card-front" style="color:${r.color}">
+        <div class="card-face card-back">${crescentSvg()}<p>Chạm để lật bài<br><span class="small muted">Che màn hình khỏi người bên cạnh</span></p></div>
+        <div class="card-face card-front">
+          <p class="card-top" style="color:${teamColor}"><span>${TEAM_LABEL[r.team]}</span><span class="pts">${r.points > 0 ? '+' : ''}${r.points}</span></p>
           <div class="art">${r.art}</div>
           <h3>${r.name}</h3>
-          <span class="team">${TEAM_LABEL[r.team]}</span>
           <p class="desc">${r.description}</p>
         </div>
       </div>
     </button>
-    ${extra.map(t => `<p class="small" style="margin-top:12px">${esc(t)}</p>`).join('')}`;
+    ${extra.length ? `<div class="card-notes">${extra.map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
+    <button class="btn btn-ghost btn-big sheet-close" data-act="closeSheet">Úp bài xuống</button>`;
 }
 
 // The cards in this game, by team. Everyone saw these counts in the lobby,
@@ -1682,7 +1848,9 @@ function renderDeck() {
     ['third', '🎭 Phe thứ ba', 't']
   ];
   const total = ROLE_IDS.reduce((n, id) => n + (counts[id] || 0), 0);
-  const players = view.players.filter(p => p.inGame).length;
+  const players = view.phase === 'LOBBY'
+    ? view.players.filter(p => !(p.isHost && !view.config.hostPlays)).length
+    : view.players.filter(p => p.inGame).length;
   document.getElementById('deckBody').innerHTML = `
     <div class="sheet-head"><h3 id="deckTitle">Vai trò trong ván</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
     <p class="muted small">${total} lá bài cho ${players} người${counts.thief ? ' (có Ăn Trộm nên chia dư 2 lá; 2 lá dư không thuộc về ai)' : ''}.</p>
@@ -1726,14 +1894,14 @@ function updateClock() {
   const g = view.game;
   const day = view.phase !== 'NIGHT';
   if (!g.phaseEndsAt) {
-    moon.querySelector('svg').outerHTML = moonSvg(1, day);
+    moon.querySelector('svg').outerHTML = dialSvg(1, day);
     label.textContent = '';
     return;
   }
   const total = Math.max(1, g.phaseEndsAt - g.phaseStartedAt);
   const left = Math.max(0, g.phaseEndsAt - serverNow());
   const secs = Math.ceil(left / 1000);
-  moon.querySelector('svg').outerHTML = moonSvg(left / total, day);
+  moon.querySelector('svg').outerHTML = dialSvg(left / total, day);
   label.textContent = secs >= 60 ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : `${secs}`;
   moon.classList.toggle('urgent', secs <= 5);
   moon.setAttribute('aria-label', `Còn ${secs} giây`);
@@ -1765,6 +1933,9 @@ document.addEventListener('click', async (e) => {
     case 'rules': renderRules(); return document.getElementById('rulesSheet').showModal();
     case 'deck': renderDeck(); return document.getElementById('deckSheet').showModal();
     case 'exportLog': return exportLog();
+    case 'boardSide':
+      boardSide = el.dataset.side;
+      return render();
     case 'notes': renderNotes(); return document.getElementById('notesSheet').showModal();
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
@@ -1774,6 +1945,16 @@ document.addEventListener('click', async (e) => {
       if (p && confirm(`Mời ${p.name} ra khỏi phòng?`)) act('kick', { id });
       return;
     }
+    case 'setupOpen':
+      setupOpen = true;
+      window.scrollTo(0, 0);
+      return render();
+    case 'setupClose':
+      setupOpen = false;
+      return render();
+    case 'deckEdit':
+      deckEdit = !deckEdit;
+      return render();
     case 'botCount':
       botCount += Number(el.dataset.delta);
       return render();
