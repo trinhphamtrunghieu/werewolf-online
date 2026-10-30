@@ -400,7 +400,7 @@ a { color: var(--brass-hi); }
   background: var(--token);
   border: 2px solid var(--face);
 }
-.balance-legend { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
+.balance-legend { display: flex; justify-content: space-between; gap: 8px; text-align: center; font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
 .balance-legend strong { color: var(--text); font-weight: 600; }
 
 .role-row {
@@ -446,6 +446,63 @@ a { color: var(--brass-hi); }
 .role-group.v { color: var(--village); }
 .role-group.w { color: #e0766b; }
 .role-group.t { color: var(--third); }
+
+/* ---------- Deck editor ---------- */
+
+.deck-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; }
+.deck-sum .sum {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--village);
+  background: #1d2a24;
+  font-size: 0.8rem;
+  text-align: center;
+}
+.deck-sum .sum.w { border-color: var(--wolf); background: #2e1d19; }
+.deck-sum .sum.s { border-color: var(--brass-line); background: var(--face-2); }
+.deck-sum .n { font-family: var(--display); font-size: 1.7rem; line-height: 1; }
+.mini-step { display: flex; gap: 6px; margin-top: 4px; }
+.mini-step button {
+  width: 36px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--brass-line);
+  background: var(--face);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.mini-step button:disabled { opacity: 0.35; cursor: not-allowed; }
+.board-tabs.edit-tabs { grid-template-columns: repeat(3, 1fr); }
+.board-tabs.edit-tabs button { white-space: nowrap; }
+.role-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.role-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 92px;
+  padding: 10px 4px 8px;
+  border-radius: 10px;
+  border: 1px dashed var(--brass-faint);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: center;
+}
+.role-tile .ic { font-size: 1.5rem; line-height: 1; filter: grayscale(0.9); opacity: 0.6; }
+.role-tile .nm { font-size: 0.8rem; font-weight: 600; line-height: 1.2; }
+.role-tile .pts { font-size: 0.7rem; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--face-3); color: var(--muted); }
+.role-tile .pts.pos { color: #a9d0bd; }
+.role-tile .pts.neg { color: #f0a49c; }
+.role-tile.on { border: 2px solid var(--brass); background: rgba(201, 162, 78, 0.14); color: var(--text); }
+.role-tile.on .ic { filter: none; opacity: 1; }
+.role-tile .badge { position: absolute; top: 4px; right: 6px; font-size: 0.72rem; font-weight: 700; color: var(--brass-hi); }
+.role-info { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(237, 226, 200, 0.05); min-height: 62px; font-size: 0.9rem; }
+.role-info p { margin-top: 2px; color: var(--soft); }
 
 /* ---------- Setup (host, before dealing) ---------- */
 

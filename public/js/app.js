@@ -697,7 +697,7 @@ function renderLobby() {
     ${participants.length < MIN_PLAYERS ? `<p class="hint">Cần ít nhất ${MIN_PLAYERS} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
 
   document.getElementById('roles').innerHTML = host && deckEdit
-    ? `${rolesPanel(participants.length, host)}<button class="btn btn-primary btn-block" style="margin-top:14px" data-act="deckEdit">Xong</button>`
+    ? deckEditor(participants.length)
     : deckPanel(participants.length, host);
 
   const board = document.getElementById('board');
@@ -708,6 +708,75 @@ function renderLobby() {
     ? `<p class="note">${esc(problem || 'Tiếp theo: thử giọng quản trò, chỉnh luật và thời gian')}</p>
        <button class="btn btn-primary btn-block btn-big" data-act="setupOpen" ${problem ? 'disabled' : ''}>Tiếp tục</button>`
     : `<p class="note">Đang chờ chủ phòng bắt đầu ván chơi…</p>`;
+}
+
+// The host's deck editor: tap the special roles to play, the werewolves and
+// villagers fill and balance themselves. One side at a time; the role last
+// tapped is explained underneath. Card-by-card counts are folded away.
+let editTab = 'village';
+let roleInfo = null;
+const EDIT_TABS = [['village', 'Phe Dân', ['village']], ['werewolf', 'Phe Sói', ['werewolf']], ['third', 'Thứ ba', ['piper', 'fool', 'hoodlum']]];
+function deckEditor(count) {
+  const counts = view.roleCounts;
+  const needed = cardsNeeded(counts, count);
+  const score = balanceScore(counts);
+  const pos = 50 + Math.max(-20, Math.min(20, score)) * 2.5;
+  const problem = count >= MIN_PLAYERS ? validateRoleCounts(counts, count) : null;
+  const special = (id) => id !== 'werewolf' && id !== 'villager';
+  const specials = ROLE_IDS.filter(id => special(id) && counts[id] > 0).reduce((n, id) => n + counts[id], 0);
+  const tab = EDIT_TABS.find(x => x[0] === editTab);
+  const tiles = ROLE_IDS
+    .filter(id => special(id) && tab[2].includes(ROLES[id].team))
+    .sort(tab[0] === 'werewolf' ? (a, b) => -byPoints(a, b) : byPoints)
+    .map(id => {
+      const r = ROLES[id];
+      const on = counts[id] > 0;
+      return `<button class="role-tile ${on ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${on}">
+        ${counts[id] > 1 ? `<span class="badge">×${counts[id]}</span>` : ''}
+        <span class="ic" aria-hidden="true">${r.icon}</span>
+        <span class="nm">${r.name}</span>
+        <span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>
+      </button>`;
+    }).join('');
+  const inTab = (ids) => ROLE_IDS.filter(id => special(id) && ids.includes(ROLES[id].team) && counts[id] > 0).length;
+  const info = roleInfo && ROLES[roleInfo];
+  return `
+    <div class="section-head">
+      <h2>Sửa bộ bài</h2>
+      <button class="btn btn-ghost btn-small" data-act="autoBalance">Gợi ý lại</button>
+    </div>
+    <p class="muted small">Chạm vào vai để thêm hoặc bỏ. Ma Sói và Dân Làng tự điền cho đủ ${needed} lá và cân bằng.</p>
+
+    <div class="deck-sum">
+      <div class="sum w"><span class="n">${counts.werewolf || 0}</span><span>Ma Sói</span>
+        <span class="mini-step">
+          <button data-act="wolfCount" data-delta="-1" ${counts.werewolf > 0 ? '' : 'disabled'} aria-label="Bớt một Ma Sói">−</button>
+          <button data-act="wolfCount" data-delta="1" ${counts.villager > 0 ? '' : 'disabled'} aria-label="Thêm một Ma Sói">+</button>
+        </span>
+      </div>
+      <div class="sum v"><span class="n">${counts.villager || 0}</span><span>Dân Làng</span></div>
+      <div class="sum s"><span class="n">${specials}</span><span>Vai đặc biệt</span></div>
+    </div>
+    <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
+    <p class="balance-legend"><span>← Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Dân →</span></p>
+    ${problem ? `<p class="result result-wolf" style="margin-bottom:12px">${esc(problem)}</p>` : ''}
+
+    <div class="board-tabs edit-tabs" role="group" aria-label="Phe">
+      ${EDIT_TABS.map(([id, label, teams]) => {
+        const n = inTab(teams);
+        return `<button data-act="editTab" data-tab="${id}" aria-pressed="${editTab === id}">${label}${n ? ` · ${n}` : ''}</button>`;
+      }).join('')}
+    </div>
+    <div class="role-tiles">${tiles}</div>
+    <div class="role-info" aria-live="polite">${info
+      ? `<strong>${info.icon} ${info.name}</strong> <span class="muted small">(${info.points > 0 ? '+' : ''}${info.points} điểm)</span><p>${info.short}</p>`
+      : '<p class="muted small">Chạm vào một vai để xem vai đó làm gì. Điểm dương có lợi cho phe Dân, điểm âm có lợi cho phe Sói.</p>'}</div>
+
+    <details class="section" style="margin-top:14px">
+      <summary><span class="btn-link">Tuỳ chỉnh số lượng từng lá (nâng cao)</span></summary>
+      ${rolesPanel(count, true)}
+    </details>
+    <button class="btn btn-primary btn-block btn-big" style="margin-top:14px" data-act="deckEdit">Xong</button>`;
 }
 
 // The deck as a hand of small cards, wolves first, with the balance above.
@@ -727,7 +796,7 @@ function deckPanel(count, host) {
       <p class="muted small">${total} lá cho ${count} người${counts.thief ? ' (dư 2 lá cho Ăn Trộm)' : ''}</p>
     </div>
     <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
-    <p class="balance-legend"><span>Nghiêng về Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Nghiêng về Dân</span></p>
+    <p class="balance-legend"><span>← Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Dân →</span></p>
     <ul class="deck-mini">
       ${cards.join('')}
       <li class="edit-slot"><button class="edit" data-act="${host ? 'deckEdit' : 'deck'}">${host ? 'Sửa bộ bài' : 'Xem mô tả vai'}</button></li>
@@ -1980,7 +2049,18 @@ document.addEventListener('click', async (e) => {
     case 'addBot': return act('addBot', { count: botCount });
     case 'autoBalance': return act('autoBalance');
     case 'role': return act('role', { roleId: el.dataset.role, delta: Number(el.dataset.delta) });
-    case 'pickRole': return act('pickRole', { roleId: el.dataset.role });
+    case 'pickRole':
+      roleInfo = el.dataset.role;
+      return act('pickRole', { roleId: el.dataset.role });
+    case 'editTab':
+      editTab = el.dataset.tab;
+      return render();
+    case 'wolfCount': {
+      // Trade a Dân Làng card for a Ma Sói card, or back.
+      const up = Number(el.dataset.delta) > 0;
+      await act('role', { roleId: 'werewolf', delta: up ? 1 : -1 });
+      return act('role', { roleId: 'villager', delta: up ? -1 : 1 });
+    }
     case 'swapJoin': return act('swapJoin');
     case 'start':
       narrator.unlock();
