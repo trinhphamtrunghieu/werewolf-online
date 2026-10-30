@@ -1439,22 +1439,27 @@ function stage() {
     const banishedMe = g.banished === m.id;
     const canVote = m.inGame && m.alive && !banishedMe;
     const voters = alivePlayers().filter(p => p.id !== g.banished).length;
+    // The table stays put while votes come in: the text above it keeps its
+    // length, and who voted for whom goes below it.
+    const list = voteList(g.votes);
     return `
       <div class="panel">
         <h2>${g.voteRound === 2 ? 'Bỏ phiếu lần hai' : 'Bỏ phiếu nghi phạm'}</h2>
         <p class="lead">${canVote
-          ? (mine ? `Bạn đã chọn ${esc(seatName(mine))}. Có thể đổi trước khi hết giờ.` : 'Chạm vào người bạn nghi là Sói.')
+          ? 'Chạm vào người bạn nghi là Sói. Có thể đổi trước khi hết giờ.'
           : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
         <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
-        ${voteList(g.votes)}
       </div>
       ${roundTable(view.players.filter(p => p.inGame), {
-        center: canVote ? 'Chạm vào người bạn nghi là Sói' : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
+        center: canVote
+          ? (mine ? `<span>Bạn chọn<strong>${esc(nameOnly(mine))}</strong></span>` : 'Chạm vào người bạn nghi là Sói')
+          : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
         seatOpts: (p) => {
           const pickable = canVote && p.alive && p.id !== m.id && p.id !== g.banished;
           return { selectable: pickable, act: 'vote', pressed: mine === p.id, count: counts[p.id] || 0 };
         }
-      })}`;
+      })}
+      ${list ? `<div class="panel" style="margin-top:12px"><h3>Ai bầu ai</h3>${list}</div>` : ''}`;
   }
 
   if (view.phase === 'DEFENSE') {

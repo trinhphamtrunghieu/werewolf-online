@@ -655,6 +655,7 @@ button.seat .disc { background: none; color: var(--text); width: auto; height: a
 button.seat.me { border-color: var(--brass); }
 .village button.seat.me .disc { box-shadow: none; }
 .seat .count {
+  z-index: 2;
   position: absolute;
   top: 4px; right: 6px;
   min-width: 22px;
@@ -703,7 +704,7 @@ button.seat.me { border-color: var(--brass); }
 .table .seat[aria-pressed="true"] { border: 0; background: transparent; }
 .table .seat[aria-pressed="true"] .disc { box-shadow: 0 0 0 3px var(--wolf); }
 .table .seat[aria-pressed="true"] .label { font-weight: 800; }
-.table .seat .count { top: -4px; right: 6px; }
+.table .seat .count { top: -6px; right: 2px; }
 .table .seat .label { font-size: 0.75rem; max-width: 72px; }
 .table .seat .sub { font-size: 0.66rem; }
 .table.crowded .seat { width: 60px; margin: -30px 0 0 -30px; }
