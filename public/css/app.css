@@ -403,22 +403,6 @@ a { color: var(--brass-hi); }
 .balance-legend { display: flex; justify-content: space-between; gap: 8px; text-align: center; font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
 .balance-legend strong { color: var(--text); font-weight: 600; }
 
-.role-row {
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 0;
-  border-top: 1px solid var(--line);
-}
-.role-row:first-of-type { border-top: 0; }
-.role-row .icon { font-size: 1.6rem; text-align: center; }
-.role-row .icon.pick { width: 40px; height: 40px; padding: 0; border-radius: 10px; border: 1px dashed var(--brass-line); background: transparent; cursor: pointer; filter: grayscale(1); opacity: 0.5; }
-.role-row .icon.pick.on { border: 1px solid var(--brass); background: rgba(201, 162, 78, 0.16); filter: none; opacity: 1; }
-.role-row .pts { font-size: 0.75rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--face-3); color: var(--muted); }
-.role-row .pts.pos { color: #a9d0bd; }
-.role-row .pts.neg { color: #f0a49c; }
-.role-row .desc { font-size: 0.85rem; color: var(--muted); }
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper button {
   width: 40px; height: 40px;
@@ -431,21 +415,11 @@ a { color: var(--brass-hi); }
 .stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
 .stepper output { min-width: 28px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.balance { height: 10px; border-radius: 999px; overflow: hidden; display: flex; background: var(--felt-3); }
-.balance span { display: block; height: 100%; transition: width 0.3s ease; }
-.balance .v { background: var(--village); }
-.balance .w { background: var(--wolf); }
-.balance .t { background: var(--third); }
-.team-counts { color: var(--muted); }
-.team-counts .dot, .deck-team .dot, .side-wins .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.deck-team .dot, .side-wins .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
 .dot.v { background: var(--village); }
 .dot.w { background: var(--wolf); }
 .dot.t { background: var(--third); }
 
-.role-group { margin: 16px 0 2px; font-size: 1.05rem; }
-.role-group.v { color: var(--village); }
-.role-group.w { color: #e0766b; }
-.role-group.t { color: var(--third); }
 
 /* ---------- Deck editor ---------- */
 
@@ -463,25 +437,23 @@ a { color: var(--brass-hi); }
 .deck-count.ok { background: rgba(127, 176, 154, 0.12); border: 1px solid rgba(127, 176, 154, 0.5); color: #d3eadf; }
 .deck-count.off { background: rgba(198, 70, 59, 0.14); border: 1px solid rgba(198, 70, 59, 0.55); color: #f3d3cd; }
 .deck-count .btn { flex: none; }
-.deck-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; }
-.deck-sum .sum {
+.deck-steps { display: grid; gap: 6px; margin: 10px 0 2px; }
+.step-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 10px 4px;
+  justify-content: space-between;
+  padding: 6px 6px 6px 12px;
   border-radius: 10px;
-  border: 1px solid var(--village);
-  background: #1d2a24;
-  font-size: 0.8rem;
-  text-align: center;
+  background: var(--face-2);
+  border-left: 3px solid var(--brass-line);
+  font-weight: 600;
 }
-.deck-sum .sum.w { border-color: var(--wolf); background: #2e1d19; }
-.deck-sum .sum.s { border-color: var(--brass-line); background: var(--face-2); }
-.deck-sum .n { font-family: var(--display); font-size: 1.7rem; line-height: 1; }
-.mini-step { display: flex; gap: 6px; margin-top: 4px; }
+.step-row.w { border-left-color: var(--wolf); }
+.step-row.v { border-left-color: var(--village); }
+.mini-step { display: flex; align-items: center; gap: 6px; }
+.mini-step output { min-width: 28px; text-align: center; font-family: var(--display); font-size: 1.3rem; }
 .mini-step button {
-  width: 36px; height: 32px;
+  width: 40px; height: 36px;
   border-radius: 8px;
   border: 1px solid var(--brass-line);
   background: var(--face);
@@ -492,16 +464,13 @@ a { color: var(--brass-hi); }
 .board-tabs.edit-tabs { grid-template-columns: repeat(3, 1fr); }
 .board-tabs.edit-tabs button { white-space: nowrap; }
 .role-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.role-tile-wrap { display: flex; flex-direction: column; gap: 4px; }
-.role-tile-wrap .role-tile { flex: 1; }
-.tile-step { justify-content: center; margin-top: 0; }
 .role-tile {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  min-height: 92px;
+  min-height: 76px;
   padding: 10px 4px 8px;
   border-radius: 10px;
   border: 1px dashed var(--brass-faint);
@@ -512,14 +481,11 @@ a { color: var(--brass-hi); }
 }
 .role-tile .ic { font-size: 1.5rem; line-height: 1; filter: grayscale(0.9); opacity: 0.6; }
 .role-tile .nm { font-size: 0.8rem; font-weight: 600; line-height: 1.2; }
-.role-tile .pts { font-size: 0.7rem; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--face-3); color: var(--muted); }
-.role-tile .pts.pos { color: #a9d0bd; }
-.role-tile .pts.neg { color: #f0a49c; }
 .role-tile.on { border: 2px solid var(--brass); background: rgba(201, 162, 78, 0.14); color: var(--text); }
 .role-tile.on .ic { filter: none; opacity: 1; }
 .role-tile .badge { position: absolute; top: 4px; right: 6px; font-size: 0.72rem; font-weight: 700; color: var(--brass-hi); }
-.role-info { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(237, 226, 200, 0.05); min-height: 62px; font-size: 0.9rem; }
-.role-info p { margin-top: 2px; color: var(--soft); }
+.role-info { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(237, 226, 200, 0.05); font-size: 0.88rem; color: var(--soft); }
+.role-info strong { color: var(--text); }
 
 /* ---------- Setup (host, before dealing) ---------- */
 

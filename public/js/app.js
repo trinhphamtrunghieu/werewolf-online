@@ -710,11 +710,10 @@ function renderLobby() {
     : `<p class="note">Đang chờ chủ phòng bắt đầu ván chơi…</p>`;
 }
 
-// The host's deck editor. Nothing balances itself: tapping a role puts that
-// card in or takes it out, −/+ change the werewolves and villagers one card
-// at a time. The count and the balance are shown so the host can judge, with
-// a shortcut to make up the count with villagers. One side at a time; the
-// role last tapped is explained underneath.
+// The host's deck editor, kept to what is needed: one status line (count or
+// what is wrong, with the fix), −/+ for the cards that come in numbers, the
+// balance, then the roles to tap, one side at a time. Nothing balances
+// itself: a tap puts that card in or takes it out.
 let editTab = 'village';
 let roleInfo = null;
 const EDIT_TABS = [['village', 'Phe Dân', ['village']], ['werewolf', 'Phe Sói', ['werewolf']], ['third', 'Thứ ba', ['piper', 'fool', 'hoodlum']]];
@@ -724,14 +723,26 @@ function deckEditor(count) {
   const total = totalRoles(counts);
   const score = balanceScore(counts);
   const pos = 50 + Math.max(-20, Math.min(20, score)) * 2.5;
-  // The card count gets its own line with the fix; other problems below it.
-  const problem = count >= MIN_PLAYERS && total === needed ? validateRoleCounts(counts, count) : null;
-  const stepper = (id, label, canDown, canUp) => `<span class="mini-step">
-      <button data-act="roleStep" data-role="${id}" data-delta="-1" ${canDown ? '' : 'disabled'} aria-label="Bớt một ${label}">−</button>
-      <button data-act="roleStep" data-role="${id}" data-delta="1" ${canUp ? '' : 'disabled'} aria-label="Thêm một ${label}">+</button>
-    </span>`;
   const special = (id) => id !== 'werewolf' && id !== 'villager';
-  const specials = ROLE_IDS.filter(id => special(id) && counts[id] > 0).reduce((n, id) => n + counts[id], 0);
+  const stepper = (id, label, canDown) => `<span class="mini-step">
+      <button data-act="roleStep" data-role="${id}" data-delta="-1" ${canDown ? '' : 'disabled'} aria-label="Bớt một ${label}">−</button>
+      <output>${counts[id] || 0}</output>
+      <button data-act="roleStep" data-role="${id}" data-delta="1" aria-label="Thêm một ${label}">+</button>
+    </span>`;
+
+  // One line says where the deck stands.
+  let status;
+  if (total !== needed) {
+    const fix = total < needed || counts.villager >= total - needed
+      ? `<button class="btn btn-small btn-primary" data-act="fitDeck">${total < needed ? `Thêm ${needed - total} Dân Làng` : `Bớt ${total - needed} Dân Làng`}</button>` : '';
+    status = `<div class="deck-count off"><span><strong>${total}/${needed} lá</strong>${counts.thief ? ' (Ăn Trộm cần dư 2 lá)' : ''}</span>${fix}</div>`;
+  } else {
+    const problem = count >= MIN_PLAYERS ? validateRoleCounts(counts, count) : `Cần ít nhất ${MIN_PLAYERS} người chơi.`;
+    status = problem
+      ? `<div class="deck-count off"><span>${esc(problem)}</span></div>`
+      : `<div class="deck-count ok"><span><strong>${total}/${needed} lá</strong>, sẵn sàng chia bài</span></div>`;
+  }
+
   const tab = EDIT_TABS.find(x => x[0] === editTab);
   const tiles = ROLE_IDS
     .filter(id => special(id) && tab[2].includes(ROLES[id].team))
@@ -739,17 +750,11 @@ function deckEditor(count) {
     .map(id => {
       const r = ROLES[id];
       const on = counts[id] > 0;
-      // Roles that can have several cards (the Masons) get their own −/+
-      // once in the deck (at least two: tap the tile to take them out).
-      const step = id === 'mason' && on ? stepper(id, r.name, counts[id] > 2, true).replace('class="mini-step"', 'class="mini-step tile-step"') : '';
-      return `<div class="role-tile-wrap">
-        <button class="role-tile ${on ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${on}">
+      return `<button class="role-tile ${on ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${on}">
           ${counts[id] > 1 ? `<span class="badge">×${counts[id]}</span>` : ''}
           <span class="ic" aria-hidden="true">${r.icon}</span>
           <span class="nm">${r.name}</span>
-          <span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>
-        </button>${step}
-      </div>`;
+        </button>`;
     }).join('');
   const inTab = (ids) => ROLE_IDS.filter(id => special(id) && ids.includes(ROLES[id].team) && counts[id] > 0).length;
   const info = roleInfo && ROLES[roleInfo];
@@ -758,39 +763,23 @@ function deckEditor(count) {
       <h2>Sửa bộ bài</h2>
       <button class="btn btn-ghost btn-small" data-act="autoBalance">Gợi ý bộ bài</button>
     </div>
-    <p class="muted small">Chạm vào vai để thêm hoặc bỏ lá đó. Bộ bài không tự cân bằng: bạn quyết định từng lá.</p>
-
-    <div class="deck-count ${total === needed ? 'ok' : 'off'}">
-      <span><strong>${total}/${needed} lá</strong> cho ${count} người${counts.thief ? ' (dư 2 lá cho Ăn Trộm)' : ''}</span>
-      ${total === needed ? '<span>Đủ lá</span>'
-        : total < needed || counts.villager >= total - needed
-        ? `<button class="btn btn-small ${total < needed ? 'btn-primary' : 'btn-ghost'}" data-act="fitDeck">${total < needed ? `Thêm ${needed - total} Dân Làng` : `Bớt ${total - needed} Dân Làng`}</button>`
-        : `<span>Thừa ${total - needed} lá</span>`}
-    </div>
-    <div class="deck-sum">
-      <div class="sum w"><span class="n">${counts.werewolf || 0}</span><span>Ma Sói</span>${stepper('werewolf', 'Ma Sói', counts.werewolf > 0, true)}</div>
-      <div class="sum v"><span class="n">${counts.villager || 0}</span><span>Dân Làng</span>${stepper('villager', 'Dân Làng', counts.villager > 0, true)}</div>
-      <div class="sum s"><span class="n">${specials}</span><span>Vai đặc biệt</span></div>
+    ${status}
+    <div class="deck-steps">
+      <div class="step-row w"><span>Ma Sói</span>${stepper('werewolf', 'Ma Sói', counts.werewolf > 0)}</div>
+      <div class="step-row v"><span>Dân Làng</span>${stepper('villager', 'Dân Làng', counts.villager > 0)}</div>
+      ${counts.mason ? `<div class="step-row"><span>Hội Kín</span>${stepper('mason', 'Hội Kín', counts.mason > 2)}</div>` : ''}
     </div>
     <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
-    <p class="balance-legend"><span>← Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Dân →</span></p>
-    ${problem ? `<p class="result result-wolf" style="margin-bottom:12px">${esc(problem)}</p>` : ''}
+    <p class="balance-legend"><span>Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)}</strong><span>Dân</span></p>
 
     <div class="board-tabs edit-tabs" role="group" aria-label="Phe">
       ${EDIT_TABS.map(([id, label, teams]) => {
         const n = inTab(teams);
-        return `<button data-act="editTab" data-tab="${id}" aria-pressed="${editTab === id}">${label}${n ? ` · ${n}` : ''}</button>`;
+        return `<button data-act="editTab" data-tab="${id}" aria-pressed="${editTab === id}">${label}${n ? ` (${n})` : ''}</button>`;
       }).join('')}
     </div>
     <div class="role-tiles">${tiles}</div>
-    <div class="role-info" aria-live="polite">${info
-      ? `<strong>${info.icon} ${info.name}</strong> <span class="muted small">(${info.points > 0 ? '+' : ''}${info.points} điểm)</span><p>${info.short}</p>`
-      : '<p class="muted small">Chạm vào một vai để xem vai đó làm gì. Điểm dương có lợi cho phe Dân, điểm âm có lợi cho phe Sói.</p>'}</div>
-
-    <details class="section" style="margin-top:14px">
-      <summary><span class="btn-link">Tuỳ chỉnh số lượng từng lá (nâng cao)</span></summary>
-      ${rolesPanel(count, true)}
-    </details>
+    ${info ? `<p class="role-info" aria-live="polite"><strong>${info.name}</strong>: ${info.short}</p>` : ''}
     <button class="btn btn-primary btn-block btn-big" style="margin-top:14px" data-act="deckEdit">Xong</button>`;
 }
 
@@ -979,65 +968,6 @@ function hostTimers() {
 }
 
 const fmtSeconds = (s) => s >= 60 ? `${Math.floor(s / 60)} phút${s % 60 ? ` ${s % 60} giây` : ''}` : `${s} giây`;
-
-function rolesPanel(count, host) {
-  const counts = view.roleCounts;
-  const total = totalRoles(counts);
-  // Count every card by its team: wolves (Ma Sói, Sói Con, Sói Báo Thù),
-  // village, and the third parties (Người Thổi Sáo, Kẻ Cuồng Loạn).
-  const teams = { village: 0, werewolf: 0, third: 0 };
-  ROLE_IDS.forEach(id => {
-    const team = ROLES[id].team;
-    teams[team === 'village' || team === 'werewolf' ? team : 'third'] += counts[id] || 0;
-  });
-  const pct = (n) => (total ? (n / total) * 100 : 0);
-  return `
-    <div class="row-between" style="margin-bottom:4px">
-      <h3>Vai trò trong ván</h3>
-    </div>
-    <p class="muted small">${total}/${cardsNeeded(counts, count)} lá bài cho ${count} người${counts.thief ? ' (có Ăn Trộm nên chia dư 2 lá)' : ''}.</p>
-    ${(() => {
-      const score = balanceScore(counts);
-      return `<p class="small balance-score">⚖️ Điểm cân bằng: <strong>${score > 0 ? '+' : ''}${score}</strong> · ${balanceLabel(score)}
-        <span class="muted">(theo điểm Ultimate Werewolf: dương có lợi cho phe Dân, âm có lợi cho phe Sói; gần 0 là cân bằng)</span></p>`;
-    })()}
-    ${host ? '<p class="muted small">Chạm vào biểu tượng của vai để thêm hoặc bỏ lá đó. Nút −/+ để chỉnh số lượng.</p>' : ''}
-    <div class="balance" style="margin:12px 0 4px" role="img" aria-label="Phe Dân ${teams.village}, phe Sói ${teams.werewolf}, phe thứ ba ${teams.third}">
-      <span class="v" style="width:${pct(teams.village)}%"></span><span class="t" style="width:${pct(teams.third)}%"></span><span class="w" style="width:${pct(teams.werewolf)}%"></span>
-    </div>
-    <div class="row-between small team-counts" style="margin-bottom:8px">
-      <span><i class="dot v"></i>Phe Dân: ${teams.village}</span>
-      ${teams.third ? `<span><i class="dot t"></i>Phe thứ ba: ${teams.third}</span>` : ''}
-      <span><i class="dot w"></i>Phe Sói: ${teams.werewolf}</span>
-    </div>
-    ${ROLE_GROUPS.map(group => {
-      const ids = ROLE_IDS
-        .filter(id => group.teams.includes(ROLES[id].team) && (host || counts[id] > 0))
-        .sort(group.order);
-      if (!ids.length) return '';
-      return `<h4 class="role-group ${group.cls}">${group.title}</h4>${ids.map(roleRow).join('')}`;
-    }).join('')}`;
-
-  function roleRow(id) {
-    const r = ROLES[id];
-    const pts = `<span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>`;
-    // Werewolves and Villagers fill the deck; every other role can be ticked.
-    const toggle = host && id !== 'werewolf' && id !== 'villager';
-    return `
-      <div class="role-row">
-        ${toggle
-          ? `<button class="icon pick ${counts[id] ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${!!counts[id]}" aria-label="${counts[id] ? 'Bỏ' : 'Chọn'} ${r.name}">${r.icon}</button>`
-          : `<span class="icon" aria-hidden="true">${r.icon}</span>`}
-        <div><strong>${r.name}</strong> ${pts}<p class="desc">${r.short}</p></div>
-        ${host ? `
-          <div class="stepper">
-            <button data-act="role" data-role="${id}" data-delta="-1" ${counts[id] ? '' : 'disabled'} aria-label="Bớt ${r.name}">−</button>
-            <output>${counts[id] || 0}</output>
-            <button data-act="role" data-role="${id}" data-delta="1" aria-label="Thêm ${r.name}">+</button>
-          </div>` : `<strong>×${counts[id]}</strong>`}
-      </div>`;
-  }
-}
 
 // The role list is grouped by side, each sorted by the role's points: the
 // village's strongest helpers first, the most dangerous wolves first.
