@@ -524,7 +524,9 @@ export function balanceRoles(picks, playerCount) {
   const n = Math.max(0, playerCount);
   const c = emptyRoleCounts();
   if (n === 0) return c;
-  new Set(picks).forEach(id => { if (ROLES[id] && id !== 'werewolf' && id !== 'villager') c[id] = 1; });
+  // One card per picked role; the Masons come as a pair (a lone Mason has
+  // nobody to know).
+  new Set(picks).forEach(id => { if (ROLES[id] && id !== 'werewolf' && id !== 'villager') c[id] = id === 'mason' ? 2 : 1; });
   const needed = cardsNeeded(c, n);
   const special = totalRoles(c);
   const packSpecials = PACK_ROLES.reduce((sum, id) => sum + c[id], 0);

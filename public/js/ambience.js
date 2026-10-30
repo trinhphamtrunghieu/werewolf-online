@@ -63,11 +63,141 @@ export const THEMES = {
     }
   }
 };
+Object.assign(THEMES, {
+  storm: {
+    name: 'Bão giông',
+    voice: 'piano',
+    padType: 'sine',
+    padCutoff: 900,
+    moods: {
+      night: { pad: [196.0, 233.08, 293.66], scale: [293.66, 349.23, 392.0, 466.16], noteGap: [5.0, 9.0], wind: 1.3, rain: 1.6, thunder: 2, gusts: true },
+      day: { pad: [220.0, 261.63, 329.63], scale: [329.63, 392.0, 440.0, 523.25], noteGap: [5.0, 9.0], wind: 0.6, rain: 0.9, thunder: 1, drips: true },
+      tense: { pad: [185.0, 220.0, 277.18], scale: [277.18, 329.63, 369.99], noteGap: [6.0, 10.0], wind: 1, rain: 1.3, thunder: 2, gusts: true, heartbeat: true }
+    }
+  },
+  sea: {
+    name: 'Làng chài',
+    voice: 'flute',
+    padType: 'sine',
+    padCutoff: 1100,
+    moods: {
+      night: { pad: [220.0, 277.18, 329.63], scale: [440.0, 493.88, 554.37, 659.25, 739.99], noteGap: [4.5, 8.5], wind: 0.45, waves: 1, crickets: true },
+      day: { pad: [246.94, 311.13, 369.99], scale: [493.88, 554.37, 622.25, 739.99, 830.61], noteGap: [4.0, 7.5], wind: 0.3, waves: 0.8, gulls: true },
+      tense: { pad: [207.65, 246.94, 311.13], scale: [415.3, 493.88, 554.37], noteGap: [5.0, 9.0], wind: 0.5, waves: 1, heartbeat: true }
+    }
+  },
+  campfire: {
+    name: 'Lửa trại',
+    voice: 'musicbox',
+    padType: 'triangle',
+    padCutoff: 1100,
+    moods: {
+      night: { pad: [196.0, 246.94, 293.66], scale: [392.0, 440.0, 493.88, 587.33, 659.25], noteGap: [3.5, 6.5], wind: 0.25, fire: 1, crickets: true, owls: true },
+      day: { pad: [261.63, 329.63, 392.0], scale: [523.25, 587.33, 659.25, 783.99], noteGap: [3.5, 6.5], wind: 0.15, fire: 0.6, birds: true },
+      tense: { pad: [196.0, 233.08, 293.66], scale: [392.0, 466.16, 523.25], noteGap: [5.0, 8.0], wind: 0.3, fire: 1, heartbeat: true }
+    }
+  },
+  winter: {
+    name: 'Đêm đông, sói tru',
+    voice: 'glass',
+    padType: 'sine',
+    padCutoff: 1000,
+    moods: {
+      night: { pad: [185.0, 220.0, 277.18], scale: [369.99, 415.3, 440.0, 554.37], noteGap: [5.0, 9.0], wind: 0.9, howl: 1, wolves: true },
+      day: { pad: [220.0, 277.18, 329.63], scale: [440.0, 493.88, 554.37, 659.25], noteGap: [4.0, 7.5], wind: 0.6, howl: 0.4 },
+      tense: { pad: [174.61, 207.65, 261.63], scale: [349.23, 415.3, 466.16], noteGap: [5.0, 9.0], wind: 0.8, howl: 0.8, wolves: true, heartbeat: true }
+    }
+  },
+  temple: {
+    name: 'Chùa cổ',
+    voice: 'bell',
+    padType: 'sine',
+    padCutoff: 1000,
+    moods: {
+      night: { pad: [196.0, 261.63, 293.66], scale: [392.0, 440.0, 523.25, 587.33, 659.25], noteGap: [5.0, 9.0], wind: 0.4, gong: true, moktak: true, crickets: true },
+      day: { pad: [220.0, 293.66, 329.63], scale: [440.0, 523.25, 587.33, 659.25, 783.99], noteGap: [4.5, 8.0], wind: 0.2, gong: true, birds: true },
+      tense: { pad: [185.0, 246.94, 277.18], scale: [369.99, 440.0, 493.88], noteGap: [6.0, 10.0], wind: 0.4, moktak: true, heartbeat: true }
+    }
+  }
+});
+// The rain night gets the new rain and a gust now and then.
+THEMES.rain.moods.night.gusts = true;
 export const THEME_IDS = Object.keys(THEMES);
+
+// ---------------------------------------------------------------------------
+// Recorded-like textures, computed once per sample rate and looped.
+// Stereo, with different random content per side, so the sound is wide.
+// ---------------------------------------------------------------------------
+
+const textures = new Map();
+function texture(ctx, name, make) {
+  const key = `${name}@${ctx.sampleRate}`;
+  if (!textures.has(key)) textures.set(key, make(ctx));
+  return textures.get(key);
+}
+
+// Plain white noise, the raw material for rain sheets and surf.
+function whiteNoise(ctx, seconds = 4) {
+  const buf = ctx.createBuffer(2, ctx.sampleRate * seconds, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return buf;
+}
+
+// Many tiny impacts scattered over a loop: each is a short noise tick that
+// rings at its own pitch and dies away in a few milliseconds. Dense and high
+// for the patter of rain; sparse and lower for big drops off the eaves;
+// sharp and broadband for a fire's crackle. The loop wraps so it is seamless.
+function impacts(ctx, { seconds, perSecond, freq, decay, level, noise = 0.5, burst = 0 }) {
+  const sr = ctx.sampleRate;
+  const len = Math.floor(sr * seconds);
+  const buf = ctx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    const count = Math.floor(perSecond * seconds);
+    for (let n = 0; n < count; n++) {
+      const start = Math.floor(Math.random() * len);
+      const f = rand(...freq);
+      const tau = rand(...decay) * sr;
+      const amp = level * Math.pow(Math.random(), 1.6);
+      const w = (2 * Math.PI * f) / sr;
+      const span = Math.min(len, Math.floor(tau * 5));
+      const phase = Math.random() * Math.PI * 2;
+      for (let k = 0; k < span; k++) {
+        const env = Math.exp(-k / tau);
+        const tick = (Math.random() * 2 - 1) * Math.exp(-k / (0.0015 * sr));
+        d[(start + k) % len] += amp * env * (Math.sin(w * k + phase) * (1 - noise) + tick * noise);
+      }
+    }
+    // Every so often a cluster (a gust throwing drops, a log settling).
+    for (let b = 0; b < burst * seconds; b++) {
+      const at = Math.floor(Math.random() * len);
+      for (let n = 0; n < 12; n++) {
+        const start = (at + Math.floor(Math.random() * sr * 0.25)) % len;
+        const tau = rand(...decay) * sr;
+        const amp = level * rand(0.4, 1);
+        for (let k = 0; k < tau * 5; k++) d[(start + k) % len] += amp * Math.exp(-k / tau) * (Math.random() * 2 - 1);
+      }
+    }
+  }
+  return buf;
+}
+
+const RAIN_PATTER = (ctx) => impacts(ctx, { seconds: 7, perSecond: 520, freq: [1800, 6500], decay: [0.0015, 0.005], level: 0.5, noise: 0.55 });
+const RAIN_DROPS = (ctx) => impacts(ctx, { seconds: 9, perSecond: 9, freq: [500, 1400], decay: [0.012, 0.03], level: 0.9, noise: 0.25 });
+const FIRE_CRACKLE = (ctx) => impacts(ctx, { seconds: 8, perSecond: 28, freq: [1500, 5000], decay: [0.0008, 0.003], level: 1, noise: 0.9, burst: 0.35 });
+
 
 const PAD_LEVEL = 0.045;
 const WIND_LEVEL = 0.07;
-const RAIN_LEVEL = 0.05;
+// Rain is four layers: a soft roof rumble, the hiss of the sheet of rain,
+// the patter of drops hitting things, and bigger drops off the eaves.
+const RAIN_LEVEL = { rumble: 0.06, sheet: 0.05, patter: 0.13, drops: 0.07 };
+const WAVE_LEVEL = 0.06;
+const FIRE_LEVEL = { roar: 0.05, crackle: 0.08 };
+const HOWL_LEVEL = 0.035;
 const DUCKED = 0.3; // fraction of the volume left while the narrator talks
 // How loud each mood plays, against the volume the player set: quieter by day
 // (discussion and votes) so people can hear each other.
@@ -171,22 +301,64 @@ export class Ambience {
     windSrc.start();
     gust.start();
 
-    // Rain: the same noise, high-passed into a steady hiss.
-    const rainSrc = ctx.createBufferSource();
-    rainSrc.buffer = noise;
-    rainSrc.loop = true;
-    rainSrc.playbackRate.value = 1.7;
-    const rainFilter = ctx.createBiquadFilter();
-    rainFilter.type = 'highpass';
-    rainFilter.frequency.value = 2200;
-    this.rainGain = ctx.createGain();
-    this.rainGain.gain.value = RAIN_LEVEL * (this.mood.rain || 0);
-    rainSrc.connect(rainFilter).connect(this.rainGain).connect(this.master);
-    rainSrc.start();
+    // Loop a buffer through a filter into its own gain.
+    const loop = (buffer, rate, filters) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.playbackRate.value = rate;
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      let node = src;
+      gain.filters = filters.map(([type, freq, q = 0.7]) => {
+        const f = ctx.createBiquadFilter();
+        f.type = type;
+        f.frequency.value = freq;
+        f.Q.value = q;
+        node.connect(f);
+        node = f;
+        return f;
+      });
+      node.connect(gain).connect(this.master);
+      src.start(t, Math.random() * buffer.duration);
+      this.sources.push(src);
+      return gain;
+    };
+    this.sources = [];
+    const white = texture(ctx, 'white', whiteNoise);
+    // Only the textures this theme uses, to spare the phone's battery.
+    const uses = (k) => Object.values(this.theme.moods).some(m => m[k]);
+    this.layers = {};
+    if (uses('rain')) {
+      this.layers.rumble = loop(noise, 0.6, [['lowpass', 700], ['highpass', 160]]);
+      this.layers.sheet = loop(white, 1, [['bandpass', 3800, 0.4], ['lowpass', 9000]]);
+      this.layers.patter = loop(texture(ctx, 'patter', RAIN_PATTER), 1, [['highpass', 900]]);
+      this.layers.drops = loop(texture(ctx, 'drops', RAIN_DROPS), 1, [['bandpass', 1100, 0.6]]);
+    }
+    // Surf on a beach: a steady wash, swelled by each wave.
+    if (uses('waves')) this.layers.wash = loop(white, 0.8, [['lowpass', 900], ['highpass', 180]]);
+    // A campfire: a low roar and the crackle.
+    if (uses('fire')) {
+      this.layers.roar = loop(noise, 0.45, [['lowpass', 500], ['highpass', 150]]);
+      this.layers.crackle = loop(texture(ctx, 'crackle', FIRE_CRACKLE), 1, [['highpass', 700]]);
+    }
+    // Winter wind whistling round the corners; its pitch drifts like wind
+    // through a gap.
+    if (uses('howl')) {
+      this.layers.howl = loop(white, 1, [['bandpass', 650, 9]]);
+      const whistle = ctx.createOscillator();
+      const whistleDepth = ctx.createGain();
+      whistle.frequency.value = 0.05;
+      whistleDepth.gain.value = 220;
+      whistle.connect(whistleDepth).connect(this.layers.howl.filters[0].frequency);
+      whistle.start();
+      this.sources.push(whistle);
+    }
 
-    this.sources = [swell, windSrc, gust, rainSrc, ...this.padVoices];
+    this.sources.push(swell, windSrc, gust, ...this.padVoices);
     const now = ctx.currentTime;
-    this.next = { note: now + 1.5, cricket: now + 2, bird: now + 4, beat: now + 1, owl: now + 6, drip: now + 3, toll: now + 5, thunder: now + 12, rainDrop: now + 1 };
+    this.next = { note: now + 1.5, cricket: now + 2, bird: now + 4, beat: now + 1, owl: now + 6, drip: now + 3, toll: now + 5, thunder: now + 10, gust: now + 4, wave: now + 1, wolf: now + 8, gong: now + 6, moktak: now + 12, gull: now + 5 };
+    this.setLayers(0.1);
     this.timer = setInterval(() => this.schedule(), 200);
     this.applyLevel(1.5);
   }
@@ -200,7 +372,25 @@ export class Ambience {
     this.padVoices.forEach((o, i) => o.frequency.setTargetAtTime(mood.pad[i], t, 0.8));
     this.applyLevel(3);
     this.windGain.gain.setTargetAtTime(WIND_LEVEL * mood.wind, t, 1.2);
-    this.rainGain.gain.setTargetAtTime(RAIN_LEVEL * (mood.rain || 0), t, 1.2);
+    this.setLayers(1.2);
+  }
+
+  // Bring each texture to the level the mood asks for.
+  setLayers(tc) {
+    const m = this.mood;
+    const t = this.ctx.currentTime;
+    const rain = m.rain || 0;
+    const target = {
+      rumble: RAIN_LEVEL.rumble * rain,
+      sheet: RAIN_LEVEL.sheet * rain,
+      patter: RAIN_LEVEL.patter * Math.min(rain, 1.3),
+      drops: RAIN_LEVEL.drops * Math.min(rain, 1),
+      wash: WAVE_LEVEL * (m.waves || 0) * 0.5,
+      roar: FIRE_LEVEL.roar * (m.fire || 0),
+      crackle: FIRE_LEVEL.crackle * (m.fire || 0),
+      howl: HOWL_LEVEL * (m.howl || 0)
+    };
+    for (const [k, v] of Object.entries(target)) this.layers[k]?.gain.setTargetAtTime(v, t, tc);
   }
 
   setVolume(v) {
@@ -271,11 +461,37 @@ export class Ambience {
     }
     if (this.next.thunder < ahead) {
       if (m.thunder) this.thunder(this.next.thunder);
-      this.next.thunder += rand(20, 40);
+      this.next.thunder += m.thunder === 2 ? rand(12, 26) : rand(22, 45);
     }
-    if (this.next.rainDrop < ahead) {
-      if (m.rain) this.drip(this.next.rainDrop, 0.008 * m.rain);
-      this.next.rainDrop += rand(0.15, 0.6);
+    if (this.next.gust < ahead) {
+      // The rain thickens and thins as the wind pushes it about.
+      if (m.rain) this.rainGust(this.next.gust, m.gusts ? rand(1.3, 1.9) : rand(0.8, 1.25));
+      this.next.gust += rand(3, 7);
+    }
+    if (this.next.wave < ahead) {
+      if (m.waves) this.wave(this.next.wave, m.waves);
+      this.next.wave += rand(6.5, 11);
+    }
+    if (this.next.wolf < ahead) {
+      if (m.wolves) this.wolf(this.next.wolf);
+      this.next.wolf += rand(18, 35);
+    }
+    if (this.next.gong < ahead) {
+      if (m.gong) this.gong(this.next.gong);
+      this.next.gong += rand(20, 34);
+    }
+    if (this.next.moktak < ahead) {
+      if (m.moktak) this.moktak(this.next.moktak);
+      this.next.moktak += rand(16, 28);
+    }
+    if (this.next.gull < ahead) {
+      if (m.gulls) this.gull(this.next.gull);
+      this.next.gull += rand(7, 14);
+    }
+    // The howl's whistle wanders.
+    if (this.layers?.howl && Math.random() < 0.02) {
+      const howl = this.layers.howl;
+      howl.gain.setTargetAtTime(HOWL_LEVEL * (m.howl || 0) * rand(0.4, 1.3), t, 1.5);
     }
     // Catch up after the tab was in the background.
     for (const k of Object.keys(this.next)) if (this.next[k] < t) this.next[k] = t + 0.5;
@@ -380,24 +596,182 @@ export class Ambience {
     }
   }
 
-  // Far-off thunder: a slow swell of filtered noise.
+  // Thunder: sometimes a near crack first, then a long rolling rumble made of
+  // a few overlapping swells that fade out over several seconds.
   thunder(at) {
     const ctx = this.ctx;
+    const near = Math.random() < 0.35;
+    const out = ctx.createGain();
+    out.gain.value = near ? 1.2 : 0.8;
+    out.connect(this.master);
+    if (near) {
+      const crack = ctx.createBufferSource();
+      crack.buffer = texture(ctx, 'white', whiteNoise);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1200;
+      const g = this.envelope(at, 0.09, 0.005, 0.35);
+      crack.connect(hp).connect(g).connect(out);
+      crack.start(at, Math.random() * 2);
+      crack.stop(at + 0.5);
+    }
+    const rolls = 3 + Math.floor(Math.random() * 3);
+    let when = at + (near ? 0.08 : 0);
+    for (let i = 0; i < rolls; i++) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noise;
+      src.playbackRate.value = rand(0.25, 0.4);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(rand(500, 900), when);
+      lp.frequency.exponentialRampToValueAtTime(220, when + 3);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 90;
+      const peak = (i === 0 ? 0.16 : rand(0.06, 0.12));
+      const len = rand(2.2, 4);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.exponentialRampToValueAtTime(peak, when + rand(0.15, 0.5));
+      g.gain.exponentialRampToValueAtTime(0.0001, when + len);
+      src.connect(lp).connect(hp).connect(g).connect(out);
+      src.start(when, Math.random());
+      src.stop(when + len + 0.1);
+      when += rand(0.6, 1.6);
+    }
+  }
+
+  // A gust: the rain swells for a few seconds and settles back.
+  rainGust(at, amount) {
+    const m = this.mood;
+    const rain = m.rain || 0;
+    ['sheet', 'patter'].forEach(k => {
+      const g = this.layers[k]?.gain;
+      if (!g) return;
+      const base = RAIN_LEVEL[k] * Math.min(rain, k === 'patter' ? 1.3 : 9);
+      g.setTargetAtTime(base * amount, at, 0.8);
+      g.setTargetAtTime(base, at + rand(2, 4), 1.5);
+    });
+  }
+
+  // One wave: the surf rises, breaks with a hiss, and draws back.
+  wave(at, size) {
+    const ctx = this.ctx;
     const src = ctx.createBufferSource();
-    src.buffer = this.noise;
-    src.playbackRate.value = 0.5;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = rand(250, 400);
-    filter.Q.value = 0.7;
+    src.buffer = texture(ctx, 'white', whiteNoise);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(350, at);
+    lp.frequency.exponentialRampToValueAtTime(rand(2200, 3200), at + 2.4);
+    lp.frequency.exponentialRampToValueAtTime(400, at + 7);
     const g = ctx.createGain();
+    const peak = WAVE_LEVEL * size * rand(0.7, 1.2);
     g.gain.setValueAtTime(0.0001, at);
-    g.gain.exponentialRampToValueAtTime(0.12, at + 0.4);
-    g.gain.exponentialRampToValueAtTime(0.03, at + 1.2);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 3.5);
-    src.connect(filter).connect(g).connect(this.master);
-    src.start(at);
-    src.stop(at + 3.6);
+    g.gain.exponentialRampToValueAtTime(peak, at + 2.4);
+    g.gain.exponentialRampToValueAtTime(peak * 0.35, at + 3.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 7.5);
+    src.connect(lp).connect(g).connect(this.master);
+    src.start(at, Math.random() * 3);
+    src.stop(at + 7.6);
+  }
+
+  // A wolf howling far away: rises, holds with a waver, falls off.
+  wolf(at) {
+    const ctx = this.ctx;
+    const base = rand(330, 420);
+    const len = rand(2.6, 3.6);
+    const wolves = Math.random() < 0.4 ? 2 : 1;
+    for (let w = 0; w < wolves; w++) {
+      const start = at + w * rand(0.8, 1.6);
+      const f0 = base * (w ? rand(1.12, 1.3) : 1);
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f0 * 0.75, start);
+      o.frequency.exponentialRampToValueAtTime(f0 * 1.5, start + 0.6);
+      o.frequency.setValueAtTime(f0 * 1.5, start + len * 0.7);
+      o.frequency.exponentialRampToValueAtTime(f0 * 0.95, start + len);
+      const vib = ctx.createOscillator();
+      const depth = ctx.createGain();
+      vib.frequency.value = 5.5;
+      depth.gain.value = f0 * 0.012;
+      vib.connect(depth).connect(o.frequency);
+      // A soft vowel: the sawtooth through a low-pass, so it is breathy.
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 1100;
+      lp.Q.value = 2;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.022, start + 0.5);
+      g.gain.setValueAtTime(0.022, start + len * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + len);
+      o.connect(lp).connect(g);
+      g.connect(this.master);
+      g.connect(this.echo);
+      o.start(start);
+      vib.start(start);
+      o.stop(start + len + 0.1);
+      vib.stop(start + len + 0.1);
+    }
+  }
+
+  // A temple gong: inharmonic partials with a long shimmer.
+  gong(at) {
+    const ctx = this.ctx;
+    const f = rand(196, 247);
+    const g = this.envelope(at, 0.06, 0.01, 9);
+    [[1, 1], [1.48, 0.6], [1.98, 0.45], [2.44, 0.3], [3.1, 0.18], [4.3, 0.1]].forEach(([ratio, level]) => {
+      const o = ctx.createOscillator();
+      const lg = ctx.createGain();
+      o.frequency.setValueAtTime(f * ratio * 1.01, at);
+      o.frequency.exponentialRampToValueAtTime(f * ratio, at + 1.5);
+      lg.gain.value = level;
+      o.connect(lg).connect(g);
+      o.start(at);
+      o.stop(at + 9.2);
+    });
+    g.connect(this.master);
+    g.connect(this.echo);
+  }
+
+  // The wooden fish (mõ): a run of hollow knocks, slowing at the end.
+  moktak(at) {
+    const ctx = this.ctx;
+    const f = rand(700, 820);
+    const knocks = 5 + Math.floor(Math.random() * 5);
+    let when = at;
+    for (let i = 0; i < knocks; i++) {
+      const o = ctx.createOscillator();
+      o.frequency.setValueAtTime(f * 1.1, when);
+      o.frequency.exponentialRampToValueAtTime(f, when + 0.03);
+      const g = this.envelope(when, 0.05, 0.002, 0.09);
+      o.connect(g).connect(this.master);
+      o.start(when);
+      o.stop(when + 0.12);
+      when += i < knocks - 2 ? 0.55 : 0.8;
+    }
+  }
+
+  // A gull's cry: a couple of falling squawks.
+  gull(at) {
+    const ctx = this.ctx;
+    const cries = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < cries; i++) {
+      const start = at + i * rand(0.35, 0.5);
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      const f = rand(1400, 1700);
+      o.frequency.setValueAtTime(f, start);
+      o.frequency.exponentialRampToValueAtTime(f * 0.7, start + 0.28);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 2000;
+      bp.Q.value = 3;
+      const g = this.envelope(start, 0.012, 0.03, 0.28);
+      o.connect(bp).connect(g).connect(this.master);
+      o.start(start);
+      o.stop(start + 0.35);
+    }
   }
 
   // A burst of 3-5 quick chirps around 4.3 kHz.
