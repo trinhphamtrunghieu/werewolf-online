@@ -101,22 +101,44 @@ test('every suggested deck adds up close to zero (Ultimate Werewolf points)', ()
   for (let n = 6; n <= 18; n++) assert.ok(Math.abs(balanceScore(computeBalancedRoles(n))) <= 4, `n=${n}`);
 });
 
-test('the host picks the roles to play and the deck is filled and balanced', () => {
+test('the deck never balances itself: the host picks every card', () => {
   const { state: s, player: host } = createRoom({ code: 'PICK1', hostName: 'Host', now: 0 });
-  applyAction(s, host.id, 'addBot', { count: 9 }, 0);
-  const pick = (roleId) => applyAction(s, host.id, 'pickRole', { roleId }, 0);
-  ['seer', 'witch', 'guard', 'hunter', 'cupid', 'thief'].forEach(pick); // toggle off the defaults for 10
-  assert.deepEqual(s.rolePicks, []);
-  ['seer', 'wolf_cub', 'cursed'].forEach(pick);
-  assert.equal(s.roleMode, 'pick');
-  const c = s.roleCounts;
-  assert.equal(c.seer, 1); assert.equal(c.wolf_cub, 1); assert.equal(c.cursed, 1);
-  assert.equal(validateRoleCounts(c, 10), null);
-  assert.ok(Math.abs(balanceScore(c)) <= 4, String(balanceScore(c)));
-  // A new player joining re-balances the same picks.
-  applyAction(s, host.id, 'addBot', { count: 1 }, 0);
-  assert.equal(validateRoleCounts(s.roleCounts, 11), null);
-  assert.equal(s.roleCounts.cursed, 1);
+  // A new room: one Dân Làng card per player, nothing else.
+  assert.equal(totalRoles(s.roleCounts), 1);
+  assert.equal(s.roleCounts.villager, 1);
+  applyAction(s, host.id, 'addBot', { count: 6 }, 0);
+  assert.equal(s.roleCounts.villager, 7);
+  const host_ = (type, payload = {}) => applyAction(s, host.id, type, payload, 0);
+  // Ticking a role adds exactly that card; the wolves and villagers stay.
+  host_('pickRole', { roleId: 'seer' });
+  assert.equal(s.roleCounts.seer, 1);
+  assert.equal(s.roleCounts.villager, 7);
+  assert.equal(s.roleCounts.werewolf, 0);
+  assert.match(validateRoleCounts(s.roleCounts, 7), /Số lá bài \(8\)/);
+  // The host's shortcut makes up the count with Dân Làng cards.
+  host_('fitDeck');
+  assert.equal(s.roleCounts.villager, 6);
+  assert.match(validateRoleCounts(s.roleCounts, 7), /Ma Sói/);
+  host_('role', { roleId: 'villager', delta: 1 });
+  host_('role', { roleId: 'villager', delta: -1 });
+  assert.match(validateRoleCounts(s.roleCounts, 7), /Ma Sói/);
+  host_('role', { roleId: 'werewolf', delta: 1 });
+  host_('role', { roleId: 'villager', delta: -1 });
+  assert.equal(validateRoleCounts(s.roleCounts, 7), null);
+  // The Masons come as a pair; ticking again takes the role out.
+  host_('pickRole', { roleId: 'mason' });
+  assert.equal(s.roleCounts.mason, 2);
+  host_('pickRole', { roleId: 'mason' });
+  assert.equal(s.roleCounts.mason, 0);
+  // Players coming and going only add or take a Dân Làng card.
+  const before = { ...s.roleCounts };
+  host_('addBot', { count: 2 });
+  assert.deepEqual(s.roleCounts, { ...before, villager: before.villager + 2 });
+  host_('kick', { id: s.players[s.players.length - 1].id });
+  assert.deepEqual(s.roleCounts, { ...before, villager: before.villager + 1 });
+  // A suggestion only when asked.
+  host_('autoBalance');
+  assert.equal(validateRoleCounts(s.roleCounts, 8), null);
 });
 
 test('names are cleaned so they cannot inject HTML', () => {
@@ -369,6 +391,7 @@ test('thief deck has two extra cards', () => {
   const rng = seeded(3);
   const { state: s, player: host } = createRoom({ code: 'THF01', hostName: 'Host', now, rng, debug: true });
   for (let i = 0; i < 4; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
+  applyAction(s, host.id, 'autoBalance', {}, now, rng);
   applyAction(s, host.id, 'role', { roleId: 'thief', delta: 1 }, now, rng);
   assert.throws(() => applyAction(s, host.id, 'start', {}, now, rng), /2 lá dư/);
   applyAction(s, host.id, 'role', { roleId: 'villager', delta: 1 }, now, rng);
@@ -444,6 +467,8 @@ test('a room full of bots plays to the end', () => {
   const { state: s, player: host } = createRoom({ code: 'BOTS1', hostName: 'Host', now, rng, debug: true });
   applyAction(s, host.id, 'config', { hostPlays: false }, now, rng);
   for (let i = 0; i < 9; i++) applyAction(s, host.id, 'addBot', {}, now, rng);
+  // The deck is the host's to pick: take the suggestion.
+  applyAction(s, host.id, 'autoBalance', {}, now, rng);
   applyAction(s, host.id, 'start', {}, now, rng);
   for (let i = 0; i < 20000 && s.phase !== 'GAME_OVER'; i++) {
     now += 1000;
@@ -714,6 +739,8 @@ test('the log is for the moderator, or for a playing host once the game is over'
   const { state, player: host } = createRoom({ code: 'MOD01', hostName: 'Host', now: 0 });
   applyAction(state, host.id, 'config', { hostPlays: false }, 0);
   applyAction(state, host.id, 'addBot', { count: 4 }, 0);
+  // The deck is the host's to pick: take the suggestion.
+  applyAction(state, host.id, 'autoBalance', {}, 0);
   applyAction(state, host.id, 'start', {}, 0);
   assert.ok(viewFor(state, host.id, 0, 1).game.log.length > 0);
 });
@@ -906,6 +933,8 @@ test('a non-playing host sees connections at any time', () => {
   const lan = joinRoom(s, 'Lan', 0);
   applyAction(s, host.id, 'config', { hostPlays: false, swapEnabled: false }, 0);
   applyAction(s, host.id, 'addBot', { count: 3 }, 0);
+  // The deck is the host's to pick: take the suggestion.
+  applyAction(s, host.id, 'autoBalance', {}, 0);
   applyAction(s, host.id, 'start', {}, 0);
   tick(s, s.game.phaseEndsAt); // past the look at the cards
   assert.equal(s.phase, 'NIGHT');
@@ -1086,6 +1115,8 @@ test('the game opens: welcome, a 10 s look at the cards, then night falls and th
   const { state: s, player: host } = createRoom({ code: 'OPEN1', hostName: 'Host', now: 0 });
   applyAction(s, host.id, 'config', { swapEnabled: false }, 0);
   applyAction(s, host.id, 'addBot', { count: 4 }, 0);
+  // The deck is the host's to pick: take the suggestion.
+  applyAction(s, host.id, 'autoBalance', {}, 0);
   applyAction(s, host.id, 'start', {}, 0);
   assert.equal(s.phase, 'REVEAL', 'everyone looks at their card first');
   assert.deepEqual(s.narration.clips.map(c => c.k), ['game_start', 'pause', 'game_soon']);
@@ -1101,6 +1132,8 @@ test('with the swap on: swap phase, then the look at the cards, then night', () 
   const { state: s, player: host } = createRoom({ code: 'OPEN2', hostName: 'Host', now: 0 });
   applyAction(s, host.id, 'config', { swapEnabled: true, swapTime: 15 }, 0);
   applyAction(s, host.id, 'addBot', { count: 4 }, 0);
+  // The deck is the host's to pick: take the suggestion.
+  applyAction(s, host.id, 'autoBalance', {}, 0);
   applyAction(s, host.id, 'start', {}, 0);
   assert.equal(s.phase, 'SWAP');
   tick(s, s.game.phaseEndsAt);
@@ -1189,6 +1222,8 @@ test('the host can add computer players in a normal (non-debug) room', () => {
   const { state: s, player: host } = createRoom({ code: 'BOTS2', hostName: 'Host', now: 0 });
   for (let i = 0; i < 4; i++) applyAction(s, host.id, 'addBot', {}, 0);
   assert.equal(s.players.filter(p => p.isBot).length, 4);
+  // The deck is the host's to pick: take the suggestion.
+  applyAction(s, host.id, 'autoBalance', {}, 0);
   applyAction(s, host.id, 'start', {}, 0);
   assert.equal(s.phase, 'SWAP', 'cards are looked at (and may be traded) before the night');
   const bot = s.players.find(p => p.isBot);
