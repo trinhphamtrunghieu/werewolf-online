@@ -1121,8 +1121,12 @@ function renderGame() {
   document.getElementById('gameFooter').innerHTML = m.inGame && view.phase !== 'REVEAL'
     ? `${myTurn ? endTurnButton(m) : ''}
       <nav class="hand" aria-label="Bài trên tay">
-        <button class="hand-card" data-act="card">Lá bài của tôi</button>
-        <button class="hand-card notes" data-act="notes">Nhật ký</button>
+        <button class="hand-card ${myTurn ? 'quiet' : ''}" data-act="card">
+          <span class="plate"><span class="ttl">Lá bài của tôi</span><span class="hint">Vai, đồng đội, người yêu</span></span>
+        </button>
+        <button class="hand-card notes" data-act="notes">
+          <span class="plate"><span class="ttl">Nhật ký</span><span class="hint">Việc đã làm</span></span>
+        </button>
       </nav>`
     : '';
   if (document.getElementById('cardSheet').open) renderCard(false);
