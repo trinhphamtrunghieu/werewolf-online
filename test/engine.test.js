@@ -1863,6 +1863,24 @@ test('swap: two players in the pool trade cards; others only see how many', () =
   assert.throws(() => act(P[2], 'swapJoin', {}), /trước đêm đầu/);
 });
 
+test('swap: teammates stay hidden until the trading is over', () => {
+  const g = setup(['werewolf', 'werewolf', 'minion', 'mason', 'mason', 'villager'], { config: { swapEnabled: true } });
+  const { s, P, untilPhase } = g;
+  assert.equal(s.phase, 'SWAP');
+  const v = (p) => viewFor(s, p.id, 0, 1);
+  // A wolf who saw the pack and then traded away would know who holds what.
+  assert.deepEqual(v(P[0]).me.wolves, []);
+  assert.equal(v(P[0]).players.find(p => p.id === P[1].id).role, null);
+  assert.deepEqual(v(P[2]).me.wolves, []);
+  assert.equal(v(P[2]).players.find(p => p.id === P[0].id).role, null);
+  assert.ok(!v(P[3]).me.masons?.length);
+  untilPhase('REVEAL');
+  assert.deepEqual(v(P[0]).me.wolves, [P[1].id]);
+  assert.equal(v(P[0]).players.find(p => p.id === P[1].id).role, 'werewolf');
+  assert.deepEqual(v(P[2]).me.wolves, [P[0].id, P[1].id]);
+  assert.deepEqual(v(P[3]).me.masons, [P[4].id]);
+});
+
 test('swap: a card can be taken back out of the pool before time is up', () => {
   const g = setup(['seer', 'werewolf', 'villager', 'guard', 'villager'], { config: { swapEnabled: true } });
   g.act(g.P[0], 'swapJoin', {});

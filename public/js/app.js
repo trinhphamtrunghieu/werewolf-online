@@ -1798,6 +1798,9 @@ function renderCard(reset = true) {
   const revealed = !reset && card?.classList.contains('revealed');
   const extra = [];
   if (m.wolves.length) extra.push(`${m.role === 'minion' ? 'Các con Sói (bạn là Tay Sai của chúng)' : 'Đồng bọn Sói'}: ${m.wolves.map(id => `${seatName(id)}${player(id)?.turned ? ' (Sói Nguyền)' : ['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
+  if (view.phase === 'SWAP' && (PACK_ROLES.includes(m.role) || ['minion', 'mason'].includes(m.role))) {
+    extra.push('🤫 Đồng đội của bạn sẽ hiện ở đây khi hết giờ trao đổi vai (vai có thể còn đổi).');
+  }
   if (m.masons?.length) extra.push(`🤝 Hội Kín cùng bạn: ${m.masons.map(seatName).join(', ')}`);
   if (m.hoodlumMarks?.length) extra.push(`🔪 Hai mục tiêu của bạn: ${m.hoodlumMarks.map(seatName).join(' và ')}`);
   if (m.doppelTarget) extra.push(`🎭 Bạn đang theo bóng ${seatName(m.doppelTarget)}.`);
