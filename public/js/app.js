@@ -1079,6 +1079,10 @@ function renderGame() {
   // Leave them alone while a control in them is in use (dragging the volume,
   // choosing a theme).
   const drawer = document.getElementById('drawer');
+  // The host's table sits up top, right under the calling order; a player's
+  // sound options stay out of the way below.
+  const slot = isHost() ? document.getElementById('nightStrip') : document.getElementById('boardBox');
+  if (slot.nextElementSibling !== drawer) slot.after(drawer);
   document.getElementById('drawerTitle').textContent = isHost() ? 'Bàn quản trò' : 'Âm thanh trên máy này';
   const bar = document.getElementById('hostBar');
   if (!bar.contains(document.activeElement) || !document.activeElement.matches('input[type=range], select')) {
@@ -1121,8 +1125,12 @@ function renderGame() {
   document.getElementById('gameFooter').innerHTML = m.inGame && view.phase !== 'REVEAL'
     ? `${myTurn ? endTurnButton(m) : ''}
       <nav class="hand" aria-label="Bài trên tay">
-        <button class="hand-card" data-act="card">Lá bài của tôi</button>
-        <button class="hand-card notes" data-act="notes">Nhật ký</button>
+        <button class="hand-card ${myTurn ? 'quiet' : ''}" data-act="card">
+          <span class="plate"><span class="ttl">Lá bài của tôi</span><span class="hint">Vai, đồng đội, người yêu</span></span>
+        </button>
+        <button class="hand-card notes" data-act="notes">
+          <span class="plate"><span class="ttl">Nhật ký</span><span class="hint">Việc đã làm</span></span>
+        </button>
       </nav>`
     : '';
   if (document.getElementById('cardSheet').open) renderCard(false);
@@ -1431,22 +1439,27 @@ function stage() {
     const banishedMe = g.banished === m.id;
     const canVote = m.inGame && m.alive && !banishedMe;
     const voters = alivePlayers().filter(p => p.id !== g.banished).length;
+    // The table stays put while votes come in: the text above it keeps its
+    // length, and who voted for whom goes below it.
+    const list = voteList(g.votes);
     return `
       <div class="panel">
         <h2>${g.voteRound === 2 ? 'Bỏ phiếu lần hai' : 'Bỏ phiếu nghi phạm'}</h2>
         <p class="lead">${canVote
-          ? (mine ? `Bạn đã chọn ${esc(seatName(mine))}. Có thể đổi trước khi hết giờ.` : 'Chạm vào người bạn nghi là Sói.')
+          ? 'Chạm vào người bạn nghi là Sói. Có thể đổi trước khi hết giờ.'
           : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
         <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
-        ${voteList(g.votes)}
       </div>
       ${roundTable(view.players.filter(p => p.inGame), {
-        center: canVote ? 'Chạm vào người bạn nghi là Sói' : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
+        center: canVote
+          ? (mine ? `<span>Bạn chọn<strong>${esc(nameOnly(mine))}</strong></span>` : 'Chạm vào người bạn nghi là Sói')
+          : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
         seatOpts: (p) => {
           const pickable = canVote && p.alive && p.id !== m.id && p.id !== g.banished;
           return { selectable: pickable, act: 'vote', pressed: mine === p.id, count: counts[p.id] || 0 };
         }
-      })}`;
+      })}
+      ${list ? `<div class="panel" style="margin-top:12px"><h3>Ai bầu ai</h3>${list}</div>` : ''}`;
   }
 
   if (view.phase === 'DEFENSE') {
