@@ -478,6 +478,9 @@ a { color: var(--brass-hi); }
 .board-tabs.edit-tabs { grid-template-columns: repeat(3, 1fr); }
 .board-tabs.edit-tabs button { white-space: nowrap; }
 .role-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.role-tile-wrap { display: flex; flex-direction: column; gap: 4px; }
+.role-tile-wrap .role-tile { flex: 1; }
+.tile-step { justify-content: center; margin-top: 0; }
 .role-tile {
   position: relative;
   display: flex;

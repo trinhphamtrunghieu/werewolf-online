@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, isWinner, sideOf, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
-import { computeBalancedRoles, validateRoleCounts, totalRoles, balanceScore, emptyRoleCounts as emptyCounts, MAX_PLAYERS } from '../public/shared/roles.js';
+import { computeBalancedRoles, balanceRoles, validateRoleCounts, totalRoles, balanceScore, emptyRoleCounts as emptyCounts, MAX_PLAYERS } from '../public/shared/roles.js';
 import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests } from '../lib/store.js';
 
 function seeded(seed = 42) {
@@ -2177,6 +2177,10 @@ test('UW: the Kẻ Say sees a Villager card until the third night', () => {
 test('UW: Masons come at least two; every new role has points and a description', () => {
   assert.match(validateRoleCounts({ ...emptyCounts(), werewolf: 1, mason: 1, villager: 3 }, 5), /Hội Kín/);
   assert.equal(validateRoleCounts({ ...emptyCounts(), werewolf: 1, mason: 2, villager: 2 }, 5), null);
+  // Ticking the Masons in the lobby deals them as a pair, ready to play.
+  const picked = balanceRoles(['seer', 'mason'], 7);
+  assert.equal(picked.mason, 2);
+  assert.equal(validateRoleCounts(picked, 7), null);
 });
 
 // ---------------------------------------------------------------------------

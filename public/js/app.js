@@ -731,12 +731,20 @@ function deckEditor(count) {
     .map(id => {
       const r = ROLES[id];
       const on = counts[id] > 0;
-      return `<button class="role-tile ${on ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${on}">
-        ${counts[id] > 1 ? `<span class="badge">×${counts[id]}</span>` : ''}
-        <span class="ic" aria-hidden="true">${r.icon}</span>
-        <span class="nm">${r.name}</span>
-        <span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>
-      </button>`;
+      // Roles that can have several cards (the Masons) get their own −/+
+      // once in the deck: each extra card takes a Dân Làng's place.
+      const step = id === 'mason' && on ? `<span class="mini-step tile-step">
+          <button data-act="tradeRole" data-role="${id}" data-delta="-1" ${counts[id] > 2 ? '' : 'disabled'} aria-label="Bớt một ${r.name}">−</button>
+          <button data-act="tradeRole" data-role="${id}" data-delta="1" ${counts.villager > 0 ? '' : 'disabled'} aria-label="Thêm một ${r.name}">+</button>
+        </span>` : '';
+      return `<div class="role-tile-wrap">
+        <button class="role-tile ${on ? 'on' : ''}" data-act="pickRole" data-role="${id}" aria-pressed="${on}">
+          ${counts[id] > 1 ? `<span class="badge">×${counts[id]}</span>` : ''}
+          <span class="ic" aria-hidden="true">${r.icon}</span>
+          <span class="nm">${r.name}</span>
+          <span class="pts ${r.points > 0 ? 'pos' : r.points < 0 ? 'neg' : ''}">${r.points > 0 ? '+' : ''}${r.points}</span>
+        </button>${step}
+      </div>`;
     }).join('');
   const inTab = (ids) => ROLE_IDS.filter(id => special(id) && ids.includes(ROLES[id].team) && counts[id] > 0).length;
   const info = roleInfo && ROLES[roleInfo];
@@ -750,8 +758,8 @@ function deckEditor(count) {
     <div class="deck-sum">
       <div class="sum w"><span class="n">${counts.werewolf || 0}</span><span>Ma Sói</span>
         <span class="mini-step">
-          <button data-act="wolfCount" data-delta="-1" ${counts.werewolf > 0 ? '' : 'disabled'} aria-label="Bớt một Ma Sói">−</button>
-          <button data-act="wolfCount" data-delta="1" ${counts.villager > 0 ? '' : 'disabled'} aria-label="Thêm một Ma Sói">+</button>
+          <button data-act="tradeRole" data-role="werewolf" data-delta="-1" ${counts.werewolf > 0 ? '' : 'disabled'} aria-label="Bớt một Ma Sói">−</button>
+          <button data-act="tradeRole" data-role="werewolf" data-delta="1" ${counts.villager > 0 ? '' : 'disabled'} aria-label="Thêm một Ma Sói">+</button>
         </span>
       </div>
       <div class="sum v"><span class="n">${counts.villager || 0}</span><span>Dân Làng</span></div>
@@ -767,6 +775,7 @@ function deckEditor(count) {
         return `<button data-act="editTab" data-tab="${id}" aria-pressed="${editTab === id}">${label}${n ? ` · ${n}` : ''}</button>`;
       }).join('')}
     </div>
+    ${view.roleMode === 'manual' ? `<p class="result small" style="margin-bottom:10px">Bạn đang chỉnh số lá bằng tay. Chạm vào một ô vai thì số Ma Sói, Dân Làng (và Hội Kín) sẽ được tính lại cho cân bằng.</p>` : ''}
     <div class="role-tiles">${tiles}</div>
     <div class="role-info" aria-live="polite">${info
       ? `<strong>${info.icon} ${info.name}</strong> <span class="muted small">(${info.points > 0 ? '+' : ''}${info.points} điểm)</span><p>${info.short}</p>`
@@ -2055,10 +2064,11 @@ document.addEventListener('click', async (e) => {
     case 'editTab':
       editTab = el.dataset.tab;
       return render();
-    case 'wolfCount': {
-      // Trade a Dân Làng card for a Ma Sói card, or back.
+    case 'tradeRole': {
+      // Trade a Dân Làng card for one of this role, or back, so the deck
+      // keeps its size.
       const up = Number(el.dataset.delta) > 0;
-      await act('role', { roleId: 'werewolf', delta: up ? 1 : -1 });
+      await act('role', { roleId: el.dataset.role, delta: up ? 1 : -1 });
       return act('role', { roleId: 'villager', delta: up ? -1 : 1 });
     }
     case 'swapJoin': return act('swapJoin');
