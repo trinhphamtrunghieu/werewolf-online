@@ -1079,6 +1079,10 @@ function renderGame() {
   // Leave them alone while a control in them is in use (dragging the volume,
   // choosing a theme).
   const drawer = document.getElementById('drawer');
+  // The host's table sits up top, right under the calling order; a player's
+  // sound options stay out of the way below.
+  const slot = isHost() ? document.getElementById('nightStrip') : document.getElementById('boardBox');
+  if (slot.nextElementSibling !== drawer) slot.after(drawer);
   document.getElementById('drawerTitle').textContent = isHost() ? 'Bàn quản trò' : 'Âm thanh trên máy này';
   const bar = document.getElementById('hostBar');
   if (!bar.contains(document.activeElement) || !document.activeElement.matches('input[type=range], select')) {
