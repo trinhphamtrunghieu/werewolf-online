@@ -1317,8 +1317,11 @@ function seat(p, opts = {}) {
   // Keep roles off the village grid while playing, even a wolf's dead pack
   // mates (a neighbour could glance at it): your own role and wolf mates live
   // in the card sheet and night panel. Shown at the end, to a moderator who
-  // is not playing, and for the dead when the host turned that on.
-  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || view.me?.spectator || (!p.alive && view.config.revealRoleOnDeath);
+  // is not playing, and for the dead when the host turned that on. The dead
+  // who watch the night see roles only at night: by day the table looks the
+  // same as everyone else's (no pack mates, no lover, not even their own).
+  const watching = view.me?.spectator && view.phase === 'NIGHT';
+  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || watching || (!p.alive && view.config.revealRoleOnDeath);
   const role = p.role && showRole ? ROLES[p.role] : null;
   const roleName = role && (p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name);
   const isMe = p.id === view.me?.id;
