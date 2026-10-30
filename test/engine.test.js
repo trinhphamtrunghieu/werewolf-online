@@ -1772,26 +1772,30 @@ test('used potions stay used for a witch brought back', () => {
   assert.equal(task.poisonAvailable, true, 'the poison is still there');
 });
 
-test('every role gets 5 s by default and can add 5 s at a time until done', () => {
-  const g = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+test('every role gets 15 s by default (5 s at least) and can add 5 s at a time until done', () => {
+  const g = setup(['seer', 'werewolf', 'aura_seer', 'villager', 'villager', 'villager']);
   g.untilNightRole('werewolf');
-  assert.equal(g.s.game.phaseEndsAt - g.clock.now, 5000, 'one wolf card: 5 s');
+  assert.equal(g.s.game.phaseEndsAt - g.clock.now, 15000, 'one wolf card: 15 s');
   g.untilNightRole('seer');
   const start = g.clock.now;
-  assert.equal(g.s.game.phaseEndsAt - start, 5000);
-  assert.throws(() => g.act(g.P[2], 'extend', {}), /lượt của bạn/, 'only the role being called');
-  g.clock.advance(4000);
+  assert.equal(g.s.game.phaseEndsAt - start, 15000);
+  assert.throws(() => g.act(g.P[3], 'extend', {}), /lượt của bạn/, 'only the role being called');
+  g.clock.advance(12000);
   g.act(g.P[0], 'extend', {});
-  assert.equal(g.s.game.phaseEndsAt, start + 10000, '+5 s');
-  g.clock.advance(5000);
+  assert.equal(g.s.game.phaseEndsAt, start + 20000, '+5 s');
   g.act(g.P[0], 'extend', {});
-  assert.equal(g.s.game.phaseEndsAt, start + 15000, '+5 s again');
+  assert.equal(g.s.game.phaseEndsAt, start + 25000, '+5 s again');
   // Taps cannot bank more than 15 s ahead.
-  g.act(g.P[0], 'extend', {});
   g.act(g.P[0], 'extend', {});
   assert.equal(g.s.game.phaseEndsAt, g.clock.now + 15000);
   g.act(g.P[0], 'night', { target: g.P[1].id });
   assert.throws(() => g.act(g.P[0], 'extend', {}), /xong/, 'nothing to extend once done');
+  // The newer roles get the same default.
+  g.untilNightRole('aura_seer');
+  assert.equal(g.s.game.phaseEndsAt - g.clock.now, 15000);
+  // The host can go down to 5 s, not below.
+  applyAction(g.s, g.P[0].id, 'config', { step_seer: 2 }, g.clock.now);
+  assert.equal(g.s.config.step_seer, 5);
 });
 
 test('a result picked at the last second still gets its reading time', () => {
