@@ -1334,7 +1334,10 @@ function seat(p, opts = {}) {
   const role = p.role && showRole ? ROLES[p.role] : null;
   const roleName = role && (p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name);
   const isMe = p.id === view.me?.id;
-  const lover = view.me?.lover === p.id || (view.game.lovers || []).includes(p.id);
+  // The couple's mark stays off the table by day, when the phone lies on
+  // the table among the players: at night (for those watching) and at the end.
+  const showLove = view.phase === 'GAME_OVER' || view.phase === 'NIGHT';
+  const lover = showLove && (view.me?.lover === p.id || (view.game.lovers || []).includes(p.id));
   // Connection status lives in the lobby list only, never on this board.
   const inner = `
     ${count ? `<span class="count">${count}</span>` : ''}
