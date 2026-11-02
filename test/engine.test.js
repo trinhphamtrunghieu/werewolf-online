@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, isWinner, sideOf, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
-import { computeBalancedRoles, balanceRoles, validateRoleCounts, totalRoles, balanceScore, emptyRoleCounts as emptyCounts, MAX_PLAYERS } from '../public/shared/roles.js';
+import { ROLES, computeBalancedRoles, balanceRoles, validateRoleCounts, totalRoles, balanceScore, emptyRoleCounts as emptyCounts, MAX_PLAYERS } from '../public/shared/roles.js';
 import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests } from '../lib/store.js';
 
 function seeded(seed = 42) {
@@ -2517,6 +2517,66 @@ test('the dead start watching only the night after the Thầy Đồng died', () 
   nextNight(g);
   g.untilNightRole('werewolf');
   assert.equal(viewFor(g.s, g.P[3].id, 0, 1).me.spectator, true);
+});
+
+test('"Quản trò tự ghép đôi": no Thần Tình Yêu card, the game pairs two players on the first night', () => {
+  let now = 0;
+  const rng = seeded(11);
+  const { state: s, player: host } = createRoom({ code: 'LOVE1', hostName: 'Host', now, rng });
+  applyAction(s, host.id, 'addBot', { count: 6 }, now, rng);
+  applyAction(s, host.id, 'config', { swapEnabled: false }, now, rng);
+  applyAction(s, host.id, 'pickRole', { roleId: 'cupid' }, now, rng);
+  applyAction(s, host.id, 'role', { roleId: 'villager', delta: -1 }, now, rng);
+  applyAction(s, host.id, 'role', { roleId: 'werewolf', delta: 1 }, now, rng);
+  applyAction(s, host.id, 'role', { roleId: 'villager', delta: -1 }, now, rng);
+  assert.equal(s.roleCounts.cupid, 1);
+  // Turning it on swaps the Cupid card for a Dân Làng; it cannot come back.
+  applyAction(s, host.id, 'config', { autoLovers: true }, now, rng);
+  assert.equal(s.roleCounts.cupid, 0);
+  assert.equal(validateRoleCounts(s.roleCounts, 7), null);
+  assert.throws(() => applyAction(s, host.id, 'pickRole', { roleId: 'cupid' }, now, rng), /tự ghép đôi/);
+  assert.throws(() => applyAction(s, host.id, 'role', { roleId: 'cupid', delta: 1 }, now, rng), /tự ghép đôi/);
+  applyAction(s, host.id, 'autoBalance', {}, now, rng);
+  assert.equal(s.roleCounts.cupid, 0, 'nor through the suggestion');
+  applyAction(s, host.id, 'start', {}, now, rng);
+  assert.deepEqual(s.game.lovers, [], 'no couple before the cards are final');
+  for (let i = 0; i < 10 && s.phase !== 'NIGHT'; i++) { now = s.game.phaseEndsAt; tick(s, now, rng); }
+  assert.equal(s.phase, 'NIGHT');
+  const [a, b] = s.game.lovers;
+  assert.ok(a && b && a !== b);
+  assert.ok(!s.game.queue.includes('cupid'), 'nobody is called for it');
+  // They find each other on their cards, as with a Thần Tình Yêu.
+  const va = viewFor(s, a, now, 1);
+  assert.equal(va.me.lover, b);
+  assert.equal(va.players.find(p => p.id === b).role, s.players.find(p => p.id === b).role);
+  assert.ok(va.me.notes.some(n => n.text.includes('Quản trò đã ghép')));
+  const other = s.players.find(p => p.inGame && p.id !== a && p.id !== b);
+  assert.equal(viewFor(s, other.id, now, 1).me.lover, null, 'nobody else knows');
+});
+
+test('"Quản trò tự ghép đôi" draws the kind of couple 4-3-3: cross-side, two villagers, two wolves', () => {
+  const kindOf = (s) => {
+    const [a, b] = s.game.lovers.map(id => s.players.find(p => p.id === id));
+    const ta = ROLES[a.role].team;
+    return ta !== ROLES[b.role].team ? 'cross' : ta;
+  };
+  const tally = (roles, runs) => {
+    const n = { cross: 0, village: 0, werewolf: 0 };
+    for (let seed = 1; seed <= runs; seed++) {
+      const g = setup(roles, { config: { autoLovers: true }, rng: seeded(seed) });
+      assert.equal(g.s.phase, 'NIGHT');
+      n[kindOf(g.s)]++;
+    }
+    return Object.fromEntries(Object.entries(n).map(([k, v]) => [k, v / runs]));
+  };
+  const all = tally(['werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager'], 600);
+  assert.ok(Math.abs(all.cross - 0.4) < 0.06, JSON.stringify(all));
+  assert.ok(Math.abs(all.village - 0.3) < 0.06, JSON.stringify(all));
+  assert.ok(Math.abs(all.werewolf - 0.3) < 0.06, JSON.stringify(all));
+  // One wolf: no wolf couple, its share goes to the others (4/7 and 3/7).
+  const one = tally(['werewolf', 'seer', 'villager', 'villager', 'villager', 'villager'], 400);
+  assert.equal(one.werewolf, 0);
+  assert.ok(Math.abs(one.cross - 4 / 7) < 0.07, JSON.stringify(one));
 });
 
 test('lovers see each other\'s card once paired', () => {
