@@ -2579,6 +2579,28 @@ test('"Quản trò tự ghép đôi" draws the kind of couple 4-3-3: cross-side,
   assert.ok(Math.abs(one.cross - 4 / 7) < 0.07, JSON.stringify(one));
 });
 
+test('the Witch cannot tell whether anyone was bitten tonight', () => {
+  // The same night twice: once the pack bites, once it bites nobody. On her
+  // turn the Witch's phone must show exactly the same thing.
+  const witchSees = (bite) => {
+    const g = setup(['witch', 'werewolf', 'villager', 'villager', 'villager', 'villager']);
+    g.untilNightRole('werewolf');
+    g.act(g.P[1], 'night', bite ? { target: g.P[2].id } : { noKill: true });
+    g.untilNightRole('witch');
+    const v = viewFor(g.s, g.P[0].id, g.clock.now, 1);
+    return {
+      me: v.me,
+      players: v.players.map(p => ({ id: p.id, alive: p.alive, role: p.role })),
+      game: { ...v.game, phaseStartedAt: 0, phaseEndsAt: 0, wakeAt: 0 },
+      narration: v.narration?.clips.map(c => c.k)
+    };
+  };
+  const bitten = witchSees(true);
+  const quiet = witchSees(false);
+  assert.deepEqual(bitten, quiet);
+  assert.ok(!JSON.stringify(bitten).includes('wolfTargets'));
+});
+
 test('lovers see each other\'s card once paired', () => {
   const g = setup(['cupid', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
   g.untilNightRole('cupid');
