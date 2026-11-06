@@ -225,7 +225,7 @@ export const ROLES = {
     icon: '🕵️',
     color: '#8fd3c8',
     short: 'Mỗi đêm chọn 2 người, biết họ có cùng phe không.',
-    description: 'Mỗi đêm chọn 2 người. Bạn sẽ biết hai người đó có cùng phe hay không (các phe: Sói, Dân, phe thứ ba như Người Thổi Sáo, Kẻ Cuồng Loạn, Kẻ Côn Đồ; cặp Tình Nhân khác phe còn sống cả hai được tính là một phe riêng), nhưng không biết họ thuộc phe nào. Phe được xét theo hiện tại (Sói Nguyền đã hoá Sói tính là Sói).',
+    description: 'Mỗi đêm chọn 2 người. Bạn sẽ biết hai người đó có cùng phe hay không, theo phe ghi trên lá bài (Sói, Dân, và mỗi vai phe thứ ba như Người Thổi Sáo, Kẻ Cuồng Loạn, Kẻ Côn Đồ là một phe riêng; cặp Tình Nhân không ảnh hưởng), nhưng không biết họ thuộc phe nào. Sói Nguyền đã hoá Sói tính là Sói.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="44" cy="44" r="20" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="4"/>
       <path d="M58 58L78 78" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
