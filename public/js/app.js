@@ -1471,13 +1471,13 @@ function stage() {
       <div class="panel">
         <h2>${g.voteRound === 2 ? 'Bỏ phiếu lần hai' : 'Bỏ phiếu nghi phạm'}</h2>
         <p class="lead">${canVote
-          ? 'Chạm vào người bạn nghi là Sói. Có thể đổi trước khi hết giờ.'
+          ? 'Chạm vào người bạn nghi là Sói. Chạm người khác để đổi, chạm lại để huỷ phiếu.'
           : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
         <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
       </div>
       ${roundTable(view.players.filter(p => p.inGame), {
         center: canVote
-          ? (mine ? `<span>Bạn chọn<strong>${esc(nameOnly(mine))}</strong></span>` : 'Chạm vào người bạn nghi là Sói')
+          ? (mine ? `<span>Bạn chọn<strong>${esc(nameOnly(mine))}</strong>chạm lại để huỷ</span>` : 'Chạm vào người bạn nghi là Sói')
           : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
         seatOpts: (p) => {
           const pickable = canVote && p.alive && p.id !== m.id && p.id !== g.banished;
@@ -2086,7 +2086,9 @@ document.addEventListener('click', async (e) => {
       return;
     }
     case 'witchDone': return act('witch', { use: 'done' }).then(() => act('endTurn'));
-    case 'vote': return act('vote', { target: id });
+    case 'vote':
+      // Tapping your own pick again takes the vote back.
+      return view.game.votes?.[view.me.id] === id ? act('unvote') : act('vote', { target: id });
     case 'judge': return act('judge', { choice: el.dataset.choice });
   }
 });

@@ -214,6 +214,27 @@ test('nobody voting or a tie sends nobody to the stand (host is not picked)', ()
   assert.equal(s.game.verdict.type, 'none');
 });
 
+test('a vote can be taken back; the vote that was about to close gets its time back', () => {
+  const { s, P, act, clock, untilPhase } = setup(['seer', 'werewolf', 'villager', 'villager', 'villager']);
+  untilPhase('VOTE');
+  const fullEnd = s.game.phaseEndsAt;
+  act(P[0], 'vote', { target: P[1].id });
+  act(P[0], 'unvote', {});
+  assert.equal(s.game.votes[P[0].id], undefined);
+  act(P[0], 'unvote', {}); // nothing to take back: no error
+  // Everyone votes: the vote closes in a moment...
+  P.forEach((p, i) => act(p, 'vote', { target: P[(i + 1) % P.length].id }));
+  assert.ok(s.game.phaseEndsAt < fullEnd);
+  // ...until someone takes their vote back.
+  act(P[2], 'unvote', {});
+  assert.equal(s.game.phaseEndsAt, fullEnd);
+  assert.equal(Object.keys(s.game.votes).length, P.length - 1);
+  clock.advance(5000);
+  assert.equal(s.phase, 'VOTE', 'still voting');
+  untilPhase('DISCUSSION');
+  assert.throws(() => act(P[0], 'unvote', {}), /bỏ phiếu/);
+});
+
 test('hunter aims at night; when lynched, the aimed player dies too and win is checked', () => {
   const { s, P, act, endPhase, untilNightRole, untilPhase } = setup(['hunter', 'werewolf', 'villager', 'villager', 'villager']);
   untilNightRole('hunter');
