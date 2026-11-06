@@ -71,8 +71,8 @@ export const ROLES = {
     team: 'village',
     icon: '🔮',
     color: '#c39bff',
-    short: 'Mỗi đêm soi 1 người: biết là Sói hay Dân.',
-    description: 'Mỗi đêm chọn 1 người để soi. Bạn chỉ biết người đó là Sói hay Dân (phe thứ ba cũng hiện là Dân), không biết chức năng cụ thể.',
+    short: 'Mỗi đêm soi 1 người: biết có phải phe Dân hay không.',
+    description: 'Mỗi đêm chọn 1 người để soi. Bạn chỉ biết người đó có phải phe Dân hay không (Sói, phe thứ ba, Tay Sai và Pháp Sư Hắc Ám đều là "không phải Dân"), không biết chức năng cụ thể.',
     art: `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
       <circle cx="50" cy="46" r="28" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="3"/>
       <path d="M26 50C34 38 66 38 74 50C66 62 34 62 26 50Z" stroke="#fde047" stroke-width="2.5"/>
@@ -295,7 +295,7 @@ export const ROLES = {
   apprentice_seer: {
     id: 'apprentice_seer', points: 4, name: 'Tiên Tri Tập Sự', team: 'village', icon: '🔭', color: '#b8a2ff',
     short: 'Khi Tiên Tri chết, bạn trở thành Tiên Tri.',
-    description: 'Ban đầu bạn không có chức năng. Khi Tiên Tri chết, từ đêm sau bạn được gọi dậy thay Tiên Tri: mỗi đêm soi 1 người để biết là Sói hay Dân.',
+    description: 'Ban đầu bạn không có chức năng. Khi Tiên Tri chết, từ đêm sau bạn được gọi dậy thay Tiên Tri: mỗi đêm soi 1 người để biết có phải phe Dân hay không.',
     art: glyph('🔭')
   },
   aura_seer: {
@@ -390,8 +390,8 @@ export const ROLES = {
   },
   lycan: {
     id: 'lycan', points: -1, name: 'Người Lai Sói', team: 'village', icon: '🐾', color: '#d39a7a',
-    short: 'Phe Dân, nhưng Tiên Tri soi ra là Sói.',
-    description: 'Bạn là người phe Dân mang dòng máu Sói: Tiên Tri soi bạn sẽ thấy là Sói. Hãy thuyết phục cả làng rằng bạn vô tội.',
+    short: 'Phe Dân, nhưng Tiên Tri soi ra không phải Dân.',
+    description: 'Bạn là người phe Dân mang dòng máu Sói: Tiên Tri soi bạn sẽ thấy không phải Dân. Hãy thuyết phục cả làng rằng bạn vô tội.',
     art: glyph('🐾')
   },
   pacifist: {
@@ -415,7 +415,7 @@ export const ROLES = {
   sorcerer: {
     id: 'sorcerer', points: -3, name: 'Pháp Sư Hắc Ám', team: 'werewolf', icon: '🌘', color: '#e07ac0',
     short: 'Phe Sói. Mỗi đêm đi tìm Tiên Tri.',
-    description: 'Thuộc phe Sói nhưng không thức dậy cùng Sói và Sói không biết bạn. Mỗi đêm chọn 1 người để biết người đó có phải Tiên Tri không. Tiên Tri soi bạn thấy là Dân.',
+    description: 'Thuộc phe Sói nhưng không thức dậy cùng Sói và Sói không biết bạn. Mỗi đêm chọn 1 người để biết người đó có phải Tiên Tri không. Tiên Tri soi bạn thấy không phải Dân.',
     art: glyph('🌘')
   },
   lone_wolf: {
@@ -427,7 +427,7 @@ export const ROLES = {
   minion: {
     id: 'minion', points: -6, name: 'Tay Sai', team: 'werewolf', icon: '🦹', color: '#e88f8f',
     short: 'Phe Sói, biết ai là Sói nhưng không thức dậy cùng.',
-    description: 'Bạn thuộc phe Sói: tên các con Sói hiện trên lá bài của bạn, nhưng Sói không biết bạn và bạn không thức dậy ban đêm. Tiên Tri soi bạn thấy là Dân. Phe Sói thắng thì bạn thắng.',
+    description: 'Bạn thuộc phe Sói: tên các con Sói hiện trên lá bài của bạn, nhưng Sói không biết bạn và bạn không thức dậy ban đêm. Tiên Tri soi bạn thấy không phải Dân. Phe Sói thắng thì bạn thắng.',
     art: glyph('🦹')
   },
   hoodlum: {

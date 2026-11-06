@@ -728,7 +728,7 @@ test('the log is for the moderator, or for a playing host once the game is over'
   // The log says who did what.
   const text = s.game.log.join('\n');
   assert.match(text, /Bầy Sói .*cắn .*P3/);
-  assert.match(text, /Tiên Tri .*soi .*Chủ.*Sói/);
+  assert.match(text, /Tiên Tri .*soi .*Chủ: không phải Dân/);
   assert.match(text, /P3 .*bị Sói cắn/);
   P[1].alive = false;
   P[3].alive = false;
@@ -825,7 +825,7 @@ test('the madman (third party) wins alone when the village hangs them', () => {
   const { s, P, act, untilNightRole, untilPhase } = setup(['fool', 'werewolf', 'seer', 'villager', 'villager']);
   untilNightRole('seer');
   act(P[2], 'night', { target: P[0].id });
-  assert.equal(s.game.night.seerResult, 'village', 'the seer only tells wolf from not-wolf');
+  assert.equal(s.game.night.seerResult, 'not_village', 'the madman is not on the village side');
   untilPhase('VOTE');
   const voters = P.filter(p => p.alive && p.id !== P[0].id);
   voters.forEach(v => act(v, 'vote', { target: P[0].id }));
@@ -844,7 +844,7 @@ test('avenger wolf: hunts with the pack, marks a target, takes it along only whe
   assert.equal(viewFor(s, P[0].id, 0, 1).me.task.role, 'werewolf', 'hunts with the pack');
   untilNightRole('seer');
   act(P[2], 'night', { target: P[0].id });
-  assert.equal(s.game.night.seerResult, 'werewolf');
+  assert.equal(s.game.night.seerResult, 'not_village');
   untilNightRole('avenger');
   act(P[0], 'night', { target: P[4].id });
   untilPhase('VOTE');
@@ -894,15 +894,16 @@ test('detective: picks two players and learns whether they are on the same side'
   assert.equal(viewFor(h.s, h.P[0].id, 0, 1).me.task.result, 'different', 'wolf and villager differ');
 });
 
-test('the seer only learns wolf or villager', () => {
+test('the seer only learns villager or not', () => {
   const { s, P, act, untilNightRole } = setup(['seer', 'piper', 'wolf_cub', 'villager', 'villager']);
   untilNightRole('seer');
   act(P[0], 'night', { target: P[1].id });
-  assert.equal(s.game.night.seerResult, 'village', 'the piper reads as a villager');
+  assert.equal(s.game.night.seerResult, 'not_village', 'the piper is not on the village side');
+  assert.equal(viewFor(s, P[0].id, 0, 1).me.task.result, 'not_village', 'nothing more than that');
   const g = setup(['seer', 'wolf_cub', 'villager', 'villager', 'villager']);
   g.untilNightRole('seer');
   g.act(g.P[0], 'night', { target: g.P[1].id });
-  assert.equal(g.s.game.night.seerResult, 'werewolf');
+  assert.equal(g.s.game.night.seerResult, 'not_village');
 });
 
 test('only the host sees who is connected; others learn only when the host is gone', () => {
@@ -1661,7 +1662,7 @@ test('a bitten Cursed does not die but joins the pack', () => {
   assert.equal(viewFor(s, P[2].id, 0, 1).me.task?.role, 'werewolf', 'wakes with the pack');
   untilNightRole('seer');
   act(P[0], 'night', { target: P[2].id });
-  assert.equal(s.game.night.seerResult, 'werewolf');
+  assert.equal(s.game.night.seerResult, 'not_village');
 });
 
 test('a Cursed saved from the bite stays a villager', () => {
@@ -1696,7 +1697,7 @@ test('each player keeps private notes of what they did at night', () => {
   act(P[2], 'night', { target: P[4].id });
   untilPhase('MORNING');
   const notes = (p) => viewFor(s, p.id, 0, 1).me.notes;
-  assert.deepEqual(notes(P[0]), [{ night: 1, text: `Bạn soi ${P[1].name}: Sói 🐺` }]);
+  assert.deepEqual(notes(P[0]), [{ night: 1, text: `Bạn soi ${P[1].name}: không phải Dân ⚠️` }]);
   assert.deepEqual(notes(P[1]), [{ night: 1, text: `Đàn Sói cắn ${P[3].name}` }]);
   assert.deepEqual(notes(P[2]), [{ night: 1, text: `Bạn điều tra ${P[1].name} và ${P[4].name}: khác phe` }]);
   assert.deepEqual(notes(P[4]), [], 'villagers have nothing to note');
@@ -1947,16 +1948,17 @@ test('swap: with several in the pool, everyone gets someone else\'s card at rand
 // Roles from Ultimate Werewolf
 // ---------------------------------------------------------------------------
 
-test('UW: the Seer sees the Người Lai Sói as a wolf, the Tay Sai and Pháp Sư Hắc Ám as villagers', () => {
+test('UW: the Seer sees the Người Lai Sói, the Tay Sai and the Pháp Sư Hắc Ám as not villagers', () => {
   const read = (role) => {
     const g = setup(['seer', 'werewolf', role, 'villager', 'villager', 'villager']);
     g.untilNightRole('seer');
     g.act(g.P[0], 'night', { target: g.P[2].id });
     return g.s.game.night.seerResult;
   };
-  assert.equal(read('lycan'), 'werewolf');
-  assert.equal(read('minion'), 'village');
-  assert.equal(read('sorcerer'), 'village');
+  assert.equal(read('lycan'), 'not_village');
+  assert.equal(read('minion'), 'not_village');
+  assert.equal(read('sorcerer'), 'not_village');
+  assert.equal(read('cursed'), 'village', 'the Sói Nguyền is a villager until bitten');
 });
 
 test('UW: the Tay Sai knows the wolves, is not a wolf for the count, and wins with them', () => {
@@ -2194,7 +2196,7 @@ test('UW: the Tiên Tri Tập Sự takes the Seer\'s turn once the Seer is dead;
   assert.equal(task.role, 'seer');
   assert.equal(task.apprentice, true);
   g.act(g.P[2], 'night', { target: g.P[1].id });
-  assert.equal(g.s.game.night.seerResult, 'werewolf');
+  assert.equal(g.s.game.night.seerResult, 'not_village');
 });
 
 test('UW: the Kẻ Say sees a Villager card until the third night', () => {
@@ -2656,5 +2658,5 @@ test('the Thám Tử sees a cross-side couple as a side of its own; the Seer sti
   g.s.game.lovers = [g.P[1].id, g.P[4].id];
   g.untilNightRole('seer');
   g.act(g.P[3], 'night', { target: g.P[1].id });
-  assert.equal(g.s.game.night.seerResult, 'werewolf');
+  assert.equal(g.s.game.night.seerResult, 'not_village');
 });

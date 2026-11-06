@@ -1693,14 +1693,14 @@ function nightTask(task) {
   }
   if (task.role === 'seer') {
     if (task.result) {
-      const wolf = task.result === 'werewolf';
+      const villager = task.result === 'village';
       return `<div class="panel stack">${head('seer', 'Kết quả soi', 'Chỉ bạn nhìn thấy kết quả này.')}
-        <p class="result ${wolf ? 'result-wolf' : 'result-village'}">${esc(seatName(task.target))} thuộc ${esc(TEAM_LABEL[task.result])} ${wolf ? '🐺' : { piper: '🪈', fool: '🤡' }[task.result] || '🌾'}</p>
+        <p class="result ${villager ? 'result-village' : 'result-wolf'}">${esc(seatName(task.target))} ${villager ? 'là người phe Dân 🌾' : 'không phải người phe Dân ⚠️'}</p>
         ${autoHint}</div>`;
     }
     return `<div class="panel">${head('seer', 'Soi ai đêm nay?', task.apprentice
-      ? 'Tiên Tri đã chết, bạn soi thay. Bạn chỉ biết người đó là Sói hay Dân.'
-      : 'Bạn chỉ biết người đó là Sói hay Dân.')}
+      ? 'Tiên Tri đã chết, bạn soi thay. Bạn chỉ biết người đó có phải phe Dân hay không.'
+      : 'Bạn chỉ biết người đó có phải phe Dân hay không.')}
       ${pickGrid('night', { exclude: [m.id] })}</div>`;
   }
   if (task.role === 'aura_seer') {
