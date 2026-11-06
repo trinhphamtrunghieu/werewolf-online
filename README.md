@@ -38,7 +38,7 @@ Trạng thái kết nối chỉ hiện cho chủ phòng. Nếu chủ phòng cũn
 **Nhạc nền** tự nhỏ lại vào ban ngày (thảo luận, bỏ phiếu) để mọi người nghe rõ nhau, và to lại khi đêm xuống.
 5. **Sói Báo Thù**: chọn người sẽ chết theo nếu mình bị treo cổ.
 6. **Tiên Tri**: chọn 1 người, chỉ biết người đó có phải phe Dân hay không (Sói, phe thứ ba, Tay Sai, Pháp Sư Hắc Ám và Người Lai Sói đều ra "không phải Dân").
-7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không (phân biệt 3 phe: Sói, Dân và phe thứ ba).
+7. **Thám Tử**: chọn 2 người, biết họ có cùng phe không, theo phe ghi trên lá bài (Sói, Dân, và mỗi vai phe thứ ba là một phe riêng; cặp Tình Nhân không ảnh hưởng).
 8. **Mục Sư**: có muốn vẩy nước thánh không (1 lần mỗi ván).
 9. **Phù Thủy**: được hỏi có muốn dùng bình hay không. Phù Thủy **không biết** ai bị cắn; bình Cứu cứu người bị cắn đêm đó nếu có, và vẫn mất nếu đêm đó Sói không cắn ai.
 10. **Thầy Đồng**: có muốn hồi sinh 1 người đã chết không (1 lần mỗi ván). Chỉ được gọi khi đã có người chết và chưa dùng năng lực.

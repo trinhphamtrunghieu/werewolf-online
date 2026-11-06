@@ -1434,12 +1434,12 @@ test('rules: a dead piper cannot win; the madman alive does not stop the village
   assert.equal(checkWin(g.s)?.winner, 'village');
 });
 
-test('rules: the detective tells the three sides apart (wolves, village, third side)', () => {
+test('rules: the detective reads each third-side role as a side of its own', () => {
   const g = setup(['detective', 'werewolf', 'piper', 'fool', 'villager', 'villager']);
   g.untilNightRole('detective');
   g.act(g.P[0], 'night', { target: g.P[2].id });
   g.act(g.P[0], 'night', { target: g.P[3].id });
-  assert.equal(g.s.game.night.detectiveResult, 'same', 'piper and madman are both on the third side');
+  assert.equal(g.s.game.night.detectiveResult, 'different', 'the piper and the madman each win alone');
 });
 
 test('rules: holy water on a wolf-team cub or avenger kills it; on the piper nothing happens', () => {
@@ -2641,7 +2641,7 @@ test('a same-side couple plays with its side as before', () => {
   assert.equal(checkWin(g.s).winner, 'village');
 });
 
-test('the Thám Tử sees a cross-side couple as a side of its own; the Seer still sees the wolf', () => {
+test('the Thám Tử and the Seer read the cards: a cross-side couple changes nothing', () => {
   const run = (a, b) => {
     const g = setup(['detective', 'werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager']);
     g.s.game.lovers = [g.P[1].id, g.P[4].id]; // a wolf and a villager
@@ -2650,9 +2650,9 @@ test('the Thám Tử sees a cross-side couple as a side of its own; the Seer sti
     g.act(g.P[0], 'night', { target: g.P[b].id });
     return g.s.game.night.detectiveResult;
   };
-  assert.equal(run(1, 4), 'same', 'the couple');
-  assert.equal(run(1, 2), 'different', 'the wolf in love and another wolf');
-  assert.equal(run(4, 5), 'different', 'the villager in love and another villager');
+  assert.equal(run(1, 4), 'different', 'the couple: a wolf card and a villager card');
+  assert.equal(run(1, 2), 'same', 'the wolf in love and another wolf');
+  assert.equal(run(4, 5), 'same', 'the villager in love and another villager');
   assert.equal(run(2, 6), 'different', 'a plain wolf and a villager, as ever');
   const g = setup(['detective', 'werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager']);
   g.s.game.lovers = [g.P[1].id, g.P[4].id];
