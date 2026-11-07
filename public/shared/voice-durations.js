@@ -56,7 +56,7 @@ export const CLIP_MS = {
   "doppelganger_wake_0": 4344,
   "doppelganger_wake_1": 4296,
   "doppelganger_wake_2": 3960,
-  "elder_sleep_0": 1536,
+  "elder_sleep_0": 1512,
   "elder_sleep_1": 1848,
   "elder_sleep_2": 1680,
   "elder_wake_0": 2448,
