@@ -1137,3 +1137,6 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
 .quest.now { border: 2px solid var(--brass); }
 .quest.win { border: 1px solid var(--village); background: rgba(127, 176, 154, 0.16); }
 .quest.lose { border: 1px solid var(--wolf); background: rgba(198, 70, 59, 0.18); }
+.rules-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.rules-table th, .rules-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.rules-table th { color: var(--brass-hi); font-weight: 600; }

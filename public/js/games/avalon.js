@@ -2,15 +2,40 @@
 // helpers in `h`.
 import { AVALON_ROLES, AVALON_SIDES, QUEST_SIZES, AVALON_LIMITS } from '/shared/avalon.js';
 
+// The parts of one side, as in Ma Sói's rules: icon, name, what it does,
+// what it sees, and when it is in the game.
+const roleList = (side) => Object.values(AVALON_ROLES).filter(r => r.side === side).map(r => `
+  <p><strong>${r.icon} ${r.name}</strong> <span class="muted">(${r.when})</span>: ${r.desc} <em>Lúc chia bài:</em> ${r.knows}</p>`).join('');
+
+// Players per side, and each quest's team, by table size.
+const tableSizes = `
+  <table class="rules-table">
+    <thead><tr><th>Người</th><th>Thiện</th><th>Ác</th><th>Đội 5 nhiệm vụ</th></tr></thead>
+    <tbody>${Object.keys(AVALON_SIDES).map(n => `
+      <tr><td>${n}</td><td>${AVALON_SIDES[n][0]}</td><td>${AVALON_SIDES[n][1]}</td><td>${QUEST_SIZES[n].map((s, i) => (i === 3 && n >= 7 ? `${s}*` : s)).join(' · ')}</td></tr>`).join('')}
+    </tbody>
+  </table>
+  <p class="muted">* Nhiệm vụ 4 cần 2 lá Thất bại mới thất bại (từ 7 người).</p>`;
+
 const RULES = `
   <p>Phe <strong>Thiện</strong> (các hiệp sĩ) và phe <strong>Ác</strong> ẩn mình cùng đi 5 nhiệm vụ. Phe Ác biết nhau (trừ Oberon); <strong>Merlin</strong> biết phe Ác (trừ Mordred). <strong>Percival</strong> thấy Merlin và Morgana nhưng không biết ai là ai.</p>
+  <h3 style="margin-top:8px">Một ván chơi</h3>
   <ol class="rules-steps">
     <li>Đội trưởng (lần lượt quanh bàn) chọn đội làm nhiệm vụ, đủ số người nhiệm vụ cần.</li>
     <li>Cả bàn bỏ phiếu duyệt hay bác đội. Phiếu được giấu đến khi mọi người bầu xong, rồi lật cùng lúc. Hơn nửa duyệt thì đội lên đường; bị bác thì đội trưởng tiếp theo chọn lại. <strong>5 đội liên tiếp bị bác: phe Ác thắng.</strong></li>
     <li>Người trong đội bí mật chọn <strong>Thành công</strong> hay <strong>Thất bại</strong>. Phe Thiện chỉ được chọn Thành công. Một lá Thất bại là nhiệm vụ thất bại (nhiệm vụ 4 cần 2 lá, từ 7 người). Chỉ lật số lá Thất bại, không biết ai chọn.</li>
     <li>3 nhiệm vụ thất bại: phe Ác thắng. 3 nhiệm vụ thành công: <strong>Sát Thủ</strong> được đoán ai là Merlin; đoán trúng là phe Ác thắng, trật là phe Thiện thắng.</li>
   </ol>
-  <p><strong>Tiên Nữ Hồ</strong> (tuỳ chọn): lúc chia bài, người ngồi bên phải đội trưởng đầu tiên giữ thẻ. Sau nhiệm vụ 2, 3 và 4, người giữ thẻ soi phe của một người chưa từng giữ thẻ (chỉ mình họ thấy kết quả, muốn nói thật hay nói dối tuỳ họ), rồi trao thẻ cho người đó.</p>`;
+  <p><strong>🌊 Tiên Nữ Hồ</strong> (tuỳ chọn, hợp từ 7 người): lúc chia bài, người ngồi bên phải đội trưởng đầu tiên giữ thẻ. Sau nhiệm vụ 2, 3 và 4, người giữ thẻ soi phe của một người chưa từng giữ thẻ (chỉ mình họ thấy kết quả, muốn nói thật hay nói dối tuỳ họ), rồi trao thẻ cho người đó.</p>
+  <h3 style="margin-top:8px">Phe Thiện</h3>
+  <p>Thắng khi 3 nhiệm vụ thành công và Sát Thủ không đoán trúng Merlin.</p>
+  <div class="rules-roles">${roleList('good')}</div>
+  <h3 style="margin-top:8px">Phe Ác</h3>
+  <p>Thắng khi 3 nhiệm vụ thất bại, khi 5 đội liên tiếp bị bác, hoặc khi Sát Thủ đoán trúng Merlin. Chỉ phe Ác được chọn lá Thất bại.</p>
+  <div class="rules-roles">${roleList('evil')}</div>
+  <p class="muted">Vai đặc biệt của phe Ác chỉ có khi phe Ác đủ chỗ, theo thứ tự ưu tiên: Sát Thủ, Morgana, Mordred, Oberon. Percival chỉ có khi có Morgana.</p>
+  <h3 style="margin-top:8px">Số người mỗi phe và cỡ đội</h3>
+  ${tableSizes}`;
 
 const roleName = (r) => AVALON_ROLES[r]?.name || '';
 
