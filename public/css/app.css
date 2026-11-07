@@ -977,6 +977,7 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
 .card-front .desc { color: var(--soft); font-size: 0.9rem; line-height: 1.5; flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .card-front.long .art { height: 120px; }
 .card-front.long .desc { font-size: 0.82rem; line-height: 1.45; }
+.card-front .desc.scrolls { -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); mask-image: linear-gradient(180deg, #000 80%, transparent); padding-bottom: 1.2em; }
 .card-notes { width: min(300px, 100%); margin: 18px auto 0; display: flex; flex-direction: column; gap: 8px; }
 .card-notes p { padding: 10px 12px; border-radius: 10px; background: rgba(237, 226, 200, 0.06); font-size: 0.88rem; line-height: 1.45; }
 .card-sheet .sheet-close { display: block; width: min(300px, 100%); margin: 18px auto 0; }
@@ -1125,4 +1126,3 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
 .spy-card .spy-icon { font-size: 4.5rem; line-height: 1.1; }
 .spy-card h3 { font-size: 2.2rem; line-height: 1; }
 .spy-card .desc { color: var(--soft); font-size: 0.9rem; line-height: 1.5; }
-.card-front .desc.scrolls { -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); mask-image: linear-gradient(180deg, #000 80%, transparent); padding-bottom: 1.2em; }
