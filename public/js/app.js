@@ -1890,6 +1890,14 @@ function watchNight() {
 
 // ---------- Role card ----------
 
+// A card text that does not fit scrolls inside the card: fade its last line
+// so it reads as "more below".
+function markScrolling(root) {
+  requestAnimationFrame(() => root.querySelectorAll('.card-front .desc').forEach(d => {
+    d.classList.toggle('scrolls', d.scrollHeight > d.clientHeight + 1);
+  }));
+}
+
 function renderCard(reset = true) {
   if (view.gameId !== 'werewolf') {
     document.getElementById('cardSheetBody').innerHTML = `
@@ -1936,7 +1944,7 @@ function renderCard(reset = true) {
     <button class="card ${revealed ? 'revealed' : ''}" data-act="flip" aria-label="Lật lá bài">
       <div class="card-inner">
         <div class="card-face card-back">${crescentSvg()}<p>Chạm để lật bài<br><span class="small muted">Che màn hình khỏi người bên cạnh</span></p></div>
-        <div class="card-face card-front">
+        <div class="card-face card-front ${r.description.length > 220 ? 'long' : ''}">
           <p class="card-top" style="color:${teamColor}"><span>${TEAM_LABEL[r.team]}</span><span class="pts">${r.points > 0 ? '+' : ''}${r.points}</span></p>
           <div class="art">${r.art}</div>
           <h3>${r.name}</h3>
@@ -1946,6 +1954,7 @@ function renderCard(reset = true) {
     </button>
     ${extra.length ? `<div class="card-notes">${extra.map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
     <button class="btn btn-ghost btn-big sheet-close" data-act="closeSheet">Úp bài xuống</button>`;
+  markScrolling(body);
 }
 
 // The cards in this game, by team. Everyone saw these counts in the lobby,
@@ -2160,7 +2169,9 @@ document.addEventListener('click', async (e) => {
     case 'card':
       renderCard(true);
       return document.getElementById('cardSheet').showModal();
-    case 'flip': return el.classList.toggle('revealed');
+    case 'flip':
+      el.classList.toggle('revealed');
+      return markScrolling(el);
     case 'night': return act('night', { target: id });
     case 'noKill': return act('night', { noKill: true });
     case 'seerDone': return act('seerDone').then(() => act('endTurn'));

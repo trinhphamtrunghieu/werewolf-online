@@ -920,7 +920,7 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
   perspective: 1000px;
   width: min(300px, 100%);
   aspect-ratio: 300 / 486;
-  max-height: 64dvh;
+  max-height: 68dvh;
   margin: 0 auto;
   cursor: pointer;
   border: 0;
@@ -962,14 +962,22 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
   background: var(--face);
   box-shadow: inset 0 0 0 7px var(--face), inset 0 0 0 8px rgba(201, 162, 78, 0.55), 0 30px 60px rgba(0, 0, 0, 0.6);
   justify-content: flex-start;
-  padding: 22px 22px 20px;
+  padding: 22px 20px 18px;
+  overflow: hidden;
 }
-.card-front .card-top { align-self: stretch; display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; }
+.card-front .card-top { align-self: stretch; display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; flex: none; }
 .card-front .card-top .pts { padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
-.card-front .art { width: 52%; max-width: 160px; flex: none; }
-.card-front .art svg { width: 100%; height: auto; }
-.card-front h3 { font-size: 2.4rem; line-height: 1; }
-.card-front .desc { color: var(--soft); font-size: 0.9rem; line-height: 1.5; }
+/* The picture gives way first when the card is short: it takes what the
+   text leaves, between a small and its full size. */
+.card-front .art { flex: 0 1 auto; min-height: 48px; height: 160px; max-width: 160px; display: flex; justify-content: center; }
+.card-front .art svg { height: 100%; width: auto; max-width: 100%; }
+.card-front h3 { font-size: clamp(1.7rem, 8.5vw, 2.4rem); line-height: 1; flex: none; }
+/* Long texts (the Ma Sói card, Cupid…) read in a smaller size, and scroll
+   inside the card rather than spill out of it on a small phone. */
+.card-front .desc { color: var(--soft); font-size: 0.9rem; line-height: 1.5; flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.card-front.long .art { height: 120px; }
+.card-front.long .desc { font-size: 0.82rem; line-height: 1.45; }
+.card-front .desc.scrolls { -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); mask-image: linear-gradient(180deg, #000 80%, transparent); padding-bottom: 1.2em; }
 .card-notes { width: min(300px, 100%); margin: 18px auto 0; display: flex; flex-direction: column; gap: 8px; }
 .card-notes p { padding: 10px 12px; border-radius: 10px; background: rgba(237, 226, 200, 0.06); font-size: 0.88rem; line-height: 1.45; }
 .card-sheet .sheet-close { display: block; width: min(300px, 100%); margin: 18px auto 0; }
