@@ -1214,3 +1214,8 @@ details.secret .result { margin-top: 8px; }
 .draft-card .art-icon { font-size: 44px; line-height: 1.1; }
 .draft-card h3 { font-size: 1.1rem; line-height: 1.1; }
 .draft-card .small { color: var(--soft); flex: 1; line-height: 1.4; }
+
+/* Home: the game list belongs to "Tạo phòng mới" only. */
+.shelf-title { margin: 0 0 -4px; font-family: var(--display); font-size: 1.05rem; color: var(--brass-hi); }
+.shelf-title + .shelf { margin-top: 12px; }
+.invite-note { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(201, 162, 78, 0.1); border: 1px solid var(--brass-line); font-size: 0.92rem; line-height: 1.45; }

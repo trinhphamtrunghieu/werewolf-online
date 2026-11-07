@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRoom, applyAction, tick, viewFor } from '../lib/engine.js';
+import { createRoom, joinRoom, applyAction, tick, viewFor } from '../lib/engine.js';
 import { LOCATIONS } from '../public/shared/spyfall.js';
 
 function seeded(seed = 42) {
@@ -158,4 +158,19 @@ test('spyfall: a room of bots plays to the end', () => {
   }
   assert.equal(s.phase, 'GAME_OVER');
   assert.ok(['spy', 'village'].includes(s.play.result.winner));
+});
+
+test('a room opens on the game picked when creating it; guests just join it; the host can switch', () => {
+  const rng = seeded(3);
+  const { state: s, player: host } = createRoom({ code: 'NEW01', hostName: 'Chủ', now: 0, rng, gameId: 'avalon' });
+  assert.equal(s.gameId, 'avalon');
+  // The host plays in every game but Ma Sói's narrator mode: seated from the start.
+  assert.equal(s.players[0].seat, 1);
+  const guest = joinRoom(s, 'Khách', 0, rng);
+  assert.equal(viewFor(s, guest.id, 0, 1).gameId, 'avalon');
+  applyAction(s, host.id, 'selectGame', { gameId: 'undercover' }, 0, rng);
+  assert.equal(viewFor(s, guest.id, 0, 2).gameId, 'undercover');
+  assert.throws(() => applyAction(s, guest.id, 'selectGame', { gameId: 'werewolf' }, 0, rng));
+  // Unknown games fall back to Ma Sói.
+  assert.equal(createRoom({ code: 'NEW02', hostName: 'Chủ', now: 0, rng, gameId: 'chess' }).state.gameId, 'werewolf');
 });

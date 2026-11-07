@@ -3,7 +3,7 @@
 //   GET  /api/room?config=1                                       realtime settings for the browser
 //   GET  /api/room?code=ABCDE&pid=...&token=...&since=<version>   fetch my view (also advances timers)
 //   GET  /api/room?code=ABCDE&pid=...&token=...&check=1           is my seat still there? (read-only)
-//   POST /api/room { action: 'create', name }                     create a room
+//   POST /api/room { action: 'create', name, game }               create a room for that game
 //   POST /api/room { action: 'join', code, name }                 join a room
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
 
@@ -43,7 +43,7 @@ async function handleCreate(store, body) {
   const now = Date.now();
   for (let i = 0; i < 6; i++) {
     const code = newCode();
-    const { state, player } = createRoom({ code, hostName: body.name, now, debug: !!body.debug });
+    const { state, player } = createRoom({ code, hostName: body.name, now, debug: !!body.debug, gameId: String(body.game || 'werewolf') });
     if (await createRoomRecord(store, code, state)) {
       if (Math.random() < 0.2) await store.cleanup();
       return { code, playerId: player.id, token: player.token, view: viewFor(state, player.id, now, 1) };
