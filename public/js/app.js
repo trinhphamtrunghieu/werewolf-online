@@ -1459,8 +1459,6 @@ function artMarks(p) {
     p.art.amulet ? '🧿 Giữ Bùa' : '',
     day && a.away?.includes(p.id) ? '🪵 Rời làng' : '',
     day && a.noVote?.includes(p.id) ? '🖤 Không bỏ phiếu' : '',
-    day && a.mute?.includes(p.id) ? '🎭 Không được nói' : '',
-    day && a.shame?.includes(p.id) ? '🧣 Quay lưng' : '',
     day && a.shield === p.id ? '🔰 Được che đêm nay' : ''
   ];
 }
@@ -1538,8 +1536,6 @@ function artDawn(d) {
     amulet: 'Sáng nay bạn phải trao Bùa Hộ Mệnh cho một người chưa từng giữ nó.',
     cudgel: 'Chọn 1 người phải rời làng hôm nay (không ai được bỏ phiếu cho họ).',
     heart: 'Chọn 1 người không được bỏ phiếu hôm nay.',
-    mask: 'Chọn 1 người không được nói hôm nay.',
-    shroud: 'Chọn 1 người phải quay lưng lại với cả làng hôm nay.',
     shield: 'Chọn 1 người không thể bị loại đêm nay.'
   }[d.kind];
   return `<div class="stack"><h3>☀️ ${esc(artLabel(d.id))}</h3><p class="lead">${lead}</p>
@@ -1588,8 +1584,6 @@ function dayNews() {
   if (a) {
     a.away.forEach(id => items.push(`<p>🪵 <strong>${esc(nameOnly(id))}</strong> rời làng hôm nay: không ai được bỏ phiếu cho người này, người này cũng không bỏ phiếu.</p>`));
     a.noVote.forEach(id => items.push(`<p>🖤 <strong>${esc(nameOnly(id))}</strong> không được bỏ phiếu hôm nay.</p>`));
-    a.mute.forEach(id => items.push(`<p>🎭 <strong>${esc(nameOnly(id))}</strong> không được nói hôm nay.</p>`));
-    a.shame.forEach(id => items.push(`<p>🧣 <strong>${esc(nameOnly(id))}</strong> phải quay lưng lại với cả làng hôm nay.</p>`));
     if (a.shield) items.push(`<p>🔰 <strong>${esc(nameOnly(a.shield))}</strong> không thể bị loại đêm nay.</p>`);
   }
   if (view.me?.spectator) items.push('<p class="muted small">👁️ Bạn đã chết và không còn ai hồi sinh được: ban đêm bạn được theo dõi diễn biến và vai của mọi người. Ban ngày màn hình không hiện vai của ai; hãy giữ im lặng.</p>');

@@ -15,9 +15,11 @@
 //             dead       a player who died since yesterday morning
 //   ordered: the order of the picks matters (Ruby of Kismet)
 //
-// Two cards are left out because a phone cannot keep them: the Coin of Youth
-// (saying your role name aloud every day) and the Mirror of the Doppelgänger
-// (waking a second time at night as another role).
+// Four cards are left out because a phone cannot keep them, only the players'
+// honour could: the Coin of Youth (saying your role name aloud every day), the
+// Mirror of the Doppelgänger (waking a second time at night as another role),
+// the Mask of Spellcasting (someone may not speak) and the Shroud of Shame
+// (someone must face away).
 
 export const ARTIFACTS = {
   amber: {
@@ -109,10 +111,6 @@ export const ARTIFACTS = {
     name: 'Dấu Ấn Trưởng Làng', en: 'The Mark of the Mayor', icon: '🎖️', once: false,
     desc: 'Phiếu của bạn tính là 2 phiếu khi bỏ phiếu loại người.'
   },
-  mask: {
-    name: 'Mặt Nạ Phong Ấn', en: 'The Mask of Spellcasting', icon: '🎭', once: false, dawn: true,
-    desc: 'Mỗi sáng, chọn 1 người không được nói hôm đó. Không chọn một người hai lần.'
-  },
   mist: {
     name: 'Sương Hào Quang', en: 'The Mist of Aura', icon: '🌫️', once: true,
     pick: { n: 1, from: 'alive' },
@@ -170,10 +168,6 @@ export const ARTIFACTS = {
     name: 'Khiên Vệ Sĩ', en: 'The Shield of the Bodyguard', icon: '🔰', once: false, dawn: true,
     desc: 'Mỗi sáng, chọn 1 người khác nhau: người đó không thể bị loại đêm hôm đó.'
   },
-  shroud: {
-    name: 'Khăn Choàng Hổ Thẹn', en: 'The Shroud of Shame', icon: '🧣', once: false, dawn: true,
-    desc: 'Mỗi sáng, chọn 1 người phải quay lưng lại với cả làng suốt ngày đó (vẫn được nói và bỏ phiếu). Không chọn một người hai lần.'
-  },
   skimmer: {
     name: 'Mũ Kẻ Bị Nguyền', en: 'The Skimmer of the Cursed', icon: '🎩', once: false,
     desc: 'Bạn bị nguyền: nếu Sói cắn bạn vào ban đêm, bạn không chết mà hoá Sói và sang phe Sói.'
@@ -222,9 +216,9 @@ export const ARTIFACT_RULES = [
   'Mỗi lần chỉ một lá được dùng: lá trước phải xong (kể cả lựa chọn đi kèm) thì người khác mới lật được. Lật lá thì thảo luận được thêm ít nhất 20 giây.',
   'Lá "1" chỉ dùng một lần khi lật. Lá "∞" có tác dụng mãi từ lúc lật. Lá đã lật để ngửa, cả làng đều thấy.',
   'Mọi lựa chọn đều công khai (cả làng thấy bạn chọn ai). Không được chọn chính mình; với lá "∞", không chọn một người hai lần trong ván. Kết quả cũng công khai, trừ khi lá ghi "bí mật".',
-  'Lá "mỗi sáng" (Bùa Hộ Mệnh, Gậy Mụ Già, Trái Tim Thờ Ơ, Mặt Nạ Phong Ấn, Khăn Choàng Hổ Thẹn, Khiên Vệ Sĩ) được dùng từ sáng hôm sau ngày lật, trước khi bỏ phiếu. Hết thảo luận mà chưa chọn thì Bùa Hộ Mệnh được trao ngẫu nhiên, các lá khác bỏ lượt hôm đó.',
+  'Lá "mỗi sáng" (Bùa Hộ Mệnh, Gậy Mụ Già, Trái Tim Thờ Ơ, Khiên Vệ Sĩ) được dùng từ sáng hôm sau ngày lật, trước khi bỏ phiếu. Hết thảo luận mà chưa chọn thì Bùa Hộ Mệnh được trao ngẫu nhiên, các lá khác bỏ lượt hôm đó.',
   'Hết giờ thảo luận mà lựa chọn của một lá vẫn chưa xong thì quản trò chọn ngẫu nhiên giúp.',
   'Lá chưa lật của người bị loại được trả về chồng bài. Artifact luôn mạnh hơn vai trò (ví dụ Mũ Gã Khờ bắt Người Hoà Bình bỏ phiếu treo cổ). Tiên Tri và các vai soi đêm luôn thấy lá vai trò gốc.',
   'Có thể nói dối về lá Artifact của mình khi chưa lật.',
-  'Không dùng 2 lá cần làm việc ngoài đời mà điện thoại không theo dõi được: Đồng Xu Tuổi Trẻ (Coin of Youth) và Gương Song Trùng (Mirror of the Doppelgänger).'
+  'Không dùng 4 lá chỉ giữ được bằng tự giác, điện thoại không theo dõi được: Đồng Xu Tuổi Trẻ (Coin of Youth), Gương Song Trùng (Mirror of the Doppelgänger), Mặt Nạ Phong Ấn (Mask of Spellcasting) và Khăn Choàng Hổ Thẹn (Shroud of Shame).'
 ];

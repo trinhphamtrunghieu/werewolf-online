@@ -56,7 +56,7 @@ function setup(roles, arts = [], { config = {}, rng = seeded() } = {}) {
 const notes = (s, p) => (s.game.notes[p.id] || []).map(n => n.text).join('\n');
 
 test('every Artifact card is described, and the gems are 1 in 5', () => {
-  assert.equal(ARTIFACT_IDS.length, 42);
+  assert.equal(ARTIFACT_IDS.length, 40);
   for (const id of ARTIFACT_IDS) {
     const c = ARTIFACTS[id];
     assert.ok(c.name && c.icon && c.desc && typeof c.once === 'boolean', id);
@@ -292,7 +292,7 @@ test('Vote from Beyond: votes after death, and does not watch the night', () => 
   assert.equal(s.game.votes[P[1].id], P[0].id);
 });
 
-test('Cudgel, Heart and Mask: chosen each morning from the day after the reveal', () => {
+test('Cudgel and Heart: chosen each morning from the day after the reveal', () => {
   const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'cudgel', 'heart']);
   untilPhase('DISCUSSION');
   reveal(P[1]);
