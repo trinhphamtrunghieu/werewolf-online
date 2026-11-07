@@ -809,7 +809,7 @@ function deckPanel(count, host) {
     </div>
     <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
     <p class="balance-legend"><span>← Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Dân →</span></p>
-    ${view.config.autoLovers ? '<p class="deck-note">💘 Không có lá Thần Tình Yêu: quản trò tự ghép một cặp Tình Nhân ở đêm đầu.</p>' : ''}
+    ${view.config.autoLovers ? '<p class="deck-note">💘 Không có lá Thần Tình Yêu: quản trò tự ghép một cặp Tình Nhân trước đêm đầu.</p>' : ''}
     <ul class="deck-mini">
       ${cards.join('')}
       <li class="edit-slot"><button class="edit" data-act="${host ? 'deckEdit' : 'deck'}">${host ? 'Sửa bộ bài' : 'Xem mô tả vai'}</button></li>
@@ -829,7 +829,7 @@ function setupRules() {
     ${row('hostPlays', 'Tôi cũng nhận bài và chơi', 'Bỏ chọn nếu bạn chỉ làm quản trò. Khi đó bạn thấy được mọi vai trò.')}
     ${row('swapEnabled', 'Cho phép trao đổi vai', 'Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai”; hết giờ các lá được chia lại ngẫu nhiên, ẩn danh.')}
     ${row('revealRoleOnDeath', 'Lật bài người chết', 'Cả làng thấy vai trò của người vừa bị loại.')}
-    ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: đêm đầu, game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}`;
+    ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu (sau khi trao đổi vai), game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}`;
 }
 
 // "Chuẩn bị ván", step 3: how long each part lasts. The day's main steps
@@ -1421,6 +1421,7 @@ function stage() {
       <div class="panel stack reveal-panel">
         <h2>Xem lá bài của bạn</h2>
         <p class="lead">Trò chơi sẽ bắt đầu sau 10 giây. Che màn hình khỏi người bên cạnh.</p>
+        ${view.config.autoLovers && m.inGame ? '<p class="small muted">💘 Quản trò đã ghép một cặp Tình Nhân: nếu là bạn, tên và vai người yêu ghi trên lá bài.</p>' : ''}
         ${m.inGame
           ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'
           : '<p class="muted">Mọi người đang xem lá bài của mình.</p>'}
@@ -1917,7 +1918,7 @@ function renderRules() {
       <p>Mỗi đêm, quản trò gọi dậy theo thứ tự dưới đây. Người được gọi thao tác trên điện thoại của mình.</p>
       <ol class="rules-steps">${NIGHT_STEPS.map(st => `<li>${stepInfo(st.id).icon} ${stepInfo(st.id).name}${st.also ? ` (cùng ${st.also.map(id => ROLES[id].name).join(', ')})` : ''}${st.firstNightOnly ? ' (đêm đầu)' : ''}${st.notFirstNight ? ' (từ đêm thứ hai)' : ''}</li>`).join('')}</ol>
       <p>Cặp đôi và những người bị thôi miên không bị gọi dậy: tên của người kia hiện trên lá bài của họ, hãy xem lá bài khi trời sáng.</p>
-      <p>Nếu chủ phòng bật "Quản trò tự ghép đôi", ván không có lá Thần Tình Yêu: đêm đầu, game chọn ngẫu nhiên 2 người làm Tình Nhân, và họ thấy nhau trên lá bài như bình thường.</p>
+      <p>Nếu chủ phòng bật "Quản trò tự ghép đôi", ván không có lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu, game chọn ngẫu nhiên 2 người làm Tình Nhân, và họ thấy nhau trên lá bài như bình thường.</p>
       <p>Ban ngày: công bố người chết, thảo luận, bỏ phiếu chọn nghi phạm, nghi phạm biện hộ, rồi cả làng chọn treo cổ hay tha.</p>
       <p>Phe Dân thắng khi hết Sói (và Người Thổi Sáo, nếu có, đã chết). Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên.</p>
       <h3 style="margin-top:8px">Vai trò</h3>
