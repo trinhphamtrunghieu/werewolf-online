@@ -17,11 +17,11 @@ Mọi người cùng ở một địa điểm (30 địa điểm), trừ gián �
 
 ### Ai là nội gián
 
-Mỗi người một từ khoá (70 cặp từ); 1 nội gián (2 từ 7 người, chủ phòng chỉnh được) nhận từ gần giống, không ai được báo mình là dân hay nội gián. Tuỳ chọn thêm người Trắng không có từ. Lần lượt mô tả (người đang nói bấm "Xong"), rồi bỏ phiếu loại: nhiều phiếu nhất bị loại và lật vai, hoà thì không ai bị loại. Trắng bị loại được đoán từ của dân, đúng thì thắng một mình. Dân thắng khi loại hết nội gián và Trắng; nội gián (cùng Trắng) thắng khi chỉ còn một dân.
+Mỗi người một từ khoá (254 cặp từ, 13 chủ đề); 1 nội gián (2 từ 7 người, chủ phòng chỉnh được) nhận từ gần giống, không ai được báo mình là dân hay nội gián. Tuỳ chọn thêm người Trắng không có từ. Lần lượt mô tả (người đang nói bấm "Xong"), rồi bỏ phiếu loại: nhiều phiếu nhất bị loại và lật vai, hoà thì không ai bị loại. Trắng bị loại được đoán từ của dân, đúng thì thắng một mình. Dân thắng khi loại hết nội gián và Trắng; nội gián (cùng Trắng) thắng khi chỉ còn một dân.
 
 ### Avalon
 
-5–10 người, số Thiện/Ác và cỡ đội từng nhiệm vụ theo luật gốc. Merlin và Sát Thủ luôn có; tuỳ chọn Percival và Morgana, Mordred, Oberon (khi phe Ác đủ chỗ). Đội trưởng xoay vòng chọn đội, cả bàn duyệt (phiếu giấu đến khi đủ rồi lật cùng lúc), 5 đội bị bác liên tiếp là phe Ác thắng. Đội chọn Thành công/Thất bại bí mật (phe Thiện chỉ được Thành công; nhiệm vụ 4 cần 2 lá Thất bại từ 7 người). 3 nhiệm vụ thất bại: phe Ác thắng; 3 thành công: Sát Thủ đoán Merlin.
+5–10 người, số Thiện/Ác và cỡ đội từng nhiệm vụ theo luật gốc. Merlin và Sát Thủ luôn có; tuỳ chọn Percival và Morgana, Mordred, Oberon (khi phe Ác đủ chỗ). Đội trưởng xoay vòng chọn đội, cả bàn duyệt (phiếu giấu đến khi đủ rồi lật cùng lúc), 5 đội bị bác liên tiếp là phe Ác thắng. Đội chọn Thành công/Thất bại bí mật (phe Thiện chỉ được Thành công; nhiệm vụ 4 cần 2 lá Thất bại từ 7 người). 3 nhiệm vụ thất bại: phe Ác thắng; 3 thành công: Sát Thủ đoán Merlin. Tuỳ chọn **Tiên Nữ Hồ** (Lady of the Lake): sau nhiệm vụ 2, 3, 4, người giữ thẻ soi phe của một người chưa từng giữ thẻ (chỉ họ thấy kết quả) rồi trao thẻ cho người đó.
 
 ## Ma Sói
 

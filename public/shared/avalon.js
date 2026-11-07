@@ -32,15 +32,21 @@ export const AVALON_DEFAULTS = {
   percival: true, // Percival and Morgana
   mordred: false,
   oberon: false,
+  lady: false, // Tiên Nữ Hồ (Lady of the Lake)
   pickTime: 120, // the leader chooses a team
   voteTime: 45, // everyone approves or rejects it
   questTime: 30, // the team plays success or fail
-  assassinTime: 120
+  assassinTime: 120,
+  ladyTime: 60
 };
 
 export const AVALON_LIMITS = {
   pickTime: [30, 600],
   voteTime: [15, 180],
   questTime: [10, 120],
-  assassinTime: [30, 600]
+  assassinTime: [30, 600],
+  ladyTime: [15, 300]
 };
+
+// Tiên Nữ Hồ looks after these quests (the 2nd, 3rd and 4th).
+export const LADY_AFTER = [1, 2, 3];

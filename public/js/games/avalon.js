@@ -9,7 +9,8 @@ const RULES = `
     <li>Cả bàn bỏ phiếu duyệt hay bác đội. Phiếu được giấu đến khi mọi người bầu xong, rồi lật cùng lúc. Hơn nửa duyệt thì đội lên đường; bị bác thì đội trưởng tiếp theo chọn lại. <strong>5 đội liên tiếp bị bác: phe Ác thắng.</strong></li>
     <li>Người trong đội bí mật chọn <strong>Thành công</strong> hay <strong>Thất bại</strong>. Phe Thiện chỉ được chọn Thành công. Một lá Thất bại là nhiệm vụ thất bại (nhiệm vụ 4 cần 2 lá, từ 7 người). Chỉ lật số lá Thất bại, không biết ai chọn.</li>
     <li>3 nhiệm vụ thất bại: phe Ác thắng. 3 nhiệm vụ thành công: <strong>Sát Thủ</strong> được đoán ai là Merlin; đoán trúng là phe Ác thắng, trật là phe Thiện thắng.</li>
-  </ol>`;
+  </ol>
+  <p><strong>Tiên Nữ Hồ</strong> (tuỳ chọn): lúc chia bài, người ngồi bên phải đội trưởng đầu tiên giữ thẻ. Sau nhiệm vụ 2, 3 và 4, người giữ thẻ soi phe của một người chưa từng giữ thẻ (chỉ mình họ thấy kết quả, muốn nói thật hay nói dối tuỳ họ), rồi trao thẻ cho người đó.</p>`;
 
 const roleName = (r) => AVALON_ROLES[r]?.name || '';
 
@@ -21,7 +22,8 @@ function lobby(h) {
   const toggles = [
     ['percival', 'Percival và Morgana', 'Percival thấy Merlin và Morgana, không biết ai là ai.'],
     ['mordred', 'Mordred', 'Phe Ác, Merlin không thấy.'],
-    ['oberon', 'Oberon', 'Phe Ác, không biết đồng bọn và đồng bọn không biết.']
+    ['oberon', 'Oberon', 'Phe Ác, không biết đồng bọn và đồng bọn không biết.'],
+    ['lady', 'Tiên Nữ Hồ', 'Sau nhiệm vụ 2, 3, 4: người giữ thẻ soi phe một người rồi trao thẻ cho người đó. Hợp từ 7 người.']
   ];
   const sliders = [['pickTime', 'Đội trưởng chọn đội', 15], ['voteTime', 'Bỏ phiếu duyệt đội', 5], ['questTime', 'Làm nhiệm vụ', 5]];
   return `
@@ -40,7 +42,7 @@ function lobby(h) {
           <input type="range" id="gc-${key}" data-game-config="${key}" min="${min}" max="${max}" step="${step}" value="${c[key]}" />
         </div>`;
       }).join('')}`
-    : `<p class="muted small">Vai: Merlin, Sát Thủ${c.percival ? ', Percival, Morgana' : ''}${c.mordred ? ', Mordred' : ''}${c.oberon ? ', Oberon' : ''}.</p>`}
+    : `<p class="muted small">Vai: Merlin, Sát Thủ${c.percival ? ', Percival, Morgana' : ''}${c.mordred ? ', Mordred' : ''}${c.oberon ? ', Oberon' : ''}.${c.lady ? ' Có Tiên Nữ Hồ.' : ''}</p>`}
     <button class="btn btn-link" data-act="rules">Xem luật chơi</button>`;
 }
 
@@ -48,7 +50,7 @@ function title(view) {
   const p = view.play;
   if (view.phase === 'GAME_OVER') return 'Ván chơi kết thúc';
   const q = `Nhiệm vụ ${(p?.quest ?? 0) + 1}`;
-  return { AV_PICK: `${q}: chọn đội`, AV_VOTE: `${q}: duyệt đội`, AV_QUEST: `${q}: lên đường`, AV_RESULT: `${q}: kết quả`, AV_ASSASSIN: 'Sát Thủ ra tay' }[view.phase] || '';
+  return { AV_PICK: `${q}: chọn đội`, AV_VOTE: `${q}: duyệt đội`, AV_QUEST: `${q}: lên đường`, AV_RESULT: `${q}: kết quả`, AV_LADY: 'Tiên Nữ Hồ', AV_ASSASSIN: 'Sát Thủ ra tay' }[view.phase] || '';
 }
 
 function subtitle(view, h) {
@@ -59,6 +61,7 @@ function subtitle(view, h) {
   if (view.phase === 'AV_VOTE') return `Đã bỏ phiếu: ${p.voted.length}/${p.ring.length}.`;
   if (view.phase === 'AV_QUEST') return `Đội đã chọn: ${p.playedCount}/${p.team.length}.`;
   if (view.phase === 'AV_ASSASSIN') return 'Phe Thiện thắng 3 nhiệm vụ: Sát Thủ đoán ai là Merlin.';
+  if (view.phase === 'AV_LADY') return `${h.esc(h.nameOnly(p.lady))} dùng Tiên Nữ Hồ soi một người.`;
   const r = p.results[p.results.length - 1];
   return r ? (r.success ? 'Nhiệm vụ thành công.' : 'Nhiệm vụ thất bại.') : '';
 }
@@ -84,7 +87,7 @@ function stage(h) {
   if (view.phase === 'GAME_OVER') return gameOver(h);
   const me = view.me.id;
   const seated = view.players.filter(x => x.inGame);
-  const leaderMark = (x) => (x.id === p.leader ? '👑 đội trưởng' : '');
+  const leaderMark = (x) => [x.id === p.leader ? '👑 đội trưởng' : '', x.id === p.lady ? '🌊 Tiên Nữ' : ''].filter(Boolean).join(' · ');
   let body = '';
   if (view.phase === 'AV_PICK') {
     const mine = p.leader === me;
@@ -137,6 +140,20 @@ function stage(h) {
         <h2>Nhiệm vụ ${p.results.length} ${r.success ? 'thành công' : 'thất bại'}</h2>
         <p class="result ${r.success ? 'result-village' : 'result-wolf'}">${r.fails} lá Thất bại trong đội ${r.team.map(h.nameOnly).map(h.esc).join(', ')}</p>
       </div>`;
+  } else if (view.phase === 'AV_LADY') {
+    const mine = p.lady === me;
+    body = `
+      <div class="panel">
+        <p class="card-kicker"><span>Tiên Nữ Hồ</span><span class="icon" aria-hidden="true">🌊</span></p>
+        <h2>${mine ? 'Soi phe ai?' : `${h.esc(h.nameOnly(p.lady))} đang soi`}</h2>
+        <p class="lead">${mine
+          ? 'Chạm vào một người chưa từng giữ Tiên Nữ Hồ. Chỉ bạn thấy họ thuộc phe nào; sau đó thẻ chuyển sang họ.'
+          : 'Người giữ Tiên Nữ Hồ đang soi phe một người. Kết quả chỉ họ thấy: tin hay không là tuỳ bạn.'}</p>
+      </div>
+      ${h.roundTable(seated, {
+        center: 'Tiên Nữ Hồ',
+        seatOpts: (x) => ({ selectable: mine && p.ladyTargets.includes(x.id), act: 'avLady', sub: leaderMark(x) })
+      })}`;
   } else if (view.phase === 'AV_ASSASSIN') {
     const assassin = p.me.role === 'assassin';
     body = `
@@ -150,7 +167,8 @@ function stage(h) {
         seatOpts: (x) => ({ selectable: assassin && x.id !== me && !p.me.sees?.ids.includes(x.id), act: 'avAssassinate' })
       })}`;
   }
-  return `<div class="panel" style="margin-bottom:12px">${track(h)}</div>${body}`;
+  const looks = (p.ladyLooks || []).map(l => `${h.esc(h.nameOnly(l.by))} soi ${h.esc(h.nameOnly(l.target))}`);
+  return `<div class="panel" style="margin-bottom:12px">${track(h)}${looks.length ? `<p class="muted small" style="text-align:center;margin-top:4px">🌊 ${looks.join(' · ')}</p>` : ''}</div>${body}`;
 }
 
 function lastVote(h) {
@@ -191,7 +209,10 @@ function card(h) {
       <h3>${r.name}</h3>
       <p class="desc">${r.desc}</p>
     </div>
-    ${p.me.sees?.label ? `<div class="card-notes"><p><strong>${p.me.sees.label}:</strong> ${p.me.sees.ids.length ? p.me.sees.ids.map(h.nameOnly).map(h.esc).join(', ') : 'không có ai'}</p></div>` : ''}`;
+    ${p.me.sees?.label || p.me.ladySaw.length ? `<div class="card-notes">
+      ${p.me.sees?.label ? `<p><strong>${p.me.sees.label}:</strong> ${p.me.sees.ids.length ? p.me.sees.ids.map(h.nameOnly).map(h.esc).join(', ') : 'không có ai'}</p>` : ''}
+      ${p.me.ladySaw.map(l => `<p>🌊 Bạn soi <strong>${h.esc(h.nameOnly(l.target))}</strong>: phe ${l.side === 'good' ? 'Thiện' : 'Ác'}</p>`).join('')}
+    </div>` : ''}`;
 }
 
 function click(a, el, h) {
@@ -204,6 +225,9 @@ function click(a, el, h) {
       if (confirm(fail ? 'Chọn Thất bại?' : 'Chọn Thành công?')) h.act('avQuest', { fail });
       return true;
     }
+    case 'avLady':
+      if (confirm(`Dùng Tiên Nữ Hồ soi ${h.nameOnly(el.dataset.id)}?`)) h.act('avLady', { target: el.dataset.id });
+      return true;
     case 'avAssassinate':
       if (confirm(`Ám sát ${h.nameOnly(el.dataset.id)}? Trúng Merlin là phe Ác thắng.`)) h.act('avAssassinate', { target: el.dataset.id });
       return true;

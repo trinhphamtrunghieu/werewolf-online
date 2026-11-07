@@ -243,3 +243,32 @@ test('avalon: rooms of bots play to the end', () => {
     assert.ok(['good', 'evil'].includes(s.play.result.winner));
   }
 });
+
+test('avalon: Tiên Nữ Hồ looks after quests 2–4, only the holder sees the side, and she moves on', () => {
+  const g = room('avalon', 7, { seed: 12, config: { lady: true } });
+  const p = g.s.play;
+  const first = p.ring[(p.leader - 1 + p.ring.length) % p.ring.length];
+  assert.equal(p.lady, first, 'starts to the first leader\'s right');
+  const good = g.P.filter(x => ['merlin', 'percival', 'servant'].includes(p.roles[x.id]));
+  const quest = () => {
+    const team = good.slice(0, QUEST_SIZES[7][p.quest]);
+    propose(g, team);
+    team.forEach(x => g.act(x, 'avQuest', { fail: false }));
+    g.clock.end();
+  };
+  quest();
+  assert.equal(g.s.phase, 'AV_PICK', 'nothing after the first quest');
+  quest();
+  assert.equal(g.s.phase, 'AV_LADY');
+  assert.ok(!g.view(first).play.ladyTargets.includes(first), 'not the holder herself');
+  assert.throws(() => g.act(g.P.find(x => x.id !== first), 'avLady', { target: first }), /không giữ/);
+  const target = g.view(first).play.ladyTargets[0];
+  g.act(first, 'avLady', { target });
+  const saw = g.view(first).play.me.ladySaw;
+  assert.deepEqual(saw, [{ target, side: ['merlin', 'percival', 'servant'].includes(p.roles[target]) ? 'good' : 'evil' }]);
+  assert.deepEqual(g.view(target).play.me.ladySaw, [], 'the side is the holder\'s alone');
+  assert.deepEqual(g.view(target).play.ladyLooks, [{ by: first, target, quest: 1 }], 'everyone sees who looked at whom');
+  assert.equal(p.lady, target, 'she moves to the one looked at');
+  assert.equal(g.s.phase, 'AV_PICK');
+  assert.equal(p.quest, 2);
+});
