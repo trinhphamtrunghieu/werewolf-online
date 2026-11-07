@@ -1118,3 +1118,25 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
 .spy-card .spy-icon { font-size: 4.5rem; line-height: 1.1; }
 .spy-card h3 { font-size: 2.2rem; line-height: 1; }
 .spy-card .desc { color: var(--soft); font-size: 0.9rem; line-height: 1.5; }
+
+/* ---------- Avalon ---------- */
+
+.quest-track { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.quest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 2px;
+  border-radius: 10px;
+  border: 1px dashed var(--brass-faint);
+  text-align: center;
+}
+.quest .n { font-family: var(--display); font-size: 1.5rem; line-height: 1; }
+.quest .lbl { font-size: 0.62rem; color: var(--muted); line-height: 1.2; }
+.quest.now { border: 2px solid var(--brass); }
+.quest.win { border: 1px solid var(--village); background: rgba(127, 176, 154, 0.16); }
+.quest.lose { border: 1px solid var(--wolf); background: rgba(198, 70, 59, 0.18); }
+.rules-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.rules-table th, .rules-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.rules-table th { color: var(--brass-hi); font-weight: 600; }

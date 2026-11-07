@@ -7,7 +7,10 @@ import { connectRealtime } from './realtime.js';
 import { moodForPhase, THEMES, THEME_IDS } from './ambience.js';
 import { clipMs, gapAfter, lineText } from '/shared/voice-lines.js';
 import { GAMES_INFO, gameInfo } from '/shared/games.js';
-import { SPY_RULES, spyLobby, spyTitle, spySubtitle, spyStage, spyCard, spyClick } from './games/spyfall.js';
+import { GAME_UI } from './games/index.js';
+
+// The browser side of the game on the table, unless it is Ma Sói.
+const gameUI = () => (view && view.gameId !== 'werewolf' ? GAME_UI[view.gameId] : null);
 
 // ---------------------------------------------------------------------------
 // State
@@ -465,7 +468,7 @@ function onTransitions(prev, next) {
   }
   lastTaskKey = taskKey;
 
-  if (prev && prev.phase === 'LOBBY' && ['NIGHT', 'SWAP', 'SPY_ROUND'].includes(next.phase) && next.me?.inGame) {
+  if (prev && prev.phase === 'LOBBY' && next.phase !== 'LOBBY' && !['MORNING', 'REVEAL'].includes(next.phase) && next.me?.inGame) {
     toast('Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
   }
   document.body.dataset.time = ['NIGHT', 'LOBBY', 'SWAP'].includes(next.phase) ? 'night' : 'day';
@@ -722,7 +725,7 @@ function renderLobby() {
   // Each game's own panel: the deck for Ma Sói, settings for the others.
   const roles = document.getElementById('roles');
   if (!wolf) {
-    if (!roles.contains(document.activeElement)) roles.innerHTML = spyLobby(helpers());
+    if (!roles.contains(document.activeElement)) roles.innerHTML = gameUI().lobby(helpers());
   } else {
     roles.innerHTML = host && deckEdit ? deckEditor(participants.length) : deckPanel(participants.length, host);
   }
@@ -1142,8 +1145,8 @@ function renderGame() {
   document.getElementById('sky').innerHTML = `
     <div class="dial" id="moon">${dialSvg(1)}<span class="time" id="timeLeft"></span></div>
     <div>
-      <h1>${wolf ? PHASE_TITLE[view.phase](g) : spyTitle(view)}</h1>
-      <p class="phase-sub">${wolf ? phaseSubtitle() : spySubtitle(view, helpers())}</p>
+      <h1>${wolf ? PHASE_TITLE[view.phase](g) : gameUI().title(view)}</h1>
+      <p class="phase-sub">${wolf ? phaseSubtitle() : gameUI().subtitle(view, helpers())}</p>
     </div>`;
   updateClock();
   const strip = nightStrip();
@@ -1175,9 +1178,12 @@ function renderGame() {
   renderHostAlert();
   // Leave the stage alone while a place list is open under the finger.
   const stageEl = document.getElementById('stage');
-  const placesOpen = stageEl.querySelector('#spyPlaces')?.open;
-  stageEl.innerHTML = wolf ? stage() : spyStage(helpers());
-  if (placesOpen) stageEl.querySelector('#spyPlaces')?.setAttribute('open', '');
+  const openIds = [...stageEl.querySelectorAll('details[open][id]')].map(d => d.id);
+  // Never redraw under someone typing (Trắng's guess).
+  if (!stageEl.contains(document.activeElement) || !document.activeElement.matches('input[type=text], input:not([type])')) {
+    stageEl.innerHTML = wolf ? stage() : gameUI().stage(helpers());
+    openIds.forEach(id => document.getElementById(id)?.setAttribute('open', ''));
+  }
 
   // The round table, by day. At night a sleeping player sees only the back
   // of a card; while voting the table is the ballot itself.
@@ -1211,7 +1217,7 @@ function renderGame() {
     ? `${myTurn ? endTurnButton(m) : ''}
       <nav class="hand" aria-label="Bài trên tay">
         <button class="hand-card ${myTurn ? 'quiet' : ''}" data-act="card">
-          <span class="plate"><span class="ttl">Lá bài của tôi</span><span class="hint">${wolf ? 'Vai, đồng đội, người yêu' : 'Địa điểm, hoặc vai gián điệp'}</span></span>
+          <span class="plate"><span class="ttl">Lá bài của tôi</span><span class="hint">${wolf ? 'Vai, đồng đội, người yêu' : gameUI().handHint}</span></span>
         </button>
         ${wolf ? `<button class="hand-card notes" data-act="notes">
           <span class="plate"><span class="ttl">Nhật ký</span><span class="hint">Việc đã làm</span></span>
@@ -1265,16 +1271,14 @@ function roundTable(pool, { center = '', ...opts } = {}) {
 // The room's leaderboard: games won by each player, overall or on one side.
 let boardSide = 'all';
 // The sides each game's leaderboard is split by: [id, tab label, dot class, "X thắng" label].
-const BOARD_SIDES = {
-  werewolf: [['village', 'Phe Dân', 'v'], ['werewolf', 'Phe Sói', 'w'], ['third', 'Thứ ba', 't']],
-  spyfall: [['village', 'Dân thường', 'v'], ['spy', 'Gián điệp', 'w']]
-};
-const boardTabs = () => [['all', 'Tổng'], ...(BOARD_SIDES[view.gameId] || BOARD_SIDES.werewolf)];
+const WOLF_SIDES = [['village', 'Phe Dân', 'v'], ['werewolf', 'Phe Sói', 'w'], ['third', 'Thứ ba', 't']];
+const boardSides = () => gameUI()?.sides || WOLF_SIDES;
+const boardTabs = () => [['all', 'Tổng'], ...boardSides()];
 function leaderboard() {
   const st = view.stats || { games: 0, sideWins: {}, players: {} };
   const head = `<div class="section-head"><h3>Bảng xếp hạng</h3><span class="muted small">${st.games} ván đã chơi</span></div>`;
   if (!st.games) return `${head}<p class="muted small">Chưa có ván nào kết thúc trong phòng này. Thắng thua của từng người sẽ được ghi ở đây.</p>`;
-  const sides = BOARD_SIDES[view.gameId] || BOARD_SIDES.werewolf;
+  const sides = boardSides();
   if (!boardTabs().some(([id]) => id === boardSide)) boardSide = 'all';
   const sideWins = `<p class="side-wins">${sides
     .filter(([id], i) => i < 2 || st.sideWins[id])
@@ -1890,7 +1894,7 @@ function renderCard(reset = true) {
   if (view.gameId !== 'werewolf') {
     document.getElementById('cardSheetBody').innerHTML = `
       <h3 id="cardSheetTitle" class="hidden">Lá bài của bạn</h3>
-      ${spyCard(helpers())}
+      ${gameUI().card(helpers())}
       <button class="btn btn-ghost btn-big sheet-close" data-act="closeSheet">Úp bài xuống</button>`;
     return;
   }
@@ -1992,10 +1996,10 @@ function renderDeck() {
 function renderRules() {
   // The rules of the game on the table (or picked on the home page).
   const gameId = view ? view.gameId : homeGame;
-  if (gameId === 'spyfall') {
+  if (GAME_UI[gameId]) {
     document.getElementById('rulesBody').innerHTML = `
-      <div class="sheet-head"><h3 id="rulesTitle">Luật chơi: Ai là gián điệp</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
-      <div class="stack small">${SPY_RULES}</div>`;
+      <div class="sheet-head"><h3 id="rulesTitle">Luật chơi: ${esc(gameInfo(gameId).name)}</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
+      <div class="stack small">${GAME_UI[gameId].rules}</div>`;
     return;
   }
   document.getElementById('rulesBody').innerHTML = `
@@ -2048,7 +2052,7 @@ document.addEventListener('click', async (e) => {
   if (!el) return;
   const a = el.dataset.act;
   const id = el.dataset.id;
-  if (view && view.gameId === 'spyfall' && spyClick(a, el, helpers())) return;
+  if (gameUI()?.click(a, el, helpers())) return;
 
   switch (a) {
     case 'home-link':
@@ -2221,6 +2225,9 @@ document.addEventListener('toggle', (e) => {
   if (e.target.id === 'settingsBox') settingsOpen = e.target.open;
   if (e.target.id === 'timersBox') timersOpen = e.target.open;
 }, true);
+
+// A game module asking for an action outside a tap (a typed guess).
+window.addEventListener('hub-act', (e) => act(e.detail.type, e.detail.payload));
 
 // Close dialogs by tapping the backdrop.
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e) => {
