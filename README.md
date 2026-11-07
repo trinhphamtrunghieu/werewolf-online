@@ -6,14 +6,22 @@ Trò chơi nhóm ngồi chung bàn, mỗi người một điện thoại. Tạo 
 |---|---|---|
 | 🐺 **Ma Sói** | 4–18 | có |
 | 🕵️ **Ai là gián điệp** (Spyfall) | 3–12 | có |
-| 🗝️ Ai là nội gián (Undercover) | 4–12 | sắp có |
-| 🛡️ Avalon | 5–10 | sắp có |
+| 🗝️ **Ai là nội gián** (Undercover) | 4–12 | có |
+| 🛡️ **Avalon** | 5–10 | có |
 
 **Thêm một trò chơi**: luật chạy trong một module ở `lib/games/` (xem `lib/games/index.js` cho các hàm cần có), thông tin chung ở `public/shared/games.js`, giao diện ở `public/js/games/`. Phòng, người chơi, chủ phòng, người chơi máy, đồng hồ và bảng xếp hạng (riêng cho từng trò) dùng chung trong `lib/engine.js`.
 
 ### Ai là gián điệp
 
 Mọi người cùng ở một địa điểm (30 địa điểm), trừ gián điệp. Hỏi đáp có giờ; mỗi người được tố cáo một lần (cần tất cả người còn lại đồng ý, đồng hồ dừng trong lúc bỏ phiếu); gián điệp đoán địa điểm bất cứ lúc nào trên lá bài của mình. Hết giờ, cả bàn bỏ phiếu: hơn nửa số phiếu thì người đó bị lật bài. Dân thường thắng khi lật đúng gián điệp hoặc gián điệp đoán sai; gián điệp thắng khi đoán đúng, khi người vô tội bị lật bài, hoặc khi không ai bị lật bài.
+
+### Ai là nội gián
+
+Mỗi người một từ khoá (70 cặp từ); 1 nội gián (2 từ 7 người, chủ phòng chỉnh được) nhận từ gần giống, không ai được báo mình là dân hay nội gián. Tuỳ chọn thêm người Trắng không có từ. Lần lượt mô tả (người đang nói bấm "Xong"), rồi bỏ phiếu loại: nhiều phiếu nhất bị loại và lật vai, hoà thì không ai bị loại. Trắng bị loại được đoán từ của dân, đúng thì thắng một mình. Dân thắng khi loại hết nội gián và Trắng; nội gián (cùng Trắng) thắng khi chỉ còn một dân.
+
+### Avalon
+
+5–10 người, số Thiện/Ác và cỡ đội từng nhiệm vụ theo luật gốc. Merlin và Sát Thủ luôn có; tuỳ chọn Percival và Morgana, Mordred, Oberon (khi phe Ác đủ chỗ). Đội trưởng xoay vòng chọn đội, cả bàn duyệt (phiếu giấu đến khi đủ rồi lật cùng lúc), 5 đội bị bác liên tiếp là phe Ác thắng. Đội chọn Thành công/Thất bại bí mật (phe Thiện chỉ được Thành công; nhiệm vụ 4 cần 2 lá Thất bại từ 7 người). 3 nhiệm vụ thất bại: phe Ác thắng; 3 thành công: Sát Thủ đoán Merlin.
 
 ## Ma Sói
 

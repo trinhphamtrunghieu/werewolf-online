@@ -236,3 +236,15 @@ export function spyClick(a, el, h) {
   }
   return false;
 }
+
+export const spyfallUI = {
+  rules: SPY_RULES,
+  lobby: spyLobby,
+  title: spyTitle,
+  subtitle: spySubtitle,
+  stage: spyStage,
+  card: spyCard,
+  click: spyClick,
+  handHint: 'Địa điểm, hoặc vai gián điệp',
+  sides: [['village', 'Dân thường', 'v'], ['spy', 'Gián điệp', 'w']]
+};

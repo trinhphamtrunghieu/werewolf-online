@@ -37,7 +37,7 @@ function spyRoom(n = 5, { seed = 7 } = {}) {
 test('hub: a room picks its game; only ready games, only in the lobby', () => {
   const { state: s, player: host } = createRoom({ code: 'HUB01', hostName: 'Chủ', now: 0 });
   assert.equal(viewFor(s, host.id, 0, 1).gameId, 'werewolf');
-  assert.throws(() => applyAction(s, host.id, 'selectGame', { gameId: 'avalon' }, 0), /chưa có/);
+  assert.throws(() => applyAction(s, host.id, 'selectGame', { gameId: 'chess' }, 0), /chưa có/);
   applyAction(s, host.id, 'selectGame', { gameId: 'spyfall' }, 0);
   const v = viewFor(s, host.id, 0, 1);
   assert.equal(v.gameId, 'spyfall');
