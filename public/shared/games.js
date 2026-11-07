@@ -1,5 +1,5 @@
 // The games on the table. Shared by the server and the browser.
-//   ready: playable now; the others show as "sắp có".
+//   ready: playable now; a game not ready yet shows as "sắp có".
 
 export const GAMES_INFO = [
   {
@@ -30,7 +30,7 @@ export const GAMES_INFO = [
     max: 12,
     time: '10–15 phút',
     blurb: 'Mỗi người một từ khoá, nội gián nhận từ gần giống. Mô tả rồi bỏ phiếu loại.',
-    ready: false
+    ready: true
   },
   {
     id: 'avalon',
@@ -40,7 +40,7 @@ export const GAMES_INFO = [
     max: 10,
     time: '30 phút',
     blurb: 'Hiệp sĩ đi làm nhiệm vụ, kẻ phản bội lẫn trong đội. Bỏ phiếu bí mật.',
-    ready: false
+    ready: true
   }
 ];
 
