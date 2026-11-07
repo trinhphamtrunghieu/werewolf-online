@@ -47,16 +47,18 @@ Thêm các vai từ **Ultimate Werewolf**: Tiên Tri Tập Sự, Tiên Tri Hào 
 
 ### 🗝️ Artifact (luật mở rộng Ultimate Werewolf: Artifacts)
 
-Bật **"Chơi với Artifact"** trong *Luật ván này*. Mỗi người nhận thêm 1 lá Artifact úp (xem trong "Lá bài của tôi"); số lá "đá quý" (tác động lên lá Artifact khác) là 1 trên 5 lá, như luật gốc khuyên. Luật chơi:
+Bật **"Chơi với Artifact"** trong *Luật ván này*. Luật chơi:
 
-- Chỉ lật được trong lúc **thảo luận ban ngày**, khi còn sống; mỗi lần một lá, lá trước dùng xong (cả lựa chọn đi kèm) thì người khác mới lật được. Lật lá thì thảo luận còn ít nhất 20 giây.
-- Lá **"1"** dùng một lần khi lật; lá **"∞"** có tác dụng mãi từ lúc lật. Lá đã lật để ngửa trên ghế của người đó, ai cũng thấy. Lựa chọn công khai; kết quả công khai trừ khi lá ghi "bí mật" (khi đó ghi vào 📜 Nhật ký của người dùng).
-- Lá **"mỗi sáng"** (Bùa Hộ Mệnh, Gậy Mụ Già, Trái Tim Thờ Ơ, Khiên Vệ Sĩ) dùng từ sáng hôm sau ngày lật, trước khi bỏ phiếu; không chọn một người hai lần.
-- Hết thảo luận mà một lá còn đang chờ chọn thì quản trò chọn ngẫu nhiên giúp; Bùa Hộ Mệnh chưa trao thì được trao ngẫu nhiên.
-- Lá chưa lật của người bị loại trả về chồng bài. Gậy Luân Hồi và Quyền Trượng Tái Sinh tự lật khi bị loại. Artifact mạnh hơn vai trò; Tiên Tri và các vai soi đêm vẫn thấy lá vai trò gốc.
-- Có 38 lá: Hổ Phách Bình Minh, Bùa Hộ Mệnh, Thạch Anh Tím Tri Thức, Máu Người Bệnh, Dấu Ấn Dân Làng, Hơi Thở Ông Lão, Mũ Gã Khờ, Vạc Phép Thuật, Thạch Anh Vàng May Mắn, Vuốt Ma Sói, Áo Choàng Hoàng Tử, Gậy Mụ Già, Kim Cương Chối Bỏ, Nhật Ký Kẻ Mất Ngủ, Ngọc Lục Bảo Ghen Tị, Mắt Người Quan Sát, Bình Giấc Mơ, Trái Tim Thờ Ơ, Dấu Ấn Trưởng Làng, Sương Hào Quang, Mã Não Huỷ Diệt, Quả Cầu Phán Đoán, Mặt Dây Kiêu Hãnh, Lăng Kính Quyền Năng, Nhẫn Sự Thật, Gậy Luân Hồi, Hồng Ngọc Định Mệnh, Lam Ngọc Số Phận, Quyền Trượng Tái Sinh, Tấm Vải Hồn Ma, Khiên Vệ Sĩ, Mũ Kẻ Bị Nguyền, Giáo Cuồng Nộ, Gậy Tiên Tri, Đá Biến Đổi, Bùa Rắc Rối, Hư Không, Vòng Hoa Hoà Bình. Mô tả từng lá trong "Luật chơi" (`public/shared/artifacts.js`), luật chạy trong `lib/artifacts.js`.
-- Không đưa vào 6 lá chỉ giữ được bằng tự giác, điện thoại không theo dõi được: Coin of Youth (phải nói tên vai mỗi ngày), Mirror of the Doppelgänger (thức dậy thêm lần nữa bằng vai khác), Mask of Spellcasting (một người không được nói), Shroud of Shame (một người phải quay lưng), Bow of Hunting (cả bàn không được nói tới khi bắn) và Vote from Beyond (người đã chết không được nói).
-- Gậy Luân Hồi / Đá Biến Đổi chỉ chia vai mới trong nhóm vai không giữ trạng thái chung của cả ván (Dân Làng, Trưởng Làng, Gã Cứng Cựa, Gã Khờ, Người Hoà Bình, Người Lai Sói, Người Bệnh, Tiên Tri Hào Quang, Pháp Sư Phong Ấn, Mụ Già; Đá Biến Đổi thêm cả Ma Sói).
+- **Chọn lá:** sau khi trao đổi vai, mỗi người được chia **2 lá Artifact** và bí mật giữ 1 lá (25 giây; hết giờ thì chọn ngẫu nhiên). Lá kia trả về chồng bài.
+- **Xếp bộ bài chống khoá ván:**
+  - lá "đá quý" là 1 trên 5 lá được chia
+  - lá phòng thủ (Áo Choàng, Bùa Hộ Mệnh, Khiên Vệ Sĩ, Quyền Trượng, Gậy Luân Hồi) chỉ có khi bàn có ít nhất **2 cách giết ban đêm** (Phù Thủy, Thợ Săn, Mục Sư, Lọ Độc, Cung Bạc, Hơi Thở Ông Lão)
+  - bộ bài đã có vai soi người ban đêm (Tiên Tri, Tiên Tri Tập Sự, Tiên Tri Hào Quang, Nhà Ngoại Cảm, Thám Tử) thì tối đa 1 lá soi vai/phe (Vạc, Sương, Nhẫn, Gậy Tiên Tri, Mắt Người Quan Sát), không thì tối đa 2
+- **Lá phòng thủ chỉ cứu 1 lần**, rồi bị huỷ: Áo Choàng Hoàng Tử cứu khỏi lần đầu bị loại ban ngày; Bùa Hộ Mệnh cứu người đang giữ 1 lần, và bị bỏ khi không còn ai để trao; Khiên Vệ Sĩ cứu 1 lần.
+- **Lá tự chế** (không có trong bộ gốc, bật/tắt riêng, mặc định bật): Kiếm Công Lý (loại 1 người, không Artifact nào cứu được), Lọ Độc (người được chọn chết cuối đêm nay, Bảo Vệ/Bùa/Khiên không cứu), Cung Bạc (đêm nay bắn 1 người, chết nếu là Sói), Găng Tay Kẻ Trộm (cướp 1 lá ∞ đã lật), Gương Phá Phép (huỷ 1 lá ∞ đã lật).
+- Lá chỉ lật được trong lúc **thảo luận ban ngày**, khi còn sống; mỗi lần một lá, lá trước dùng xong mới lật được lá khác. Lật lá thì thảo luận còn ít nhất 20 giây.
+- Lá "1" dùng một lần, lá "∞" có tác dụng mãi. Lựa chọn công khai; kết quả "bí mật" ghi vào 📜 Nhật ký. Lá "mỗi sáng" dùng từ sáng hôm sau ngày lật. Lá đang chờ chọn khi hết thảo luận thì quản trò chọn ngẫu nhiên.
+- 38 lá gốc + 5 lá tự chế. Không đưa vào 6 lá chỉ giữ được bằng tự giác: Coin of Youth, Mirror of the Doppelgänger, Mask of Spellcasting, Shroud of Shame, Bow of Hunting, Vote from Beyond. Mô tả từng lá trong "Luật chơi" (`public/shared/artifacts.js`), luật chạy trong `lib/artifacts.js`.
 
 **Mở đầu ván:** chủ phòng bấm bắt đầu → chia bài → **Trao đổi vai** (bật/tắt được trong Cài đặt ván chơi, mặc định 20 giây, chỉnh được): chỉ có một nút "Trao đổi vai"; ai bấm thì đưa lá bài của mình vào nhóm trao đổi (bấm lại để rút ra). Mọi người chỉ thấy "Đã có N người bấm “Trao đổi vai”", không biết của ai, vai gì. Hết giờ, các lá trong nhóm được chia lại ngẫu nhiên, mỗi người nhận lá của một người khác trong nhóm (chỉ có một lá thì giữ nguyên); không ai được biết mình nhận lá của ai. Bot thỉnh thoảng tham gia khi đã có người thật trong nhóm → màn hình **Xem lá bài** chỉ có nút lá bài, quản trò đọc "Trò chơi sẽ bắt đầu sau mười giây" → 10 giây sau bắt đầu đêm đầu tiên (lá bài đang mở sẽ tự đóng).
 

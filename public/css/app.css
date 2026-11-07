@@ -1200,3 +1200,17 @@ details.secret .result { margin-top: 8px; }
 #rulesSheet .sheet-tabs { position: sticky; top: -18px; z-index: 1; padding: 8px 0; margin: -8px 0 6px; background: var(--face); }
 .rules-how .rules-list { margin-top: 10px; }
 .hand-card.art { background: repeating-linear-gradient(-45deg, #1f2a3f 0 8px, #26324a 8px 16px); }
+
+/* Keeping one of the two Artifacts dealt at the start. */
+.draft { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.draft-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 10px; border-radius: 14px; text-align: center;
+  background: var(--face); border: 1px solid var(--brass-line);
+  box-shadow: inset 0 0 0 4px var(--face), inset 0 0 0 5px var(--brass-faint);
+}
+.draft-card p { margin: 0; }
+.draft-card .art-top { display: flex; justify-content: space-between; gap: 4px; font-size: 0.68rem; color: var(--brass-hi); text-align: left; }
+.draft-card .pts { flex: none; min-width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 50%; border: 1px solid var(--brass-line); font-weight: 800; }
+.draft-card .art-icon { font-size: 44px; line-height: 1.1; }
+.draft-card h3 { font-size: 1.1rem; line-height: 1.1; }
+.draft-card .small { color: var(--soft); flex: 1; line-height: 1.4; }
