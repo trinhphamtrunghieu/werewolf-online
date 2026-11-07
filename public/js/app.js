@@ -62,6 +62,11 @@ let localAudio = read('masoi_local_audio') === 'on';
 let botCount = 1; // how many computer players the host's next tap adds
 // The players picked so far for the Artifact waiting on this player.
 let artPicks = [];
+// Which side of the card sheet is open (your role, or your Artifacts), the
+// cards turned face up in it, and the open tab of the rules.
+let cardTab = 'role';
+const flipped = new Set();
+let rulesTab = 'roles';
 let hostMissingTimer = null;
 const audioOn = () => isHost() || localAudio;
 // Vibration only exists on (Android) phones; iPhones' browsers don't allow it.
@@ -1220,10 +1225,13 @@ function renderGame() {
   // look-at-your-card screen the card is the screen itself.
   document.getElementById('gameFooter').innerHTML = m.inGame && view.phase !== 'REVEAL'
     ? `${myTurn ? endTurnButton(m) : ''}
-      <nav class="hand" aria-label="Bài trên tay">
+      <nav class="hand ${wolf && m.art ? 'three' : ''}" aria-label="Bài trên tay">
         <button class="hand-card ${myTurn ? 'quiet' : ''}" data-act="card">
-          <span class="plate"><span class="ttl">Lá bài của tôi</span><span class="hint">${wolf ? 'Vai, đồng đội, người yêu' : gameUI().handHint}</span></span>
+          <span class="plate"><span class="ttl">${m.art ? 'Vai trò' : 'Lá bài của tôi'}</span><span class="hint">${wolf ? (m.art ? 'Vai, đồng đội' : 'Vai, đồng đội, người yêu') : gameUI().handHint}</span></span>
         </button>
+        ${wolf && m.art ? `<button class="hand-card art ${myTurn ? 'quiet' : ''}" data-act="artCard">
+          <span class="plate"><span class="ttl">Artifact</span><span class="hint">${artHint(m.art)}</span></span>
+        </button>` : ''}
         ${wolf ? `<button class="hand-card notes" data-act="notes">
           <span class="plate"><span class="ttl">Nhật ký</span><span class="hint">Việc đã làm</span></span>
         </button>` : ''}
@@ -1487,7 +1495,7 @@ function artPanel() {
   }
   (mine?.dawn || []).forEach(d => parts.push(artDawn(d)));
   if (mine && view.phase === 'DISCUSSION' && view.me.alive && mine.hand.some(c => !c.revealed)) {
-    parts.push(`<p class="muted small">Bạn có lá Artifact chưa lật. Mở <strong>Lá bài của tôi</strong> để xem và lật.${w ? ' (Đợi lá đang dùng xong.)' : ''}</p>`);
+    parts.push(`<p class="muted small">Bạn có lá Artifact chưa lật: bấm <strong>Artifact</strong> ở dưới cùng để xem và lật.${w ? ' (Đợi lá đang dùng xong.)' : ''}</p>`);
   }
   if (!today.length && !parts.length) return '';
   return `<div class="panel stack art-panel">
@@ -1536,22 +1544,49 @@ function artDawn(d) {
     ${pickGrid('artDawn', { pool: view.players.filter(p => d.options.includes(p.id)) }).replace(/data-act="artDawn"/g, `data-act="artDawn" data-uid="${d.uid}"`)}</div>`;
 }
 
-// The Artifact cards in this player's hand, on their card sheet.
-function artHand() {
-  const mine = view.me?.art;
-  if (!mine) return '';
-  const cards = mine.hand.map(c => {
-    const a = ARTIFACTS[c.id];
-    const btn = !c.revealed && mine.canReveal
-      ? `<button class="btn btn-primary btn-small" data-act="artReveal" data-uid="${c.uid}">Lật và dùng</button>` : '';
-    return `<div class="art-card ${c.revealed ? 'revealed' : ''}">
-      <p class="art-top"><span>${a.icon} <strong>${esc(a.name)}</strong></span><span class="pts">${a.once ? '1' : '∞'}</span></p>
-      <p class="small">${esc(a.desc)}</p>
-      <p class="muted small">${c.revealed ? (c.copy ? 'Đã dùng nhờ Lam Ngọc Số Phận' : 'Đã lật, cả làng đều thấy') : 'Úp: chỉ mình bạn biết'}</p>
-      ${btn}</div>`;
-  });
-  return `<div class="art-hand"><h3>🗝️ Artifact của bạn</h3>${cards.length ? cards.join('') : '<p class="muted small">Bạn không còn lá Artifact nào.</p>'}
-    ${mine.hand.some(c => !c.revealed) && !mine.canReveal ? '<p class="muted small">Chỉ lật được khi đang thảo luận ban ngày (và không có lá nào khác đang dùng).</p>' : ''}</div>`;
+// The label on the Artifact card in the hand.
+function artHint(a) {
+  const down = a.hand.filter(c => !c.revealed).length;
+  if (a.pending || a.dawn.length) return '⚡ Tới lượt bạn';
+  if (down && a.canReveal) return 'Có thể lật';
+  if (down) return 'Đang úp';
+  return a.hand.length ? 'Đã lật' : 'Không còn lá';
+}
+
+// One Artifact card, drawn like the role card: face down until tapped
+// (it is secret until turned over in front of everyone).
+function artCardHtml(c, canReveal) {
+  const a = ARTIFACTS[c.id];
+  const key = `art-${c.uid}`;
+  const up = c.revealed || flipped.has(key);
+  return `<div class="art-slot">
+    <button class="card art-big ${up ? 'revealed' : ''}" ${c.revealed ? 'tabindex="-1"' : `data-act="flip" data-key="${key}"`} aria-label="Lá Artifact">
+      <div class="card-inner">
+        <div class="card-face card-back art-back"><span class="art-key" aria-hidden="true">🗝️</span><p>Artifact<br><span class="small muted">Chạm để xem. Che màn hình khỏi người bên cạnh</span></p></div>
+        <div class="card-face card-front">
+          <p class="card-top"><span>${a.gem ? '💠 Đá quý · ' : ''}${a.once ? 'Dùng 1 lần' : 'Luôn có tác dụng'}</span><span class="pts">${a.once ? '1' : '∞'}</span></p>
+          <div class="art-icon" aria-hidden="true">${a.icon}</div>
+          <h3>${esc(a.name)}</h3>
+          <p class="art-en">${esc(a.en)}</p>
+          <p class="desc">${esc(a.desc)}</p>
+          <p class="art-state">${c.revealed ? (c.copy ? '✨ Dùng nhờ Lam Ngọc Số Phận' : '👁️ Đã lật: cả làng đều thấy') : '🤫 Đang úp: chỉ mình bạn biết'}</p>
+        </div>
+      </div>
+    </button>
+    ${!c.revealed && canReveal ? `<button class="btn btn-primary btn-block art-use" data-act="artReveal" data-uid="${c.uid}">Lật cho cả làng xem và dùng</button>` : ''}
+  </div>`;
+}
+
+function artTab() {
+  const mine = view.me.art;
+  const down = mine.hand.filter(c => !c.revealed);
+  // Face-down cards first: those are the ones you may still play.
+  const cards = [...down, ...mine.hand.filter(c => c.revealed)];
+  const when = !down.length ? ''
+    : mine.canReveal ? '<p class="art-when ok">Bạn có thể lật lá ngay bây giờ.</p>'
+    : view.phase === 'DISCUSSION' && view.me.alive ? '<p class="art-when">Đợi lá Artifact đang dùng xong rồi mới lật được.</p>'
+    : view.me.alive ? '<p class="art-when">Chỉ lật được trong lúc cả làng thảo luận ban ngày.</p>' : '';
+  return `${when}${cards.length ? cards.map(c => artCardHtml(c, mine.canReveal)).join('') : '<p class="muted art-when">Bạn không còn lá Artifact nào.</p>'}`;
 }
 
 function pickGrid(act, { exclude = [], disabled = [], selected = [], counts = {}, subs = {}, pool = alivePlayers() } = {}) {
@@ -2044,8 +2079,19 @@ function renderCard(reset = true) {
   const r = ROLES[m.role];
   const body = document.getElementById('cardSheetBody');
   if (!r) return;
-  const card = body.querySelector('.card');
-  const revealed = !reset && card?.classList.contains('revealed');
+  if (reset) flipped.clear();
+  if (!m.art) cardTab = 'role';
+  const revealed = flipped.has('role');
+  const tabs = m.art ? `<div class="board-tabs sheet-tabs" role="group" aria-label="Bài trên tay">
+      <button data-act="cardTab" data-tab="role" aria-pressed="${cardTab === 'role'}">🂠 Vai trò</button>
+      <button data-act="cardTab" data-tab="art" aria-pressed="${cardTab === 'art'}">🗝️ Artifact${m.art.hand.some(c => !c.revealed) ? ` (${m.art.hand.filter(c => !c.revealed).length})` : ''}</button>
+    </div>` : '';
+  if (cardTab === 'art') {
+    body.innerHTML = `<h3 id="cardSheetTitle" class="hidden">Artifact của bạn</h3>${tabs}${artTab()}
+      <button class="btn btn-ghost btn-big sheet-close" data-act="closeSheet">Úp bài xuống</button>`;
+    markScrolling(body);
+    return;
+  }
   const extra = [];
   if (m.wolves.length) extra.push(`${m.role === 'minion' ? 'Các con Sói (bạn là Tay Sai của chúng)' : 'Đồng bọn Sói'}: ${m.wolves.map(id => `${seatName(id)}${player(id)?.turned ? ' (Sói Nguyền)' : ['wolf_cub', 'avenger'].includes(player(id)?.role) ? ` (${ROLES[player(id).role].name})` : ''}`).join(', ')}`);
   if (view.phase === 'SWAP' && (PACK_ROLES.includes(m.role) || ['minion', 'mason'].includes(m.role))) {
@@ -2077,7 +2123,8 @@ function renderCard(reset = true) {
   const teamColor = { village: 'var(--village)', werewolf: '#e0766b' }[r.team] || 'var(--third)';
   body.innerHTML = `
     <h3 id="cardSheetTitle" class="hidden">Lá bài của bạn</h3>
-    <button class="card ${revealed ? 'revealed' : ''}" data-act="flip" aria-label="Lật lá bài">
+    ${tabs}
+    <button class="card ${revealed ? 'revealed' : ''}" data-act="flip" data-key="role" aria-label="Lật lá bài">
       <div class="card-inner">
         <div class="card-face card-back">${crescentSvg()}<p>Chạm để lật bài<br><span class="small muted">Che màn hình khỏi người bên cạnh</span></p></div>
         <div class="card-face card-front ${r.description.length > 220 ? 'long' : ''}">
@@ -2089,7 +2136,6 @@ function renderCard(reset = true) {
       </div>
     </button>
     ${extra.length ? `<div class="card-notes">${extra.map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
-    ${artHand()}
     <button class="btn btn-ghost btn-big sheet-close" data-act="closeSheet">Úp bài xuống</button>`;
   markScrolling(body);
 }
@@ -2148,8 +2194,30 @@ function renderRules() {
       <div class="stack small">${GAME_UI[gameId].rules}</div>`;
     return;
   }
-  document.getElementById('rulesBody').innerHTML = `
-    <div class="sheet-head"><h3 id="rulesTitle">Luật chơi</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
+  const tabs = `<div class="board-tabs sheet-tabs" role="group" aria-label="Phần luật">
+      <button data-act="rulesTab" data-tab="roles" aria-pressed="${rulesTab === 'roles'}">🐺 Vai trò</button>
+      <button data-act="rulesTab" data-tab="art" aria-pressed="${rulesTab === 'art'}">🗝️ Artifact${view?.config?.artifacts ? ' · đang bật' : ''}</button>
+    </div>`;
+  const head = `<div class="sheet-head"><h3 id="rulesTitle">Luật chơi</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>${tabs}`;
+  const body = document.getElementById('rulesBody');
+  if (rulesTab === 'art') {
+    const group = (title, ids) => ids.length ? `<h3 class="rules-group">${title} <span class="muted">(${ids.length})</span></h3>
+      <div class="rules-arts">${ids.map(id => { const a = ARTIFACTS[id]; return `<div class="rules-art">
+        <span class="ic" aria-hidden="true">${a.icon}</span>
+        <span><strong>${esc(a.name)}</strong> <span class="pts">${a.once ? '1' : '∞'}</span><br><span class="muted en">${esc(a.en)}</span><br>${esc(a.desc)}</span></div>`; }).join('')}</div>` : '';
+    const ids = Object.keys(ARTIFACTS);
+    body.innerHTML = `${head}
+      <div class="stack small">
+        <p class="lead">${view?.config?.artifacts ? 'Ván này có Artifact.' : 'Chủ phòng bật Artifact trong “Luật ván này” ở phòng chờ.'} Mỗi người nhận thêm 1 lá Artifact úp, ngoài lá vai trò.</p>
+        <details class="section rules-how"><summary><span class="btn-link">📖 Cách dùng Artifact (${ARTIFACT_RULES.length - 1} điều)</span></summary>
+          <ul class="rules-list">${ARTIFACT_RULES.slice(1).map(r => `<li>${esc(r)}</li>`).join('')}</ul></details>
+        ${group('💠 Đá quý (tác động lên Artifact khác)', ids.filter(id => ARTIFACTS[id].gem))}
+        ${group('1 · Dùng một lần khi lật', ids.filter(id => !ARTIFACTS[id].gem && ARTIFACTS[id].once))}
+        ${group('∞ · Luôn có tác dụng sau khi lật', ids.filter(id => !ARTIFACTS[id].gem && !ARTIFACTS[id].once))}
+      </div>`;
+    return;
+  }
+  body.innerHTML = `${head}
     <div class="stack small">
       <p>Mỗi đêm, quản trò gọi dậy theo thứ tự dưới đây. Người được gọi thao tác trên điện thoại của mình.</p>
       <ol class="rules-steps">${NIGHT_STEPS.map(st => `<li>${stepInfo(st.id).icon} ${stepInfo(st.id).name}${st.also ? ` (cùng ${st.also.map(id => ROLES[id].name).join(', ')})` : ''}${st.firstNightOnly ? ' (đêm đầu)' : ''}${st.notFirstNight ? ' (từ đêm thứ hai)' : ''}</li>`).join('')}</ol>
@@ -2159,9 +2227,6 @@ function renderRules() {
       <p>Phe Dân thắng khi hết Sói (và Người Thổi Sáo, nếu có, đã chết). Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên.</p>
       <h3 style="margin-top:8px">Vai trò</h3>
       <div class="rules-roles">${ROLE_IDS.map(id => `<p><strong>${ROLES[id].icon} ${ROLES[id].name}</strong>: ${ROLES[id].description}</p>`).join('')}</div>
-      <h3 style="margin-top:8px">🗝️ Artifact (luật mở rộng${view?.config?.artifacts ? ', đang bật' : ', bật trong Luật ván này'})</h3>
-      ${ARTIFACT_RULES.map(r => `<p>${esc(r)}</p>`).join('')}
-      <div class="rules-roles">${Object.values(ARTIFACTS).map(a => `<p><strong>${a.icon} ${esc(a.name)}</strong> <span class="muted">(${esc(a.en)}, ${a.once ? '1' : '∞'})</span>: ${esc(a.desc)}</p>`).join('')}</div>
     </div>`;
 }
 
@@ -2307,11 +2372,22 @@ document.addEventListener('click', async (e) => {
       return;
     case 'restart': return act('restart');
     case 'card':
+    case 'artCard':
+      cardTab = a === 'artCard' ? 'art' : 'role';
       renderCard(true);
       return document.getElementById('cardSheet').showModal();
-    case 'flip':
+    case 'cardTab':
+      cardTab = el.dataset.tab;
+      return renderCard(false);
+    case 'flip': {
+      const key = el.dataset.key;
+      if (key) flipped.has(key) ? flipped.delete(key) : flipped.add(key);
       el.classList.toggle('revealed');
       return markScrolling(el);
+    }
+    case 'rulesTab':
+      rulesTab = el.dataset.tab;
+      return renderRules();
     case 'night': return act('night', { target: id });
     case 'noKill': return act('night', { noKill: true });
     case 'seerDone': return act('seerDone').then(() => act('endTurn'));

@@ -1153,20 +1153,50 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
 .art-panel { margin-top: 12px; }
 .art-panel h3 { margin: 0; }
 .art-feed { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.9rem; line-height: 1.45; }
-.art-hand { width: min(300px, 100%); margin: 18px auto 0; display: grid; gap: 10px; }
-.art-hand h3 { margin: 0; font-size: 1rem; }
-.art-card {
-  padding: 12px; border-radius: 12px; display: grid; gap: 6px;
-  background: linear-gradient(160deg, var(--back-a), var(--back-b));
-  border: 1px solid var(--brass-line);
-}
-.art-card.revealed { background: var(--face-2); border-color: var(--line); }
-.art-card p { margin: 0; }
-.art-card .art-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.art-card .pts {
-  min-width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: 50%;
-  border: 1px solid var(--brass-line); color: var(--brass-hi); font-family: var(--display); font-weight: 800;
-}
-.art-card .btn { justify-self: start; }
 details.secret summary { cursor: pointer; color: var(--brass-hi); }
 details.secret .result { margin-top: 8px; }
+
+/* Tabs at the top of a sheet (card sheet: role / Artifact; rules). */
+.board-tabs.sheet-tabs { grid-template-columns: 1fr 1fr; width: min(300px, 100%); margin: 0 auto 14px; }
+#rulesSheet .board-tabs.sheet-tabs { width: 100%; }
+.board-tabs.sheet-tabs button { white-space: nowrap; }
+
+/* The Artifact card in the hand, and drawn up in the sheet. */
+.hand-card.art { flex-basis: 130px; transform: rotate(1deg); }
+.hand-card.art:hover, .hand-card.art:focus-visible { transform: rotate(1deg) translateY(-6px); }
+.art-slot { display: grid; gap: 12px; justify-items: center; }
+.art-slot + .art-slot { margin-top: 18px; }
+.card.art-big { aspect-ratio: 300 / 430; }
+.art-back { background: repeating-linear-gradient(-45deg, #1f2a3f 0 10px, #26324a 10px 20px); box-shadow: inset 0 0 0 7px #1f2a3f, inset 0 0 0 8px rgba(201, 162, 78, 0.55), 0 30px 60px rgba(0, 0, 0, 0.6); }
+.art-back .art-key { font-size: 64px; line-height: 1; }
+.card.art-big .card-top { color: var(--brass-hi); }
+.card.art-big .art-icon { font-size: 72px; line-height: 1.1; margin: 6px 0 2px; }
+.card.art-big h3 { font-size: 1.8rem; line-height: 1.05; }
+.card.art-big .art-en { margin: 0; font-size: 0.78rem; color: var(--faint); font-style: italic; }
+.card.art-big .art-state { margin-top: auto; font-size: 0.8rem; color: var(--muted); }
+.art-use { width: min(300px, 100%); min-height: 52px; }
+.art-when { width: min(300px, 100%); margin: 0 auto 12px; text-align: center; font-size: 0.88rem; color: var(--muted); }
+.art-when.ok { color: var(--village); font-weight: 600; }
+
+/* Rules: the Artifact list. */
+.rules-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.rules-group { margin: 10px 0 0; font-size: 1.05rem; color: var(--brass-hi); }
+.rules-arts { display: grid; gap: 8px; }
+.rules-art { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--face-2); border: 1px solid var(--line); }
+.rules-art .ic { font-size: 1.6rem; line-height: 1.2; flex: none; }
+.rules-art .pts { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--brass-line); color: var(--brass-hi); font-size: 0.72rem; font-weight: 800; }
+.rules-art .en { font-size: 0.78rem; font-style: italic; }
+@media (min-width: 720px) {
+  .rules-arts { grid-template-columns: 1fr 1fr; }
+}
+
+/* Three cards in the hand (role, Artifact, notes): a little smaller. */
+.hand.three { gap: 8px; }
+.hand.three .hand-card { flex: 1 1 0; padding: 8px 6px 0; }
+.hand.three .hand-card .plate { padding: 7px 6px 8px; }
+.hand.three .hand-card .ttl { font-size: 1rem; }
+.hand.three .hand-card .hint { font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The rules' tabs stay in view while scrolling. */
+#rulesSheet .sheet-tabs { position: sticky; top: -18px; z-index: 1; padding: 8px 0; margin: -8px 0 6px; background: var(--face); }
+.rules-how .rules-list { margin-top: 10px; }
+.hand-card.art { background: repeating-linear-gradient(-45deg, #1f2a3f 0 8px, #26324a 8px 16px); }
