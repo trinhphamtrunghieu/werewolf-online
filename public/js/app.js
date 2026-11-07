@@ -8,6 +8,7 @@ import { moodForPhase, THEMES, THEME_IDS } from './ambience.js';
 import { clipMs, gapAfter, lineText } from '/shared/voice-lines.js';
 import { GAMES_INFO, gameInfo } from '/shared/games.js';
 import { GAME_UI } from './games/index.js';
+import { ARTIFACTS, ARTIFACT_RULES } from '/shared/artifacts.js';
 
 // The browser side of the game on the table, unless it is Ma Sói.
 const gameUI = () => (view && view.gameId !== 'werewolf' ? GAME_UI[view.gameId] : null);
@@ -59,6 +60,8 @@ let deckEdit = false;
 // Players can also hear the narrator on their own phone (off by default).
 let localAudio = read('masoi_local_audio') === 'on';
 let botCount = 1; // how many computer players the host's next tap adds
+// The players picked so far for the Artifact waiting on this player.
+let artPicks = [];
 let hostMissingTimer = null;
 const audioOn = () => isHost() || localAudio;
 // Vibration only exists on (Android) phones; iPhones' browsers don't allow it.
@@ -868,6 +871,7 @@ function deckPanel(count, host) {
     <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
     <p class="balance-legend"><span>← Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Dân →</span></p>
     ${view.config.autoLovers ? '<p class="deck-note">💘 Không có lá Thần Tình Yêu: quản trò tự ghép một cặp Tình Nhân trước đêm đầu.</p>' : ''}
+    ${view.config.artifacts ? '<p class="deck-note">🗝️ Có Artifact: mỗi người nhận thêm 1 lá Artifact úp.</p>' : ''}
     <ul class="deck-mini">
       ${cards.join('')}
       <li class="edit-slot"><button class="edit" data-act="${host ? 'deckEdit' : 'deck'}">${host ? 'Sửa bộ bài' : 'Xem mô tả vai'}</button></li>
@@ -887,7 +891,8 @@ function setupRules() {
     ${row('hostPlays', 'Tôi cũng nhận bài và chơi', 'Bỏ chọn nếu bạn chỉ làm quản trò. Khi đó bạn thấy được mọi vai trò.')}
     ${row('swapEnabled', 'Cho phép trao đổi vai', 'Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai”; hết giờ các lá được chia lại ngẫu nhiên, ẩn danh.')}
     ${row('revealRoleOnDeath', 'Lật bài người chết', 'Cả làng thấy vai trò của người vừa bị loại.')}
-    ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu (sau khi trao đổi vai), game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}`;
+    ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu (sau khi trao đổi vai), game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}
+    ${row('artifacts', '🗝️ Chơi với Artifact', 'Luật mở rộng Ultimate Werewolf: Artifacts. Mỗi người nhận thêm 1 lá Artifact úp có sức mạnh riêng, được lật ra dùng trong lúc thảo luận ban ngày. Xem luật trong “Luật chơi”. Nên dùng khi cả bàn đã quen Ma Sói.')}`;
 }
 
 // "Chuẩn bị ván", step 3: how long each part lasts. The day's main steps
@@ -1431,7 +1436,8 @@ function seat(p, opts = {}) {
       : `<span class="disc">${p.seat ?? ''}</span>`}
     <span class="label">${esc(p.name)}</span>
     <span class="sub">${sub || [isMe ? 'Bạn' : '', lover ? '💘' : '', role ? roleName : '', !p.alive ? 'Đã chết' : '',
-      p.alive && view.game.banished === p.id ? '🚪 Rời làng' : '', p.alive && view.game.muted === p.id ? '🤐 Bị câm' : ''].filter(Boolean).join(' · ')}</span>`;
+      p.alive && view.game.banished === p.id ? '🚪 Rời làng' : '', p.alive && view.game.muted === p.id ? '🤐 Bị câm' : '',
+      ...artMarks(p)].filter(Boolean).join(' · ')}</span>`;
   const cls = `seat ${p.alive ? '' : 'dead'} ${isMe ? 'me' : ''}`;
   const at = style ? ` style="${style}"` : '';
   if (!selectable) return `<div class="${cls}"${at}>${inner}</div>`;
@@ -1439,6 +1445,114 @@ function seat(p, opts = {}) {
 }
 
 const alivePlayers = () => view.players.filter(p => p.inGame && p.alive);
+
+// ---------- Artifacts ----------
+// What everyone can see on a seat: the Artifacts turned face up, the
+// Amulet, and today's Artifact choices that concern this player.
+const artLabel = (id) => `${ARTIFACTS[id].icon} ${ARTIFACTS[id].name}`;
+function artMarks(p) {
+  if (!p.art) return [];
+  const a = view.game.art || {};
+  const day = view.phase !== 'NIGHT';
+  return [
+    p.art.shown.map(id => ARTIFACTS[id].icon).join(''),
+    p.art.amulet ? '🧿 Giữ Bùa' : '',
+    day && a.away?.includes(p.id) ? '🪵 Rời làng' : '',
+    day && a.noVote?.includes(p.id) ? '🖤 Không bỏ phiếu' : '',
+    day && a.shield === p.id ? '🔰 Được che đêm nay' : ''
+  ];
+}
+// Out of the village or not allowed to vote today (Old Hag, Artifacts).
+const isAwayToday = (id) => view.game.banished === id || !!view.game.art?.away?.includes(id);
+const mayVoteToday = (p) => p && p.inGame && p.alive
+  && !isAwayToday(p.id) && !view.game.art?.noVote?.includes(p.id);
+
+// The day's Artifact panel: the news, what is being resolved, and this
+// player's own part in it (a choice to make, a morning choice).
+function artPanel() {
+  const a = view.game.art;
+  const mine = view.me?.art;
+  if (!a) return '';
+  const today = a.feed.filter(f => f.day === view.game.day);
+  const w = a.waiting;
+  const parts = [];
+  if (mine?.pending) parts.push(artPending(mine.pending));
+  else if (w) {
+    const who = esc(nameOnly(w.owner));
+    const what = w.type === 'choose' ? `${who} đang chọn người cho ${esc(artLabel(w.id))}`
+      : w.type === 'decide' ? `${who} đang quyết định có bắt lật lá Artifact không`
+      : w.type === 'letter' ? `${who} đang chọn một chữ cái cho ${esc(nameOnly(w.by))}`
+      : 'Đang dùng một lá Artifact';
+    parts.push(`<p class="result">⏳ ${what}…</p>`);
+  }
+  (mine?.dawn || []).forEach(d => parts.push(artDawn(d)));
+  if (mine && view.phase === 'DISCUSSION' && view.me.alive && mine.hand.some(c => !c.revealed)) {
+    parts.push(`<p class="muted small">Bạn có lá Artifact chưa lật. Mở <strong>Lá bài của tôi</strong> để xem và lật.${w ? ' (Đợi lá đang dùng xong.)' : ''}</p>`);
+  }
+  if (!today.length && !parts.length) return '';
+  return `<div class="panel stack art-panel">
+    <h3>🗝️ Artifact hôm nay</h3>
+    ${today.length ? `<ul class="art-feed">${today.map(f => `<li>${esc(f.text)}</li>`).join('')}</ul>` : ''}
+    ${parts.join('')}
+  </div>`;
+}
+
+function artPending(pd) {
+  if (pd.type === 'choose') {
+    const picks = artPicks.filter(id => pd.options.includes(id));
+    const ordered = pd.ordered ? ' theo thứ tự (người chọn trước lật trước)' : '';
+    return `<div class="stack"><h3>${esc(artLabel(pd.id))}</h3>
+      <p class="lead">${esc(ARTIFACTS[pd.id].desc)}</p>
+      <p>Chọn ${pd.n} người${ordered}: ${picks.length}/${pd.n}${picks.length ? ` (${esc(picks.map(nameOnly).join(', '))})` : ''}</p>
+      ${pickGrid('artPick', { pool: view.players.filter(p => pd.options.includes(p.id)), selected: picks,
+        subs: pd.ordered ? Object.fromEntries(picks.map((id, i) => [id, `Thứ ${i + 1}`])) : {} })}
+      <button class="btn btn-primary btn-block" data-act="artChoose" ${picks.length === pd.n ? '' : 'disabled'}>Xác nhận</button></div>`;
+  }
+  if (pd.type === 'decide') {
+    return `<div class="stack"><h3>${esc(artLabel('amethyst'))}</h3>
+      <details class="secret"><summary>Chạm để xem lá của ${esc(nameOnly(pd.target))} (che màn hình)</summary>
+        <p class="result">${esc(artLabel(pd.seen))}: ${esc(ARTIFACTS[pd.seen].desc)}</p></details>
+      <p class="lead">Bắt ${esc(nameOnly(pd.target))} lật lá này ngay bây giờ?</p>
+      <div class="footer-row"><button class="btn btn-primary" data-act="artDecide" data-force="1">Bắt lật ngay</button>
+      <button class="btn btn-ghost" data-act="artDecide" data-force="0">Không</button></div></div>`;
+  }
+  if (pd.type === 'letter') {
+    const letters = [...'ABCDĐEGHIKLMNOPQRSTUVXY'];
+    return `<div class="stack"><h3>${esc(artLabel('sheet'))}</h3>
+      <p class="lead">${esc(nameOnly(pd.by))} hỏi bạn một chữ cái. Chọn một chữ:</p>
+      <div class="letters">${letters.map(l => `<button class="btn btn-ghost" data-act="artLetter" data-letter="${l}">${l}</button>`).join('')}</div></div>`;
+  }
+  return '';
+}
+
+function artDawn(d) {
+  const lead = {
+    amulet: 'Sáng nay bạn phải trao Bùa Hộ Mệnh cho một người chưa từng giữ nó.',
+    cudgel: 'Chọn 1 người phải rời làng hôm nay (không ai được bỏ phiếu cho họ).',
+    heart: 'Chọn 1 người không được bỏ phiếu hôm nay.',
+    shield: 'Chọn 1 người không thể bị loại đêm nay.'
+  }[d.kind];
+  return `<div class="stack"><h3>☀️ ${esc(artLabel(d.id))}</h3><p class="lead">${lead}</p>
+    ${pickGrid('artDawn', { pool: view.players.filter(p => d.options.includes(p.id)) }).replace(/data-act="artDawn"/g, `data-act="artDawn" data-uid="${d.uid}"`)}</div>`;
+}
+
+// The Artifact cards in this player's hand, on their card sheet.
+function artHand() {
+  const mine = view.me?.art;
+  if (!mine) return '';
+  const cards = mine.hand.map(c => {
+    const a = ARTIFACTS[c.id];
+    const btn = !c.revealed && mine.canReveal
+      ? `<button class="btn btn-primary btn-small" data-act="artReveal" data-uid="${c.uid}">Lật và dùng</button>` : '';
+    return `<div class="art-card ${c.revealed ? 'revealed' : ''}">
+      <p class="art-top"><span>${a.icon} <strong>${esc(a.name)}</strong></span><span class="pts">${a.once ? '1' : '∞'}</span></p>
+      <p class="small">${esc(a.desc)}</p>
+      <p class="muted small">${c.revealed ? (c.copy ? 'Đã dùng nhờ Lam Ngọc Số Phận' : 'Đã lật, cả làng đều thấy') : 'Úp: chỉ mình bạn biết'}</p>
+      ${btn}</div>`;
+  });
+  return `<div class="art-hand"><h3>🗝️ Artifact của bạn</h3>${cards.length ? cards.join('') : '<p class="muted small">Bạn không còn lá Artifact nào.</p>'}
+    ${mine.hand.some(c => !c.revealed) && !mine.canReveal ? '<p class="muted small">Chỉ lật được khi đang thảo luận ban ngày (và không có lá nào khác đang dùng).</p>' : ''}</div>`;
+}
 
 function pickGrid(act, { exclude = [], disabled = [], selected = [], counts = {}, subs = {}, pool = alivePlayers() } = {}) {
   return `<div class="village" style="margin-top:14px">${pool
@@ -1460,6 +1574,12 @@ function dayNews() {
   if (g.ghostLetter) items.push(`<p>👻 Hồn Ma để lại chữ: <span class="ghost-letter">${esc(g.ghostLetter)}</span></p>`);
   if (g.banished) items.push(`<p>🧙‍♀️ <strong>${esc(nameOnly(g.banished))}</strong> bị đuổi khỏi làng hôm nay: không thảo luận, không bỏ phiếu, không bị bỏ phiếu.</p>`);
   if (g.muted) items.push(`<p>🤐 <strong>${esc(nameOnly(g.muted))}</strong> bị phong ấn: không được nói hôm nay (vẫn bỏ phiếu được).</p>`);
+  const a = g.art;
+  if (a) {
+    a.away.forEach(id => items.push(`<p>🪵 <strong>${esc(nameOnly(id))}</strong> rời làng hôm nay: không ai được bỏ phiếu cho người này, người này cũng không bỏ phiếu.</p>`));
+    a.noVote.forEach(id => items.push(`<p>🖤 <strong>${esc(nameOnly(id))}</strong> không được bỏ phiếu hôm nay.</p>`));
+    if (a.shield) items.push(`<p>🔰 <strong>${esc(nameOnly(a.shield))}</strong> không thể bị loại đêm nay.</p>`);
+  }
   if (view.me?.spectator) items.push('<p class="muted small">👁️ Bạn đã chết và không còn ai hồi sinh được: ban đêm bạn được theo dõi diễn biến và vai của mọi người. Ban ngày màn hình không hiện vai của ai; hãy giữ im lặng.</p>');
   return items.length ? `<div class="day-news panel">${items.join('')}</div>` : '';
 }
@@ -1471,6 +1591,14 @@ function stage() {
 
   if (view.phase === 'NIGHT') {
     if (task) return nightTask(task);
+    // The Eye of the Beholder, awake with the Seer.
+    if (m.beholder) {
+      const b = m.beholder;
+      return `<div class="panel stack"><p class="card-kicker"><span>Mắt Người Quan Sát</span><span class="icon" aria-hidden="true">👁️</span></p>
+        <h2>Bạn thức dậy cùng Tiên Tri</h2>
+        <p class="lead">Đừng ra hiệu cho nhau. Bạn thấy Tiên Tri soi ai và người đó có phải Sói không.</p>
+        ${b.target ? `<p class="result ${b.wolf ? 'result-wolf' : 'result-village'}">Tiên Tri soi ${esc(seatName(b.target))}: ${b.wolf ? 'LÀ Sói 🐺' : 'không phải Sói'}</p>` : '<p class="muted">Tiên Tri đang chọn…</p>'}</div>`;
+    }
     if (m.watch) return watchNight();
     return `
       <div class="sleep-card" role="img" aria-label="${m.inGame && m.alive ? 'Bạn đang ngủ' : 'Màn đêm đang trôi qua'}">
@@ -1488,7 +1616,7 @@ function stage() {
       <div class="panel stack">
         <h2>${deaths.length ? 'Đêm qua có người đã chết' : 'Đêm qua không ai chết'}</h2>
         ${deaths.length ? `<div class="village">${deaths.map(id => seat(player(id))).join('')}</div>` : '<p class="lead">Bảo Vệ hoặc Phù Thủy đã làm tốt việc của mình… hoặc bầy Sói đang toan tính điều gì đó.</p>'}
-      </div>${dayNews()}`;
+      </div>${dayNews()}${artPanel()}`;
   }
 
   if (view.phase === 'REVEAL') {
@@ -1529,7 +1657,7 @@ function stage() {
         <h2>Cả làng thảo luận</h2>
         <p class="lead">${deaths.length ? `Đêm qua ${esc(deaths.join(', '))} đã chết.` : 'Đêm qua không ai chết.'} Ai đang nói dối?</p>
         ${isHost() ? '<button class="btn btn-ghost" data-act="skip">Kết thúc thảo luận và bỏ phiếu</button>' : ''}
-      </div>${dayNews()}`;
+      </div>${artPanel()}${dayNews()}`;
   }
 
   if (view.phase === 'VOTE') {
@@ -1537,9 +1665,9 @@ function stage() {
     Object.values(g.votes).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
     const voted = Object.keys(g.votes).length;
     const mine = g.votes[m.id];
-    const banishedMe = g.banished === m.id;
-    const canVote = m.inGame && m.alive && !banishedMe;
-    const voters = alivePlayers().filter(p => p.id !== g.banished).length;
+    const banishedMe = isAwayToday(m.id);
+    const canVote = mayVoteToday(me());
+    const voters = view.players.filter(mayVoteToday).length;
     // The table stays put while votes come in: the text above it keeps its
     // length, and who voted for whom goes below it.
     const list = voteList(g.votes);
@@ -1547,8 +1675,9 @@ function stage() {
       <div class="panel">
         <h2>${g.voteRound === 2 ? 'Bỏ phiếu lần hai' : 'Bỏ phiếu nghi phạm'}</h2>
         <p class="lead">${canVote
-          ? 'Chạm vào người bạn nghi là Sói. Chạm người khác để đổi, chạm lại để huỷ phiếu.'
-          : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
+          ? `Chạm vào người bạn nghi là Sói. Chạm người khác để đổi, chạm lại để huỷ phiếu.`
+          : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.'
+          : m.alive && m.inGame ? 'Hôm nay bạn không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
         <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
       </div>
       ${roundTable(view.players.filter(p => p.inGame), {
@@ -1556,7 +1685,7 @@ function stage() {
           ? (mine ? `<span>Bạn chọn<strong>${esc(nameOnly(mine))}</strong>chạm lại để huỷ</span>` : 'Chạm vào người bạn nghi là Sói')
           : `<span><strong>${voted}/${voters}</strong>đã bỏ phiếu</span>`,
         seatOpts: (p) => {
-          const pickable = canVote && p.alive && p.id !== m.id && p.id !== g.banished;
+          const pickable = canVote && p.alive && p.id !== m.id && !isAwayToday(p.id);
           return { selectable: pickable, act: 'vote', pressed: mine === p.id, count: counts[p.id] || 0 };
         }
       })}
@@ -1582,15 +1711,19 @@ function stage() {
     const spare = votes.length - kill;
     const mine = g.judge[m.id];
     // The Gã Khờ always hangs and the Người Hoà Bình always spares: their vote is cast for them.
-    const fixed = m.role === 'idiot' ? 'treo cổ' : m.role === 'pacifist' ? 'tha' : null;
-    const canVote = m.inGame && m.alive && m.id !== d.id && m.id !== g.banished && !fixed;
+    // So do the Cap of Idiocy and the Wreath of Peace, whatever the role.
+    const shown = me()?.art?.shown || [];
+    const fixed = shown.includes('cap') ? 'treo cổ' : shown.includes('wreath') ? 'tha'
+      : m.art?.lostPower ? null : m.role === 'idiot' ? 'treo cổ' : m.role === 'pacifist' ? 'tha' : null;
+    const canVote = mayVoteToday(me()) && m.id !== d.id && !fixed;
     return `
       <div class="panel stack">
         <h2>Số phận của ${esc(d.name)}</h2>
         <p class="lead">${canVote ? 'Treo cổ nếu phiếu treo nhiều hơn phiếu tha.'
           : d.id === m.id ? 'Bạn không được tự bỏ phiếu cho mình.'
-          : m.id === g.banished ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.'
-          : fixed && m.alive ? `Phiếu của bạn luôn là “${fixed}”.` : 'Bạn đang theo dõi.'}</p>
+          : isAwayToday(m.id) ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.'
+          : fixed && mayVoteToday(me()) ? `Phiếu của bạn luôn là “${fixed}”.`
+          : m.alive && m.inGame ? 'Hôm nay bạn không được bỏ phiếu.' : 'Bạn đang theo dõi.'}</p>
         <div class="judge">
           <button class="kill" data-act="judge" data-choice="kill" aria-pressed="${mine === 'kill'}" ${canVote ? '' : 'disabled'}>
             <span class="big" aria-hidden="true">🪢</span>Treo cổ<span class="n">${kill} phiếu</span>
@@ -1609,7 +1742,7 @@ function stage() {
     if (v.type === 'kill') body = `<h2>${esc(v.ids.map(seatName).join(' và '))} đã bị loại</h2><p class="lead">${v.kill} phiếu treo, ${v.spare} phiếu tha.</p>`;
     if (v.type === 'spare') body = `<h2>${esc(seatName(v.ids[0]))} được tha</h2><p class="lead">${v.kill} phiếu treo, ${v.spare} phiếu tha.</p>`;
     if (v.type === 'prince') body = `<h2>🤴 ${esc(seatName(v.ids[0]))} là Hoàng Tử!</h2><p class="lead">Dân làng biểu quyết treo cổ (${v.kill} treo, ${v.spare} tha), nhưng Hoàng Tử lật bài và không bị treo.</p>`;
-    if (g.secondVote) body += '<p class="result">🔥 Kẻ Gây Rối đã ra tay: cả làng sẽ bỏ phiếu thêm một lần nữa.</p>';
+    if (g.secondVote) body += g.talisman ? '<p class="result">🧨 Bùa Rắc Rối: cả làng sẽ bỏ phiếu thêm một lần nữa.</p>' : '<p class="result">🔥 Kẻ Gây Rối đã ra tay: cả làng sẽ bỏ phiếu thêm một lần nữa.</p>';
     return `<div class="panel stack">${body}${v.type ? judgeList(g.judge) : ''}</div>`;
   }
 
@@ -1728,7 +1861,8 @@ function nightTask(task) {
       : `Bạn là con Sói duy nhất. Chọn ${two ? 'hai người' : 'một người'} để cắn, hoặc không cắn ai.`)}
       ${packList}
       ${status}
-      ${pickGrid('night', { selected: mineNone ? [] : task.votes[m.id] || [], counts, subs: { ...Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])), [m.id]: 'Bạn' } })}
+      ${task.allowed ? `<p class="result" style="margin-top:12px">🔺 Lăng Kính Quyền Năng: ${task.allowed.length ? `đêm nay chỉ được cắn ${esc(task.allowed.map(seatName).join(', '))}.` : 'đêm nay không cắn được ai.'}</p>` : ''}
+      ${pickGrid('night', { selected: mineNone ? [] : task.votes[m.id] || [], counts, disabled: task.allowed ? alivePlayers().map(p => p.id).filter(id => !task.allowed.includes(id)) : [], subs: { ...Object.fromEntries(view.me.wolves.map(id => [id, 'Đồng bọn'])), [m.id]: 'Bạn' } })}
       <button class="btn ${mineNone ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:12px" data-act="noKill" aria-pressed="${mineNone}">🚫 Không cắn ai${noKillVotes ? ` (${noKillVotes})` : ''}</button></div>`;
   }
   if (task.role === 'detective') {
@@ -1937,6 +2071,8 @@ function renderCard(reset = true) {
   }
   if (m.charmedList?.length) extra.push(`🎶 Đã thôi miên: ${m.charmedList.map(seatName).join(', ')}`);
   if (m.powerless) extra.push('👴 Già Làng đã chết dưới tay dân làng: bạn đã mất chức năng đến hết ván. Hãy giữ bí mật điều này.');
+  if (m.clawed) extra.push('🐾 Nhờ Artifact, bạn đã thành Sói: thức dậy cùng đàn Sói và thắng thua cùng phe Sói (vẫn giữ chức năng của vai này).');
+  if (m.art?.lostPower) extra.push('🗝️ Một lá Artifact đã lấy mất chức năng của vai này (xem 📜 Nhật ký).');
   if (!m.alive) extra.push('Bạn đã bị loại, hãy giữ im lặng nhé.');
   const teamColor = { village: 'var(--village)', werewolf: '#e0766b' }[r.team] || 'var(--third)';
   body.innerHTML = `
@@ -1953,6 +2089,7 @@ function renderCard(reset = true) {
       </div>
     </button>
     ${extra.length ? `<div class="card-notes">${extra.map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
+    ${artHand()}
     <button class="btn btn-ghost btn-big sheet-close" data-act="closeSheet">Úp bài xuống</button>`;
   markScrolling(body);
 }
@@ -2022,6 +2159,9 @@ function renderRules() {
       <p>Phe Dân thắng khi hết Sói (và Người Thổi Sáo, nếu có, đã chết). Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên.</p>
       <h3 style="margin-top:8px">Vai trò</h3>
       <div class="rules-roles">${ROLE_IDS.map(id => `<p><strong>${ROLES[id].icon} ${ROLES[id].name}</strong>: ${ROLES[id].description}</p>`).join('')}</div>
+      <h3 style="margin-top:8px">🗝️ Artifact (luật mở rộng${view?.config?.artifacts ? ', đang bật' : ', bật trong Luật ván này'})</h3>
+      ${ARTIFACT_RULES.map(r => `<p>${esc(r)}</p>`).join('')}
+      <div class="rules-roles">${Object.values(ARTIFACTS).map(a => `<p><strong>${a.icon} ${esc(a.name)}</strong> <span class="muted">(${esc(a.en)}, ${a.once ? '1' : '∞'})</span>: ${esc(a.desc)}</p>`).join('')}</div>
     </div>`;
 }
 
@@ -2200,6 +2340,30 @@ document.addEventListener('click', async (e) => {
       // Tapping your own pick again takes the vote back.
       return view.game.votes?.[view.me.id] === id ? act('unvote') : act('vote', { target: id });
     case 'judge': return act('judge', { choice: el.dataset.choice });
+    // Artifacts
+    case 'artReveal': {
+      const c = view.me.art?.hand.find(k => k.uid === Number(el.dataset.uid));
+      if (c && confirm(`Lật ${ARTIFACTS[c.id].name} cho cả làng xem và dùng ngay?`)) {
+        artPicks = [];
+        document.getElementById('cardSheet').close();
+        act('artReveal', { uid: c.uid });
+      }
+      return;
+    }
+    case 'artPick': {
+      const pd = view.me.art?.pending;
+      if (!pd) return;
+      artPicks = artPicks.includes(id) ? artPicks.filter(x => x !== id) : [...artPicks, id].slice(-pd.n);
+      return render();
+    }
+    case 'artChoose': {
+      const targets = artPicks;
+      artPicks = [];
+      return act('artChoose', { targets });
+    }
+    case 'artDecide': return act('artDecide', { force: el.dataset.force === '1' });
+    case 'artLetter': return act('artLetter', { letter: el.dataset.letter });
+    case 'artDawn': return act('artDawn', { uid: Number(el.dataset.uid), target: id });
   }
 });
 
