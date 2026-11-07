@@ -2542,7 +2542,20 @@ test('the dead start watching only the night after the Thầy Đồng died', () 
   assert.equal(viewFor(g.s, g.P[3].id, 0, 1).me.spectator, true);
 });
 
-test('"Quản trò tự ghép đôi": no Thần Tình Yêu card, the game pairs two players on the first night', () => {
+// A room of `roles.length` players dealt exactly these cards, with the game
+// making the couple, started; the deal itself is random.
+function autoLoversRoom(roles, { seed = 1, swap = false } = {}) {
+  let now = 0;
+  const rng = seeded(seed);
+  const { state: s, player: host } = createRoom({ code: 'LOVE1', hostName: 'Host', now, rng });
+  applyAction(s, host.id, 'addBot', { count: roles.length - 1 }, now, rng);
+  applyAction(s, host.id, 'config', { swapEnabled: swap, autoLovers: true }, now, rng);
+  s.roleCounts = { ...emptyCounts(), ...Object.fromEntries(roles.map(r => [r, roles.filter(x => x === r).length])) };
+  applyAction(s, host.id, 'start', {}, now, rng);
+  return { s, host, rng, get now() { return now; }, next() { now = s.game.phaseEndsAt; tick(s, now, rng); } };
+}
+
+test('"Quản trò tự ghép đôi": no Thần Tình Yêu card, the game pairs two players as the cards are revealed', () => {
   let now = 0;
   const rng = seeded(11);
   const { state: s, player: host } = createRoom({ code: 'LOVE1', hostName: 'Host', now, rng });
@@ -2561,13 +2574,11 @@ test('"Quản trò tự ghép đôi": no Thần Tình Yêu card, the game pairs 
   assert.throws(() => applyAction(s, host.id, 'role', { roleId: 'cupid', delta: 1 }, now, rng), /tự ghép đôi/);
   applyAction(s, host.id, 'autoBalance', {}, now, rng);
   assert.equal(s.roleCounts.cupid, 0, 'nor through the suggestion');
+  // No swap: the couple is there on the look-at-your-card screen, before the first night.
   applyAction(s, host.id, 'start', {}, now, rng);
-  assert.deepEqual(s.game.lovers, [], 'no couple before the cards are final');
-  for (let i = 0; i < 10 && s.phase !== 'NIGHT'; i++) { now = s.game.phaseEndsAt; tick(s, now, rng); }
-  assert.equal(s.phase, 'NIGHT');
+  assert.equal(s.phase, 'REVEAL');
   const [a, b] = s.game.lovers;
   assert.ok(a && b && a !== b);
-  assert.ok(!s.game.queue.includes('cupid'), 'nobody is called for it');
   // They find each other on their cards, as with a Thần Tình Yêu.
   const va = viewFor(s, a, now, 1);
   assert.equal(va.me.lover, b);
@@ -2575,6 +2586,20 @@ test('"Quản trò tự ghép đôi": no Thần Tình Yêu card, the game pairs 
   assert.ok(va.me.notes.some(n => n.text.includes('Quản trò đã ghép')));
   const other = s.players.find(p => p.inGame && p.id !== a && p.id !== b);
   assert.equal(viewFor(s, other.id, now, 1).me.lover, null, 'nobody else knows');
+  for (let i = 0; i < 5 && s.phase !== 'NIGHT'; i++) { now = s.game.phaseEndsAt; tick(s, now, rng); }
+  assert.equal(s.phase, 'NIGHT');
+  assert.deepEqual(s.game.lovers, [a, b], 'the same couple at night');
+  assert.ok(!s.game.queue.includes('cupid'), 'nobody is called for it');
+});
+
+test('"Quản trò tự ghép đôi" with the swap on: the couple is made once the cards are traded', () => {
+  const r = autoLoversRoom(['werewolf', 'seer', 'villager', 'villager', 'villager', 'villager'], { swap: true });
+  assert.equal(r.s.phase, 'SWAP');
+  assert.deepEqual(r.s.game.lovers, [], 'not while cards can still change hands');
+  r.next();
+  assert.equal(r.s.phase, 'REVEAL');
+  assert.equal(r.s.game.lovers.length, 2);
+  assert.equal(viewFor(r.s, r.s.game.lovers[0], r.now, 1).me.lover, r.s.game.lovers[1]);
 });
 
 test('"Quản trò tự ghép đôi" draws the kind of couple 4-3-3: cross-side, two villagers, two wolves', () => {
@@ -2585,11 +2610,7 @@ test('"Quản trò tự ghép đôi" draws the kind of couple 4-3-3: cross-side,
   };
   const tally = (roles, runs) => {
     const n = { cross: 0, village: 0, werewolf: 0 };
-    for (let seed = 1; seed <= runs; seed++) {
-      const g = setup(roles, { config: { autoLovers: true }, rng: seeded(seed) });
-      assert.equal(g.s.phase, 'NIGHT');
-      n[kindOf(g.s)]++;
-    }
+    for (let seed = 1; seed <= runs; seed++) n[kindOf(autoLoversRoom(roles, { seed }).s)]++;
     return Object.fromEntries(Object.entries(n).map(([k, v]) => [k, v / runs]));
   };
   const all = tally(['werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager'], 600);
