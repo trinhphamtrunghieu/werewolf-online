@@ -24,11 +24,13 @@ function setup(roles, arts = [], { config = {}, rng = seeded() } = {}) {
   for (const roleId of Object.keys(s.roleCounts)) s.roleCounts[roleId] = 0;
   Object.assign(s.roleCounts, counts);
   applyAction(s, host.id, 'start', {}, now, rng);
+  // The test deals the Artifacts itself: no draft.
+  s.game.art.draft = {};
   s.players.forEach((p, i) => {
     p.role = roles[i];
     s.game.art.hands[p.id] = arts[i] ? [{ uid: 100 + i, id: arts[i], revealed: false, day: null }] : [];
   });
-  if (s.phase === 'REVEAL') { now = s.game.phaseEndsAt; tick(s, now, rng); }
+  for (let i = 0; i < 5 && s.phase !== 'NIGHT'; i++) { now = s.game.phaseEndsAt; tick(s, now, rng); }
   const P = s.players;
   const clock = {
     get now() { return now; },
@@ -56,7 +58,8 @@ function setup(roles, arts = [], { config = {}, rng = seeded() } = {}) {
 const notes = (s, p) => (s.game.notes[p.id] || []).map(n => n.text).join('\n');
 
 test('every Artifact card is described, and the gems are 1 in 5', () => {
-  assert.equal(ARTIFACT_IDS.length, 38);
+  assert.equal(ARTIFACT_IDS.length, 43);
+  assert.equal(ARTIFACT_IDS.filter(id => ARTIFACTS[id].homebrew).length, 5);
   for (const id of ARTIFACT_IDS) {
     const c = ARTIFACTS[id];
     assert.ok(c.name && c.icon && c.desc && typeof c.once === 'boolean', id);
@@ -65,24 +68,68 @@ test('every Artifact card is described, and the gems are 1 in 5', () => {
   assert.equal(gemsFor(10), 2);
 });
 
-test('off by default; when on, everyone is dealt one face-down Artifact', () => {
+test('off by default; when on, everyone is dealt two Artifacts and keeps one', () => {
   const rng = seeded(7);
-  const { state: s, player: host } = createRoom({ code: 'ART02', hostName: 'Chủ', now: 0, rng });
-  for (let i = 0; i < 9; i++) joinRoom(s, `P${i}`, 0, rng);
-  assert.equal(viewFor(s, host.id, 0, 1).config.artifacts, false);
-  applyAction(s, host.id, 'autoBalance', {}, 0, rng);
-  applyAction(s, host.id, 'config', { artifacts: true }, 0, rng);
-  applyAction(s, host.id, 'start', {}, 0, rng);
-  const hands = s.game.art.hands;
-  assert.equal(Object.keys(hands).length, 10);
-  const dealt = Object.values(hands).map(h => h[0].id);
-  assert.equal(new Set(dealt).size, 10, 'no card twice');
-  assert.ok(dealt.filter(id => ARTIFACTS[id].gem).length <= 2);
-  assert.ok(Object.values(hands).every(h => h.length === 1 && !h[0].revealed));
-  // Only the owner sees their face-down card.
+  let now = 0;
+  const { state: s, player: host } = createRoom({ code: 'ART02', hostName: 'Chủ', now, rng });
+  for (let i = 0; i < 9; i++) joinRoom(s, `P${i}`, now, rng);
+  assert.equal(viewFor(s, host.id, now, 1).config.artifacts, false);
+  applyAction(s, host.id, 'autoBalance', {}, now, rng);
+  applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false }, now, rng);
+  applyAction(s, host.id, 'start', {}, now, rng);
+  assert.equal(s.phase, 'ARTPICK');
   const [a, b] = s.players;
-  assert.equal(viewFor(s, a.id, 0, 1).me.art.hand[0].id, hands[a.id][0].id);
-  assert.deepEqual(viewFor(s, b.id, 0, 1).players.find(p => p.id === a.id).art.shown, []);
+  const offer = viewFor(s, a.id, now, 1).me.art.draft;
+  assert.equal(offer.length, 2);
+  assert.equal(viewFor(s, b.id, now, 1).me.art.draft.length, 2);
+  const deckBefore = s.game.art.deck.length;
+  applyAction(s, a.id, 'artKeep', { index: 1 }, now, rng);
+  assert.deepEqual(s.game.art.hands[a.id].map(c => c.id), [offer[1]]);
+  assert.equal(s.game.art.deck.length, deckBefore + 1, 'the other card goes back');
+  assert.throws(() => applyAction(s, a.id, 'artKeep', { index: 0 }, now, rng), GameError);
+  // Time runs out: the rest keep one at random.
+  now = s.game.phaseEndsAt;
+  tick(s, now, rng);
+  assert.equal(s.phase, 'REVEAL');
+  const hands = s.game.art.hands;
+  assert.ok(Object.values(hands).every(h => h.length === 1 && !h[0].revealed));
+  assert.equal(new Set(Object.values(hands).map(h => h[0].id)).size, 10, 'no card twice');
+  // Only the owner sees their face-down card.
+  assert.equal(viewFor(s, a.id, now, 1).me.art.hand[0].id, hands[a.id][0].id);
+  assert.deepEqual(viewFor(s, b.id, now, 1).players.find(p => p.id === a.id).art.shown, []);
+});
+
+test('the deck keeps guards out without 2 ways of killing at night, and few role readers with seers', () => {
+  const build = (roles, seed) => {
+    const rng = seeded(seed);
+    const { state: s, player: host } = createRoom({ code: 'ART04', hostName: 'Chủ', now: 0, rng });
+    for (let i = 1; i < roles.length; i++) joinRoom(s, `P${i}`, 0, rng);
+    applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false }, 0, rng);
+    for (const k of Object.keys(s.roleCounts)) s.roleCounts[k] = 0;
+    roles.forEach(r => { s.roleCounts[r] = (s.roleCounts[r] || 0) + 1; });
+    applyAction(s, host.id, 'start', {}, 0, rng);
+    const a = s.game.art;
+    return [...Object.values(a.draft).flat(), ...Object.values(a.hands).flat().map(c => c.id), ...a.deck];
+  };
+  const plain = ['werewolf', 'werewolf', 'seer', 'villager', 'villager', 'villager', 'villager', 'villager'];
+  const armed = ['werewolf', 'werewolf', 'witch', 'hunter', 'villager', 'villager', 'villager', 'villager'];
+  for (let seed = 1; seed <= 20; seed++) {
+    const cards = build(plain, seed);
+    const guards = cards.filter(id => ARTIFACTS[id].guard);
+    const kills = cards.filter(id => ['vial', 'silverbow', 'breath'].includes(id)).length;
+    if (kills < 2) assert.deepEqual(guards, [], `seed ${seed}: no guards with ${kills} night kill`);
+    assert.ok(cards.filter(id => ARTIFACTS[id].info).length <= 1, `seed ${seed}: one role reader at most with a Seer`);
+  }
+  assert.ok([1, 2, 3, 4, 5].some(seed => build(armed, seed).some(id => ARTIFACTS[id].guard)), 'guards with Witch + Hunter');
+  // Homebrew off: none of those cards.
+  const rng = seeded(3);
+  const { state: s, player: host } = createRoom({ code: 'ART05', hostName: 'Chủ', now: 0, rng });
+  for (let i = 1; i < 8; i++) joinRoom(s, `P${i}`, 0, rng);
+  applyAction(s, host.id, 'config', { artifacts: true, artifactsHomebrew: false, swapEnabled: false }, 0, rng);
+  applyAction(s, host.id, 'autoBalance', {}, 0, rng);
+  applyAction(s, host.id, 'start', {}, 0, rng);
+  const all = [...Object.values(s.game.art.draft).flat(), ...s.game.art.deck];
+  assert.ok(all.every(id => !ARTIFACTS[id].homebrew));
 });
 
 test('Artifacts are turned over only during the discussion, one at a time, and are public', () => {
@@ -130,29 +177,77 @@ test('Orb of Speculation: right ends the game for the village, wrong eliminates 
   assert.equal(wrong.P[2].alive, false);
 });
 
-test('Cloak of the Prince: cannot be hanged; Amulet holder cannot be eliminated at all', () => {
-  const { s, P, act, untilPhase, endPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'seer'], [null, 'cloak', 'amulet']);
+test('Cloak of the Prince: saves its owner from the first hanging only, then is destroyed', () => {
+  const { s, P, act, untilPhase, endPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['cloak']);
+  const hang = (who) => {
+    untilPhase('VOTE');
+    for (const p of P.filter(p => p !== who && p.alive)) act(p, 'vote', { target: who.id });
+    untilPhase('JUDGE');
+    for (const p of P.filter(p => p !== who && p.alive && !s.game.judge[p.id])) act(p, 'judge', { choice: 'kill' });
+    for (let i = 0; i < 5 && !['VERDICT', 'GAME_OVER'].includes(s.phase); i++) endPhase();
+  };
   untilPhase('DISCUSSION');
-  reveal(P[1]);
-  reveal(P[2]);
-  endPhase();
-  assert.equal(s.phase, 'VOTE');
-  for (const p of P.filter(p => p !== P[1])) act(p, 'vote', { target: P[1].id });
-  untilPhase('JUDGE');
-  for (const p of P.filter(p => p !== P[1])) act(p, 'judge', { choice: 'kill' });
-  untilPhase('VERDICT');
-  assert.equal(P[1].alive, true);
+  reveal(P[0]);
+  hang(P[0]);
+  assert.equal(P[0].alive, true);
   assert.equal(s.game.verdict.type, 'spare');
+  assert.deepEqual(viewFor(s, P[1].id, 0, 1).players[0].art.shown, [], 'the Cloak is gone');
+  untilPhase('NIGHT');
+  untilPhase('DISCUSSION');
+  hang(P[0]);
+  assert.equal(P[0].alive, false);
+  assert.equal(s.game.winner, 'village');
 });
 
-test('Amulet: bites fail on its holder, who passes it on every morning', () => {
-  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'seer'], [null, 'amulet']);
+test('Sword of Justice cuts through every Artifact protection', () => {
+  const { s, P, untilPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['cloak', 'sword']);
+  untilPhase('DISCUSSION');
+  reveal(P[0]);
+  s.game.art.hands[P[0].id].push({ uid: 999, id: 'scepter', revealed: false, day: null });
+  reveal(P[1], [P[0]]);
+  assert.equal(P[0].alive, false);
+  assert.ok(s.game.art.hands[P[0].id].length === 0 || s.game.art.hands[P[0].id].every(c => c.id !== 'scepter' || !c.revealed));
+});
+
+test('Vial of Poison kills tonight past the Guard; Silver Bow only kills a wolf', () => {
+  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'werewolf', 'guard', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, null, null, 'vial', 'silverbow']);
+  untilPhase('DISCUSSION');
+  reveal(P[3], [P[5]]);
+  reveal(P[4], [P[0]]);
+  untilNightRole('guard');
+  act(P[2], 'night', { target: P[5].id });
+  untilPhase('MORNING');
+  assert.equal(P[5].alive, false, 'poisoned through the Guard');
+  assert.equal(P[0].alive, false, 'the silver arrow found a wolf');
+  const miss = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'silverbow']);
+  miss.untilPhase('DISCUSSION');
+  miss.reveal(miss.P[1], [miss.P[2]]);
+  miss.untilNightRole('werewolf');
+  miss.act(miss.P[0], 'night', { noKill: true });
+  miss.untilPhase('MORNING');
+  assert.equal(miss.P[2].alive, true);
+});
+
+test('Gloves of the Thief steal a face-up card; Mirror of Negation destroys one', () => {
+  const { s, P, untilPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['cloak', 'gloves', 'mark', 'mirror']);
+  untilPhase('DISCUSSION');
+  reveal(P[0]);
+  reveal(P[2]);
+  reveal(P[1], [P[0]]);
+  assert.ok(s.game.art.hands[P[1].id].some(c => c.id === 'cloak' && c.revealed));
+  assert.ok(!s.game.art.hands[P[0].id].some(c => c.id === 'cloak'));
+  const deck = s.game.art.deck.length;
+  reveal(P[3], [P[2]]);
+  assert.ok(!Object.values(s.game.art.hands).flat().some(c => c.id === 'mark'));
+  assert.equal(s.game.art.deck.length, deck, 'destroyed, not back in the deck');
+});
+
+test('Amulet: saves its holder once and breaks; otherwise it is passed on every morning', () => {
+  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'amulet', 'amulet']);
   untilPhase('DISCUSSION');
   reveal(P[1]);
   untilNightRole('werewolf');
-  act(P[0], 'night', { target: P[1].id });
-  untilPhase('MORNING');
-  assert.equal(P[1].alive, true);
+  act(P[0], 'night', { noKill: true });
   untilPhase('DISCUSSION');
   const d = viewFor(s, P[1].id, 0, 1).me.art.dawn;
   assert.equal(d[0].kind, 'amulet');
@@ -160,6 +255,28 @@ test('Amulet: bites fail on its holder, who passes it on every morning', () => {
   act(P[1], 'artDawn', { uid: d[0].uid, target: P[2].id });
   assert.equal(s.game.art.amulet.holder, P[2].id);
   assert.deepEqual(viewFor(s, P[1].id, 0, 1).me.art.dawn, []);
+  // Bitten while holding it: saved once, and the Amulet is gone.
+  untilNightRole('werewolf');
+  act(P[0], 'night', { target: P[2].id });
+  untilPhase('MORNING');
+  assert.equal(P[2].alive, true);
+  assert.equal(s.game.art.amulet, null);
+  assert.ok(!Object.values(s.game.art.hands).flat().some(c => c.id === 'amulet' && c.revealed));
+  untilNightRole('werewolf');
+  act(P[0], 'night', { target: P[2].id });
+  untilPhase('MORNING');
+  assert.equal(P[2].alive, false, 'no second save');
+});
+
+test('an Amulet nobody can be handed any more is discarded', () => {
+  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'seer'], [null, 'amulet']);
+  untilPhase('DISCUSSION');
+  reveal(P[1]);
+  s.game.art.amulet.had = P.map(p => p.id);
+  untilNightRole('werewolf');
+  act(P[0], 'night', { noKill: true });
+  untilPhase('MORNING');
+  assert.equal(s.game.art.amulet, null);
 });
 
 test('the Amulet is passed at random if its holder forgets', () => {
