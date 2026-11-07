@@ -1140,3 +1140,25 @@ dialog.card-sheet { background: #08110d; border-color: transparent; }
 .rules-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .rules-table th, .rules-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
 .rules-table th { color: var(--brass-hi); font-weight: 600; }
+
+/* Artifacts (Ultimate Werewolf: Artifacts) */
+.art-panel { margin-top: 12px; }
+.art-panel h3 { margin: 0; }
+.art-feed { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.9rem; line-height: 1.45; }
+.art-hand { width: min(300px, 100%); margin: 18px auto 0; display: grid; gap: 10px; }
+.art-hand h3 { margin: 0; font-size: 1rem; }
+.art-card {
+  padding: 12px; border-radius: 12px; display: grid; gap: 6px;
+  background: linear-gradient(160deg, var(--back-a), var(--back-b));
+  border: 1px solid var(--brass-line);
+}
+.art-card.revealed { background: var(--face-2); border-color: var(--line); }
+.art-card p { margin: 0; }
+.art-card .art-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.art-card .pts {
+  min-width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: 50%;
+  border: 1px solid var(--brass-line); color: var(--brass-hi); font-family: var(--display); font-weight: 800;
+}
+.art-card .btn { justify-self: start; }
+details.secret summary { cursor: pointer; color: var(--brass-hi); }
+details.secret .result { margin-top: 8px; }
