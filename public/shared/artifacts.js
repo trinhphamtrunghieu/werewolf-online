@@ -15,11 +15,12 @@
 //             dead       a player who died since yesterday morning
 //   ordered: the order of the picks matters (Ruby of Kismet)
 //
-// Four cards are left out because a phone cannot keep them, only the players'
+// Six cards are left out because a phone cannot keep them, only the players'
 // honour could: the Coin of Youth (saying your role name aloud every day), the
 // Mirror of the Doppelgänger (waking a second time at night as another role),
-// the Mask of Spellcasting (someone may not speak) and the Shroud of Shame
-// (someone must face away).
+// the Mask of Spellcasting (someone may not speak), the Shroud of Shame
+// (someone must face away), the Bow of Hunting (nobody may speak until the
+// shot) and the Vote from Beyond (the dead voter may not speak).
 
 export const ARTIFACTS = {
   amber: {
@@ -39,11 +40,6 @@ export const ARTIFACTS = {
     name: 'Máu Người Bệnh', en: 'The Blood of the Diseased', icon: '🩸', once: true,
     pick: { n: 1, from: 'alive' },
     desc: 'Chọn 1 người nhiễm bệnh. Nếu Sói cắn chết người đó, đêm tiếp theo bầy Sói không được cắn ai. Người đó bị loại ban ngày thì không có tác dụng.'
-  },
-  bow: {
-    name: 'Cung Săn', en: 'The Bow of Hunting', icon: '🏹', once: true,
-    pick: { n: 1, from: 'alive' },
-    desc: 'Chọn 1 người; người đó chọn bất kỳ người nào khác và người này bị loại ngay. Từ lúc lật lá này, không ai được nói cho tới khi người được chọn bắn xong.'
   },
   brand: {
     name: 'Dấu Ấn Dân Làng', en: 'The Brand of the Villager', icon: '🪧', once: true,
@@ -194,10 +190,6 @@ export const ARTIFACTS = {
     name: 'Hư Không', en: 'The Void of Nothingness', icon: '🕳️', once: false,
     desc: 'Lá này không có tác dụng gì.'
   },
-  beyond: {
-    name: 'Lá Phiếu Từ Cõi Chết', en: 'The Vote from Beyond', icon: '🪦', once: false,
-    desc: 'Bạn vẫn được bỏ phiếu ban ngày kể cả khi đã bị loại. Ban đêm bạn phải nhắm mắt; đã bị loại thì không được nói hay buộc tội ai.'
-  },
   wreath: {
     name: 'Vòng Hoa Hoà Bình', en: 'The Wreath of Peace', icon: '🌿', once: false,
     desc: 'Lúc phán quyết, phiếu của bạn luôn là "tha".'
@@ -220,5 +212,5 @@ export const ARTIFACT_RULES = [
   'Hết giờ thảo luận mà lựa chọn của một lá vẫn chưa xong thì quản trò chọn ngẫu nhiên giúp.',
   'Lá chưa lật của người bị loại được trả về chồng bài. Artifact luôn mạnh hơn vai trò (ví dụ Mũ Gã Khờ bắt Người Hoà Bình bỏ phiếu treo cổ). Tiên Tri và các vai soi đêm luôn thấy lá vai trò gốc.',
   'Có thể nói dối về lá Artifact của mình khi chưa lật.',
-  'Không dùng 4 lá chỉ giữ được bằng tự giác, điện thoại không theo dõi được: Đồng Xu Tuổi Trẻ (Coin of Youth), Gương Song Trùng (Mirror of the Doppelgänger), Mặt Nạ Phong Ấn (Mask of Spellcasting) và Khăn Choàng Hổ Thẹn (Shroud of Shame).'
+  'Không dùng 6 lá chỉ giữ được bằng tự giác, điện thoại không theo dõi được: Đồng Xu Tuổi Trẻ (Coin of Youth), Gương Song Trùng (Mirror of the Doppelgänger), Mặt Nạ Phong Ấn (Mask of Spellcasting), Khăn Choàng Hổ Thẹn (Shroud of Shame), Cung Săn (Bow of Hunting) và Lá Phiếu Từ Cõi Chết (Vote from Beyond).'
 ];

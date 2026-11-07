@@ -1464,7 +1464,7 @@ function artMarks(p) {
 }
 // Out of the village or not allowed to vote today (Old Hag, Artifacts).
 const isAwayToday = (id) => view.game.banished === id || !!view.game.art?.away?.includes(id);
-const mayVoteToday = (p) => p && p.inGame && (p.alive || p.art?.shown.includes('beyond'))
+const mayVoteToday = (p) => p && p.inGame && p.alive
   && !isAwayToday(p.id) && !view.game.art?.noVote?.includes(p.id);
 
 // The day's Artifact panel: the news, what is being resolved, and this
@@ -1481,7 +1481,6 @@ function artPanel() {
     const who = esc(nameOnly(w.owner));
     const what = w.type === 'choose' ? `${who} đang chọn người cho ${esc(artLabel(w.id))}`
       : w.type === 'decide' ? `${who} đang quyết định có bắt lật lá Artifact không`
-      : w.type === 'bow' ? `🏹 ${who} đang chọn người để bắn. Không ai được nói!`
       : w.type === 'letter' ? `${who} đang chọn một chữ cái cho ${esc(nameOnly(w.by))}`
       : 'Đang dùng một lá Artifact';
     parts.push(`<p class="result">⏳ ${what}…</p>`);
@@ -1516,11 +1515,6 @@ function artPending(pd) {
       <p class="lead">Bắt ${esc(nameOnly(pd.target))} lật lá này ngay bây giờ?</p>
       <div class="footer-row"><button class="btn btn-primary" data-act="artDecide" data-force="1">Bắt lật ngay</button>
       <button class="btn btn-ghost" data-act="artDecide" data-force="0">Không</button></div></div>`;
-  }
-  if (pd.type === 'bow') {
-    return `<div class="stack"><h3>🏹 Bạn cầm Cung Săn</h3>
-      <p class="lead">Chọn một người: người đó bị loại ngay.</p>
-      ${pickGrid('artShoot', { pool: view.players.filter(p => pd.options.includes(p.id)) })}</div>`;
   }
   if (pd.type === 'letter') {
     const letters = [...'ABCDĐEGHIKLMNOPQRSTUVXY'];
@@ -1681,7 +1675,7 @@ function stage() {
       <div class="panel">
         <h2>${g.voteRound === 2 ? 'Bỏ phiếu lần hai' : 'Bỏ phiếu nghi phạm'}</h2>
         <p class="lead">${canVote
-          ? `${m.alive ? '' : '🪦 Lá Phiếu Từ Cõi Chết: bạn vẫn được bỏ phiếu. '}Chạm vào người bạn nghi là Sói. Chạm người khác để đổi, chạm lại để huỷ phiếu.`
+          ? `Chạm vào người bạn nghi là Sói. Chạm người khác để đổi, chạm lại để huỷ phiếu.`
           : banishedMe ? 'Hôm nay bạn bị đuổi khỏi làng, không được bỏ phiếu.'
           : m.alive && m.inGame ? 'Hôm nay bạn không được bỏ phiếu.' : 'Bạn đang theo dõi, không bỏ phiếu.'}</p>
         <p class="muted small" style="margin-top:6px">Đã bỏ phiếu: ${voted}/${voters}</p>
@@ -2357,11 +2351,6 @@ document.addEventListener('click', async (e) => {
       return act('artChoose', { targets });
     }
     case 'artDecide': return act('artDecide', { force: el.dataset.force === '1' });
-    case 'artShoot': {
-      const p = player(id);
-      if (p && confirm(`Bắn ${p.name}? Người này bị loại ngay.`)) act('artShoot', { target: id });
-      return;
-    }
     case 'artLetter': return act('artLetter', { letter: el.dataset.letter });
     case 'artDawn': return act('artDawn', { uid: Number(el.dataset.uid), target: id });
   }

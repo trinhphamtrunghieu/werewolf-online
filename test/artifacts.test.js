@@ -56,7 +56,7 @@ function setup(roles, arts = [], { config = {}, rng = seeded() } = {}) {
 const notes = (s, p) => (s.game.notes[p.id] || []).map(n => n.text).join('\n');
 
 test('every Artifact card is described, and the gems are 1 in 5', () => {
-  assert.equal(ARTIFACT_IDS.length, 40);
+  assert.equal(ARTIFACT_IDS.length, 38);
   for (const id of ARTIFACT_IDS) {
     const c = ARTIFACTS[id];
     assert.ok(c.name && c.icon && c.desc && typeof c.once === 'boolean', id);
@@ -280,18 +280,6 @@ test('Cap of Idiocy and Wreath of Peace fix the verdict; Mark of the Mayor count
   assert.throws(() => act(P[2], 'judge', { choice: 'kill' }), /cố định/);
 });
 
-test('Vote from Beyond: votes after death, and does not watch the night', () => {
-  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'beyond']);
-  untilPhase('DISCUSSION');
-  reveal(P[1]);
-  untilNightRole('werewolf');
-  act(P[0], 'night', { target: P[1].id });
-  untilPhase('VOTE');
-  assert.equal(P[1].alive, false);
-  act(P[1], 'vote', { target: P[0].id });
-  assert.equal(s.game.votes[P[1].id], P[0].id);
-});
-
 test('Cudgel and Heart: chosen each morning from the day after the reveal', () => {
   const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'cudgel', 'heart']);
   untilPhase('DISCUSSION');
@@ -349,16 +337,15 @@ test('Ruby of Kismet makes two players reveal, in order; Emerald takes a card', 
   assert.notEqual(s.game.art.hands[P[3].id][0].id, 'mark');
 });
 
-test('Amethyst can force a reveal; Bow hands the shot to the chosen player', () => {
-  const { s, P, act, untilPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['amethyst', 'bow']);
+test('Amethyst can force a reveal, which then resolves for its owner', () => {
+  const { s, P, act, untilPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['amethyst', 'spear']);
   untilPhase('DISCUSSION');
   reveal(P[0], [P[1]]);
-  assert.match(notes(s, P[0]), /Cung Săn/);
+  assert.match(notes(s, P[0]), /Giáo Cuồng Nộ/);
   act(P[0], 'artDecide', { force: true });
-  // The Bow came up: its owner P2 picks who shoots.
-  act(P[1], 'artChoose', { targets: [P[2].id] });
-  assert.throws(() => act(P[1], 'artShoot', { target: P[3].id }), GameError);
-  act(P[2], 'artShoot', { target: P[3].id });
+  // The Spear came up: its owner P2 picks, not the Amethyst's.
+  assert.throws(() => act(P[0], 'artChoose', { targets: [P[3].id] }), GameError);
+  act(P[1], 'artChoose', { targets: [P[3].id] });
   assert.equal(P[3].alive, false);
 });
 
