@@ -402,8 +402,8 @@ export const ROLES = {
   },
   doppelganger: {
     id: 'doppelganger', points: -2, name: 'Kẻ Song Trùng', team: 'village', icon: '🎭', color: '#c7a6e8',
-    short: 'Đêm đầu chọn 1 người; người đó chết thì bạn nhận vai của họ.',
-    description: 'Đêm đầu chọn 1 người. Khi người đó chết, bạn bí mật nhận vai (và phe) của họ, kể cả nếu đó là Sói. Trước đó bạn thuộc phe Dân.',
+    short: 'Đêm đầu bắt buộc chọn 1 người; người đó chết thì bạn nhận vai của họ.',
+    description: 'Đêm đầu bắt buộc chọn 1 người (hết giờ mà chưa chọn thì quản trò chọn ngẫu nhiên). Khi người đó chết, bạn bí mật nhận vai (và phe) của họ, kể cả nếu đó là Sói. Trước đó bạn thuộc phe Dân.',
     art: glyph('🎭')
   },
   drunk: {

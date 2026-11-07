@@ -1036,7 +1036,7 @@ function endTurnButton(m) {
   const extend = '<button class="btn btn-primary end-turn" data-act="extend">⏳ Thêm 5 giây</button>';
   let pass = '';
   if (t.powerless) pass = 'Đã hiểu';
-  else if (t.role !== 'werewolf' && t.role !== 'thief') {
+  else if (t.role !== 'werewolf' && t.role !== 'thief' && t.role !== 'doppelganger') {
     const keepAim = ['hunter', 'avenger'].includes(t.role) && !t.spent && t.lastAim && player(t.lastAim)?.alive;
     pass = t.role === 'elder' ? 'Đã hiểu'
       : keepAim ? 'Giữ nguyên mục tiêu'
@@ -1069,7 +1069,10 @@ function renderGame() {
         </details>
         <details class="panel section" id="logBox">
           <summary><h3>Nhật ký ván chơi</h3></summary>
-          <button class="btn btn-ghost btn-small" style="margin-top:10px" data-act="exportLog">Tải nhật ký (.txt)</button>
+          <div class="row" style="margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-small" data-act="exportLog">Tải nhật ký (.txt)</button>
+            <button class="btn btn-ghost btn-small" data-act="copyLog">Sao chép nhật ký</button>
+          </div>
           <ul class="log" id="log"></ul>
         </details>
         <p class="muted small" id="conn">${connectionHtml()}</p>
@@ -1760,7 +1763,7 @@ function nightTask(task) {
   }
   if (task.role === 'doppelganger') {
     if (task.pick) return `<div class="panel">${head('doppelganger', 'Đã chọn', `Khi ${esc(seatName(task.pick))} chết, bạn sẽ nhận vai của họ.`)}</div>`;
-    return `<div class="panel">${head('doppelganger', 'Theo bóng ai?', 'Khi người này chết, bạn bí mật nhận vai và phe của họ.')}
+    return `<div class="panel">${head('doppelganger', 'Theo bóng ai?', 'Bắt buộc chọn 1 người: khi người này chết, bạn bí mật nhận vai và phe của họ. Hết giờ mà chưa chọn thì quản trò chọn ngẫu nhiên giúp bạn.')}
       ${pickGrid('night', { exclude: [m.id] })}</div>`;
   }
   if (task.role === 'hoodlum') {
@@ -1975,6 +1978,7 @@ document.addEventListener('click', async (e) => {
     case 'rules': renderRules(); return document.getElementById('rulesSheet').showModal();
     case 'deck': renderDeck(); return document.getElementById('deckSheet').showModal();
     case 'exportLog': return exportLog();
+    case 'copyLog': return copyLog();
     case 'boardSide':
       boardSide = el.dataset.side;
       return render();
@@ -2160,12 +2164,12 @@ document.addEventListener('input', (e) => {
 
 const isLogHead = (line) => /^(🌙 Đêm|☀️ Sáng)/.test(line);
 
-// The whole game as a plain text file: result, everyone's role, then what
-// happened in order.
-function exportLog() {
+// The whole game as plain text: result, everyone's role, then what happened
+// in order. Saved as a file or copied to the clipboard.
+const pad2 = (n) => String(n).padStart(2, '0');
+function logText(d = new Date()) {
   const g = view.game;
-  const pad = (n) => String(n).padStart(2, '0');
-  const d = new Date();
+  const pad = pad2;
   const stamp = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const lines = ['MA SÓI – NHẬT KÝ VÁN CHƠI', `Phòng ${view.code} · ${stamp}`];
   if (view.phase === 'GAME_OVER' && g.winReason) lines.push(`Kết quả: ${g.winReason}`);
@@ -2179,8 +2183,14 @@ function exportLog() {
   }
   lines.push('', 'DIỄN BIẾN');
   g.log.forEach(l => lines.push(isLogHead(l) ? `\n${l}` : `  ${l}`));
+  return lines.join('\n') + '\n';
+}
+
+function exportLog() {
+  const pad = pad2;
+  const d = new Date();
   // A byte-order mark so Windows Notepad reads the Vietnamese correctly.
-  const blob = new Blob(['\ufeff' + lines.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+  const blob = new Blob(['\ufeff' + logText(d)], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `ma-soi-${view.code}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
@@ -2188,6 +2198,26 @@ function exportLog() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function copyLog() {
+  const text = logText();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Older browsers, or no clipboard permission: copy from a hidden field.
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    if (!ok) return toast('Không sao chép được. Hãy dùng "Tải nhật ký (.txt)".', 'error');
+  }
+  toast('Đã sao chép nhật ký ván chơi.');
 }
 
 async function share() {

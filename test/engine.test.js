@@ -2624,6 +2624,26 @@ test('the Witch cannot tell whether anyone was bitten tonight', () => {
   assert.ok(!JSON.stringify(bitten).includes('wolfTargets'));
 });
 
+test('the Kẻ Song Trùng must pick: no pass, and out of time the game picks at random', () => {
+  const g = setup(['doppelganger', 'werewolf', 'seer', 'villager', 'villager']);
+  g.untilNightRole('doppelganger');
+  assert.throws(() => g.act(g.P[0], 'endTurn', {}), /phải chọn/);
+  g.endPhase();
+  const mark = g.s.game.doppelTarget;
+  assert.ok(mark && mark !== g.P[0].id, 'someone else was picked');
+  assert.ok(g.s.players.find(p => p.id === mark).alive);
+  const view = viewFor(g.s, g.P[0].id, g.clock.now, 1);
+  assert.equal(view.me.doppelTarget, mark);
+  assert.ok(view.me.notes.some(n => n.text.includes('quản trò chọn giúp')));
+  // Picking in time works as before, and then the turn may end.
+  const h = setup(['doppelganger', 'werewolf', 'seer', 'villager', 'villager']);
+  h.untilNightRole('doppelganger');
+  h.act(h.P[0], 'night', { target: h.P[2].id });
+  assert.equal(h.s.game.doppelTarget, h.P[2].id);
+  h.endPhase();
+  assert.ok(!viewFor(h.s, h.P[0].id, h.clock.now, 1).me.notes.some(n => n.text.includes('quản trò chọn giúp')));
+});
+
 test('lovers see each other\'s card once paired', () => {
   const g = setup(['cupid', 'werewolf', 'seer', 'villager', 'villager', 'villager']);
   g.untilNightRole('cupid');
