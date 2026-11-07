@@ -1,6 +1,23 @@
-# 🌕 Ma Sói Online
+# 🌕 Bàn Chơi (Ma Sói Online)
 
-Chơi Ma Sói cùng bạn bè, mỗi người một điện thoại. Máy của chủ phòng đặt giữa bàn làm **quản trò**: đọc lời dẫn bằng giọng tiếng Việt, gọi từng vai trò thức dậy và điều khiển nhịp ván chơi.
+Trò chơi nhóm ngồi chung bàn, mỗi người một điện thoại. Tạo phòng một lần; chủ phòng chọn trò cho từng ván, cả nhóm ở lại trong phòng.
+
+| Trò chơi | Người chơi | Trạng thái |
+|---|---|---|
+| 🐺 **Ma Sói** | 4–18 | có |
+| 🕵️ **Ai là gián điệp** (Spyfall) | 3–12 | có |
+| 🗝️ Ai là nội gián (Undercover) | 4–12 | sắp có |
+| 🛡️ Avalon | 5–10 | sắp có |
+
+**Thêm một trò chơi**: luật chạy trong một module ở `lib/games/` (xem `lib/games/index.js` cho các hàm cần có), thông tin chung ở `public/shared/games.js`, giao diện ở `public/js/games/`. Phòng, người chơi, chủ phòng, người chơi máy, đồng hồ và bảng xếp hạng (riêng cho từng trò) dùng chung trong `lib/engine.js`.
+
+### Ai là gián điệp
+
+Mọi người cùng ở một địa điểm (30 địa điểm), trừ gián điệp. Hỏi đáp có giờ; mỗi người được tố cáo một lần (cần tất cả người còn lại đồng ý, đồng hồ dừng trong lúc bỏ phiếu); gián điệp đoán địa điểm bất cứ lúc nào trên lá bài của mình. Hết giờ, cả bàn bỏ phiếu: hơn nửa số phiếu thì người đó bị lật bài. Dân thường thắng khi lật đúng gián điệp hoặc gián điệp đoán sai; gián điệp thắng khi đoán đúng, khi người vô tội bị lật bài, hoặc khi không ai bị lật bài.
+
+## Ma Sói
+
+Máy của chủ phòng đặt giữa bàn làm **quản trò**: đọc lời dẫn bằng giọng tiếng Việt, gọi từng vai trò thức dậy và điều khiển nhịp ván chơi.
 
 - **Vercel làm máy chủ phòng**: toàn bộ luật chơi chạy trong Vercel Function `api/room.js`. Không dùng broker public, không cần WebRTC.
 - **Supabase** lưu trạng thái phòng (Postgres) và báo cho các máy biết khi phòng có thay đổi (Realtime). Kênh Realtime chỉ chở số phiên bản, không chở dữ liệu ván chơi.
