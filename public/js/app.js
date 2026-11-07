@@ -336,10 +336,9 @@ function setConnection(ok) {
 
 async function createRoom(name) {
   try {
-    const data = await api('POST', { action: 'create', name, debug: DEBUG });
+    // The room opens on the game picked on the home page.
+    const data = await api('POST', { action: 'create', name, game: homeGame, debug: DEBUG });
     enterRoom(data);
-    // The game picked on the home page (rooms open on Ma Sói).
-    if (homeGame !== 'werewolf') act('selectGame', { gameId: homeGame });
   } catch (e) {
     toast(e.message, 'error');
   }
@@ -567,20 +566,26 @@ function renderHome() {
       <p>Trò chơi nhóm ngồi chung bàn: mỗi người một điện thoại, một lá bài bí mật. Tạo phòng một lần, chơi bao nhiêu ván, đổi trò bao nhiêu lần cũng được.</p>
     </section>
 
-    <section class="shelf" aria-label="Các trò chơi">
-      ${GAMES_INFO.map(g => `
-        <button class="shelf-game ${homeGame === g.id && homeTab === 'create' ? 'on' : ''}" data-act="homeGame" data-game="${g.id}" ${g.ready ? '' : 'disabled'} aria-pressed="${homeGame === g.id}">
-          <span class="ic" aria-hidden="true">${g.icon}</span>
-          <span class="txt"><strong>${g.name}</strong><span class="meta">${g.min}–${g.max} người · ${g.time}</span><span class="blurb">${g.blurb}</span></span>
-          ${g.ready ? '' : '<span class="soon">Sắp có</span>'}
-        </button>`).join('')}
-    </section>
-
     <div class="stack-lg" style="margin-top:24px">
       <div class="segmented" role="group" aria-label="Chọn cách vào chơi">
         <button data-act="tab" data-tab="create" aria-pressed="${homeTab === 'create'}">Tạo phòng mới</button>
         <button data-act="tab" data-tab="join" aria-pressed="${homeTab === 'join'}">Vào phòng</button>
       </div>
+      ${homeTab === 'join' && code ? `<p class="invite-note">🎟️ Bạn được mời vào phòng <strong>${esc(code)}</strong>. Nhập tên rồi bấm “Vào phòng”: trò chơi do chủ phòng chọn.</p>` : ''}
+
+      ${homeTab === 'create' ? `
+      <section aria-label="Chọn trò chơi">
+        <p class="shelf-title">1. Chọn trò chơi</p>
+        <div class="shelf">
+        ${GAMES_INFO.map(g => `
+          <button class="shelf-game ${homeGame === g.id ? 'on' : ''}" data-act="homeGame" data-game="${g.id}" ${g.ready ? '' : 'disabled'} aria-pressed="${homeGame === g.id}">
+            <span class="ic" aria-hidden="true">${g.icon}</span>
+            <span class="txt"><strong>${g.name}</strong><span class="meta">${g.min}–${g.max} người · ${g.time}</span><span class="blurb">${g.blurb}</span></span>
+            ${g.ready ? '' : '<span class="soon">Sắp có</span>'}
+          </button>`).join('')}
+        </div>
+      </section>
+      <p class="shelf-title">2. Tạo phòng</p>` : ''}
 
       <form class="panel stack" id="homeForm" autocomplete="off">
         <div class="field">
@@ -591,12 +596,12 @@ function renderHome() {
           <div class="field">
             <label for="codeInput">Mã phòng</label>
             <input class="input input-code" id="codeInput" maxlength="5" required value="${esc(code)}" placeholder="ABCDE" autocapitalize="characters" spellcheck="false" />
-            <p class="hint">Chủ phòng sẽ gửi cho bạn mã 5 ký tự hoặc một đường link.</p>
+            <p class="hint">Chủ phòng sẽ gửi cho bạn mã 5 ký tự hoặc một đường link. Bạn không cần chọn trò chơi: vào phòng là chơi trò chủ phòng đã chọn.</p>
           </div>
           <button class="btn btn-primary btn-block" type="submit">Vào phòng</button>
         ` : `
-          <p class="muted small">Bạn sẽ là chủ phòng và chơi <strong>${esc(gameInfo(homeGame).name)}</strong> trước (đổi được trong phòng chờ).</p>
-          <button class="btn btn-primary btn-block" type="submit">Tạo phòng</button>
+          <p class="muted small">Bạn sẽ là chủ phòng. Phòng mở với <strong>${esc(gameInfo(homeGame).icon)} ${esc(gameInfo(homeGame).name)}</strong>; vào phòng chờ vẫn đổi trò được bất cứ lúc nào giữa các ván.</p>
+          <button class="btn btn-primary btn-block" type="submit">Tạo phòng ${esc(gameInfo(homeGame).name)}</button>
         `}
       </form>
     </div>`;
@@ -758,7 +763,7 @@ function gamePicker(host) {
     return `<div class="game-now"><span class="ic" aria-hidden="true">${current.icon}</span><span><span class="muted small">Ván tiếp theo</span><strong>${current.name}</strong></span></div>`;
   }
   return `
-    <p class="muted small" style="margin-bottom:8px">Chọn trò chơi cho ván tiếp theo</p>
+    <p class="muted small" style="margin-bottom:8px">Trò chơi của phòng (chạm để đổi; mọi người trong phòng thấy ngay)</p>
     <div class="game-pick" role="group" aria-label="Trò chơi">
       ${GAMES_INFO.map(g => `
         <button class="pick-game ${g.id === view.gameId ? 'on' : ''}" data-act="selectGame" data-game="${g.id}" aria-pressed="${g.id === view.gameId}" ${g.ready ? '' : 'disabled'}>
