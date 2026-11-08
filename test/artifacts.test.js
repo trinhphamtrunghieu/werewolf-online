@@ -177,7 +177,7 @@ test('Orb of Speculation: right ends the game for the village, wrong eliminates 
   assert.equal(wrong.P[2].alive, false);
 });
 
-test('Cloak of the Prince: saves its owner from the first hanging only, then is destroyed', () => {
+test('Cloak of the Prince: can never be eliminated by day', () => {
   const { s, P, act, untilPhase, endPhase, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['cloak']);
   const hang = (who) => {
     untilPhase('VOTE');
@@ -191,12 +191,11 @@ test('Cloak of the Prince: saves its owner from the first hanging only, then is 
   hang(P[0]);
   assert.equal(P[0].alive, true);
   assert.equal(s.game.verdict.type, 'spare');
-  assert.deepEqual(viewFor(s, P[1].id, 0, 1).players[0].art.shown, [], 'the Cloak is gone');
   untilPhase('NIGHT');
   untilPhase('DISCUSSION');
   hang(P[0]);
-  assert.equal(P[0].alive, false);
-  assert.equal(s.game.winner, 'village');
+  assert.equal(P[0].alive, true, 'still saved the second time');
+  assert.deepEqual(viewFor(s, P[1].id, 0, 1).players[0].art.shown, ['cloak']);
 });
 
 test('Sword of Justice cuts through every Artifact protection', () => {
@@ -242,12 +241,14 @@ test('Gloves of the Thief steal a face-up card; Mirror of Negation destroys one'
   assert.equal(s.game.art.deck.length, deck, 'destroyed, not back in the deck');
 });
 
-test('Amulet: saves its holder once and breaks; otherwise it is passed on every morning', () => {
-  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'amulet', 'amulet']);
+test('Amulet: bites fail on its holder, who passes it on every morning', () => {
+  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'amulet']);
   untilPhase('DISCUSSION');
   reveal(P[1]);
   untilNightRole('werewolf');
-  act(P[0], 'night', { noKill: true });
+  act(P[0], 'night', { target: P[1].id });
+  untilPhase('MORNING');
+  assert.equal(P[1].alive, true, 'the bite fails');
   untilPhase('DISCUSSION');
   const d = viewFor(s, P[1].id, 0, 1).me.art.dawn;
   assert.equal(d[0].kind, 'amulet');
@@ -255,28 +256,10 @@ test('Amulet: saves its holder once and breaks; otherwise it is passed on every 
   act(P[1], 'artDawn', { uid: d[0].uid, target: P[2].id });
   assert.equal(s.game.art.amulet.holder, P[2].id);
   assert.deepEqual(viewFor(s, P[1].id, 0, 1).me.art.dawn, []);
-  // Bitten while holding it: saved once, and the Amulet is gone.
   untilNightRole('werewolf');
-  act(P[0], 'night', { target: P[2].id });
+  act(P[0], 'night', { target: P[1].id });
   untilPhase('MORNING');
-  assert.equal(P[2].alive, true);
-  assert.equal(s.game.art.amulet, null);
-  assert.ok(!Object.values(s.game.art.hands).flat().some(c => c.id === 'amulet' && c.revealed));
-  untilNightRole('werewolf');
-  act(P[0], 'night', { target: P[2].id });
-  untilPhase('MORNING');
-  assert.equal(P[2].alive, false, 'no second save');
-});
-
-test('an Amulet nobody can be handed any more is discarded', () => {
-  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'seer'], [null, 'amulet']);
-  untilPhase('DISCUSSION');
-  reveal(P[1]);
-  s.game.art.amulet.had = P.map(p => p.id);
-  untilNightRole('werewolf');
-  act(P[0], 'night', { noKill: true });
-  untilPhase('MORNING');
-  assert.equal(s.game.art.amulet, null);
+  assert.equal(P[1].alive, false, 'no longer holding it');
 });
 
 test('the Amulet is passed at random if its holder forgets', () => {
@@ -518,7 +501,7 @@ test('bots with Artifacts play a whole game without getting stuck', () => {
     applyAction(s, host.id, 'addBot', { count: 12 }, now, rng);
     applyAction(s, host.id, 'autoBalance', {}, now, rng);
     applyAction(s, host.id, 'start', {}, now, rng);
-    for (let i = 0; i < 3000 && s.phase !== 'GAME_OVER'; i++) {
+    for (let i = 0; i < 12000 && s.phase !== 'GAME_OVER'; i++) {
       now += 1000;
       tick(s, now, rng);
     }

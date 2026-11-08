@@ -29,7 +29,7 @@ export const ARTIFACTS = {
   },
   amulet: {
     name: 'Bùa Hộ Mệnh', en: 'The Amulet of Protection', icon: '🧿', once: false, dawn: true, guard: true,
-    desc: 'Người đang giữ Bùa thoát chết 1 lần, rồi Bùa vỡ. Mỗi sáng, người giữ Bùa phải trao nó cho một người chưa từng giữ; không còn ai để trao thì Bùa bị bỏ.'
+    desc: 'Người đang giữ Bùa không thể bị loại. Mỗi sáng, người giữ Bùa phải trao nó cho một người chưa từng giữ.'
   },
   amethyst: {
     name: 'Thạch Anh Tím Tri Thức', en: 'The Amethyst of Knowledge', icon: '🟣', gem: true, once: true,
@@ -70,7 +70,7 @@ export const ARTIFACTS = {
   },
   cloak: {
     name: 'Áo Choàng Hoàng Tử', en: 'The Cloak of the Prince', icon: '🧥', once: false, guard: true,
-    desc: 'Lần đầu bạn sắp bị loại vào ban ngày (treo cổ, Giáo…), bạn thoát chết và Áo Choàng bị huỷ. Chỉ dùng được 1 lần.'
+    desc: 'Bạn không thể bị loại vào ban ngày.'
   },
   cudgel: {
     name: 'Gậy Mụ Già', en: 'The Cudgel of the Old Hag', icon: '🪵', once: false, dawn: true,
@@ -162,7 +162,7 @@ export const ARTIFACTS = {
   },
   shield: {
     name: 'Khiên Vệ Sĩ', en: 'The Shield of the Bodyguard', icon: '🔰', once: false, dawn: true, guard: true,
-    desc: 'Mỗi sáng, chọn 1 người khác nhau: người đó không thể bị loại đêm hôm đó. Khiên cứu được 1 lần, rồi bị huỷ.'
+    desc: 'Mỗi sáng, chọn 1 người khác nhau: người đó không thể bị loại đêm hôm đó.'
   },
   skimmer: {
     name: 'Mũ Kẻ Bị Nguyền', en: 'The Skimmer of the Cursed', icon: '🎩', once: false,
@@ -251,7 +251,6 @@ export const ARTIFACT_RULES = [
   'Lá "1" chỉ dùng một lần khi lật. Lá "∞" có tác dụng mãi từ lúc lật. Lá đã lật để ngửa, cả làng đều thấy.',
   'Mọi lựa chọn đều công khai (cả làng thấy bạn chọn ai). Không được chọn chính mình; với lá "∞", không chọn một người hai lần trong ván. Kết quả cũng công khai, trừ khi lá ghi "bí mật".',
   'Lá "mỗi sáng" (Bùa Hộ Mệnh, Gậy Mụ Già, Trái Tim Thờ Ơ, Khiên Vệ Sĩ) được dùng từ sáng hôm sau ngày lật, trước khi bỏ phiếu. Hết thảo luận mà chưa chọn thì Bùa Hộ Mệnh được trao ngẫu nhiên, các lá khác bỏ lượt hôm đó.',
-  'Lá phòng thủ chỉ cứu được 1 lần (Áo Choàng Hoàng Tử, Bùa Hộ Mệnh, Khiên Vệ Sĩ, Quyền Trượng Tái Sinh, Gậy Luân Hồi): cứu xong là lá bị huỷ. Không ai bất tử đến cuối ván.',
   'Hết giờ thảo luận mà lựa chọn của một lá vẫn chưa xong thì quản trò chọn ngẫu nhiên giúp.',
   'Lá chưa lật của người bị loại được trả về chồng bài. Artifact luôn mạnh hơn vai trò (ví dụ Mũ Gã Khờ bắt Người Hoà Bình bỏ phiếu treo cổ). Tiên Tri và các vai soi đêm luôn thấy lá vai trò gốc.',
   'Có thể nói dối về lá Artifact của mình khi chưa lật.',
