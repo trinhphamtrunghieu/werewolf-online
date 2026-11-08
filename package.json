@@ -11,7 +11,8 @@
     "dev": "node scripts/dev-server.mjs",
     "test": "node --test test/*.test.js",
     "voice": "node scripts/generate-voice.mjs",
-    "build": "echo 'Static frontend in public/, API in api/ - nothing to build'"
+    "build": "echo 'Static frontend in public/, API in api/ - nothing to build'",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-include=lib/** --test-coverage-include=api/** --test-coverage-include=public/shared/** --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 test/*.test.js"
   },
   "license": "MIT"
 }
