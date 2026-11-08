@@ -1,0 +1,21 @@
+name: Kiểm thử
+
+# Every push and pull request: run the tests and require 100% coverage
+# (lines, branches and functions) of the server and shared code.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run coverage

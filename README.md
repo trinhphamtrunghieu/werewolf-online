@@ -156,9 +156,12 @@ Thu các câu trong `voice-lines.js`, lưu thành `public/audio/<key>_<biến th
 
 ## Chạy ở máy cá nhân
 
+Workflow **Kiểm thử** (`.github/workflows/test.yml`) chạy `npm run coverage` cho mọi pull request và mỗi lần push lên `main`. Code giao diện trong `public/js/` chạy trên trình duyệt nên không tính vào coverage; kiểm tra phần đó bằng `npm run dev`.
+
 ```bash
 npm run dev      # http://localhost:3000, lưu phòng trong RAM, giả lập Realtime
 npm test         # test luật chơi (node:test, không cần cài thư viện)
+npm run coverage # test + đo coverage; báo lỗi nếu lib/, api/, public/shared/ chưa đủ 100% (dòng, nhánh, hàm)
 ```
 
 Ở phòng chờ, chủ phòng chọn số lượng bằng nút − / + rồi bấm **Thêm** để thêm nhiều người chơi máy một lúc (tối đa tới khi phòng đầy): người chơi máy tự chọn khi đến lượt và bỏ phiếu ngẫu nhiên. Dùng để chơi khi thiếu người, hoặc thử cả ván chỉ với một điện thoại. Bấm "Mời ra" để bớt. Người chơi máy không được bầu làm máy chủ phòng.
