@@ -1219,3 +1219,12 @@ details.secret .result { margin-top: 8px; }
 .shelf-title { margin: 0 0 -4px; font-family: var(--display); font-size: 1.05rem; color: var(--brass-hi); }
 .shelf-title + .shelf { margin-top: 12px; }
 .invite-note { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(201, 162, 78, 0.1); border: 1px solid var(--brass-line); font-size: 0.92rem; line-height: 1.45; }
+
+/* An Artifact just turned over, shown on every phone. */
+dialog.art-notice .sheet-body { display: grid; gap: 8px; text-align: center; }
+dialog.art-notice .card-kicker { display: flex; justify-content: space-between; align-items: center; color: var(--brass-hi); font-size: 0.85rem; margin: 0; }
+dialog.art-notice .pts { min-width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: 50%; border: 1px solid var(--brass-line); font-weight: 800; }
+dialog.art-notice .art-icon { font-size: 64px; line-height: 1.1; }
+dialog.art-notice h3 { margin: 0; font-family: var(--display); font-size: 1.6rem; }
+dialog.art-notice .art-who { margin: 0; font-weight: 600; }
+dialog.art-notice .desc { margin: 0; color: var(--soft); line-height: 1.5; }

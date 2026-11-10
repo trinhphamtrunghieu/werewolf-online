@@ -457,3 +457,19 @@ test('bots with Artifacts play a whole game without getting stuck', () => {
     assert.ok(s.game.art.feed.length > 0, `seed ${seed}: someone used an Artifact`);
   }
 });
+
+test('every phone is told which card was turned over and by whom, so it can show what it does', () => {
+  const { s, P, act, untilPhase, untilNightRole, reveal } = setup(['werewolf', 'villager', 'villager', 'villager', 'seer'], [null, 'mark', 'scepter']);
+  untilPhase('DISCUSSION');
+  reveal(P[1]);
+  const feed = viewFor(s, P[3].id, 0, 1).game.art.feed;
+  assert.deepEqual(feed.at(-1), { day: s.game.day, text: `${P[1].name} lật 🎖️ Dấu Ấn Trưởng Làng.`, card: 'mark', by: P[1].id });
+  // A card turned over by itself on death is announced the same way.
+  untilNightRole('werewolf');
+  act(P[0], 'night', { target: P[2].id });
+  untilPhase('MORNING');
+  const last = viewFor(s, P[3].id, 0, 1).game.art.feed.filter(f => f.card).at(-1);
+  assert.deepEqual([last.card, last.by], ['scepter', P[2].id]);
+  // Lines that only report a result carry no card.
+  assert.ok(s.game.art.feed.every(f => f.card === undefined || f.by));
+});
