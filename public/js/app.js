@@ -909,7 +909,7 @@ function setupRules() {
 // "Chuẩn bị ván", step 3: how long each part lasts. The day's main steps
 // up front, the rest (each night role, defence, verdict) folded away.
 function setupTimes() {
-  const main = ['discussionTime', 'voteTime', ...(view.config.swapEnabled ? ['swapTime'] : [])];
+  const main = ['discussionTime', 'voteTime', 'revealTime', ...(view.config.swapEnabled ? ['swapTime'] : [])];
   const all = [...SLIDERS, ...stepSliders()];
   return `
     <div class="step-head"><span class="step-num">3</span><h2>Thời gian</h2></div>
@@ -1013,6 +1013,7 @@ function musicControls() {
 
 const SLIDERS = [
   ['swapTime', 'Thời gian trao đổi vai', 5, 60, 5],
+  ['revealTime', 'Xem bài trước đêm đầu', 5, 60, 5],
   ['discussionTime', 'Thảo luận', 30, 600, 15],
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
@@ -1401,7 +1402,7 @@ function phaseSubtitle() {
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
     case 'SWAP': return 'Bấm “Trao đổi vai” nếu muốn nhận lá bài khác trước đêm đầu tiên.';
     case 'ARTPICK': return 'Mỗi người giữ 1 trong 2 lá Artifact được chia.';
-    case 'REVEAL': return 'Trò chơi sẽ bắt đầu sau 10 giây.';
+    case 'REVEAL': return `Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}.`;
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
     case 'DEFENSE': return `${esc(player(g.defendant)?.name || '')} đang tự bào chữa.`;
@@ -1670,7 +1671,7 @@ function stage() {
     return `
       <div class="panel stack reveal-panel">
         <h2>Xem lá bài của bạn</h2>
-        <p class="lead">Trò chơi sẽ bắt đầu sau 10 giây. Che màn hình khỏi người bên cạnh.</p>
+        <p class="lead">Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}. Che màn hình khỏi người bên cạnh.</p>
         ${view.config.autoLovers && m.inGame ? '<p class="small muted">💘 Quản trò đã ghép một cặp Tình Nhân: nếu là bạn, tên và vai người yêu ghi trên lá bài.</p>' : ''}
         ${m.inGame
           ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'
