@@ -1220,14 +1220,28 @@ details.secret .result { margin-top: 8px; }
 .shelf-title + .shelf { margin-top: 12px; }
 .invite-note { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(201, 162, 78, 0.1); border: 1px solid var(--brass-line); font-size: 0.92rem; line-height: 1.45; }
 
-/* An Artifact just turned over, shown on every phone. */
-dialog.art-notice .sheet-body { display: grid; gap: 8px; text-align: center; }
-dialog.art-notice .card-kicker { display: flex; justify-content: space-between; align-items: center; color: var(--brass-hi); font-size: 0.85rem; margin: 0; }
-dialog.art-notice .pts { min-width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: 50%; border: 1px solid var(--brass-line); font-weight: 800; }
-dialog.art-notice .art-icon { font-size: 64px; line-height: 1.1; }
-dialog.art-notice h3 { margin: 0; font-family: var(--display); font-size: 1.6rem; }
-dialog.art-notice .art-who { margin: 0; font-weight: 600; }
-dialog.art-notice .desc { margin: 0; color: var(--soft); line-height: 1.5; }
+/* Artifacts just turned over: a small strip above the hand, one for a group of
+   cards, gone after a few seconds; a tap opens the list. */
+.art-ticker {
+  /* Just above the cards in the hand, clear of the top bar's buttons. */
+  position: fixed; bottom: calc(104px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+  width: min(100% - 24px, 26rem); z-index: 40;
+}
+.art-ticker[hidden] { display: none; }
+.art-ticker-btn {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-align: left;
+  border-radius: 14px; border: 1px solid var(--brass-line); background: var(--face); color: var(--text);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); cursor: pointer; font: inherit;
+  animation: art-ticker-in 0.25s ease-out;
+}
+.art-ticker-btn .ic { font-size: 1.5rem; flex: none; }
+.art-ticker-btn .txt { flex: 1; min-width: 0; font-size: 0.9rem; line-height: 1.35; }
+.art-ticker-btn .go { flex: none; font-size: 0.78rem; color: var(--brass-hi); font-weight: 700; }
+@keyframes art-ticker-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .art-ticker-btn { animation: none; } }
+dialog.art-notice .sheet-body { display: grid; gap: 8px; }
+.art-feed details summary { cursor: pointer; }
+.art-feed details span { display: block; margin-top: 4px; }
 
 /* A small dropdown inside a settings row. */
 .select-small { width: auto; min-width: 7.5rem; padding: 8px 10px; flex: none; }
