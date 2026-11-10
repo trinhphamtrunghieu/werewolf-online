@@ -473,3 +473,36 @@ test('every phone is told which card was turned over and by whom, so it can show
   // Lines that only report a result carry no card.
   assert.ok(s.game.art.feed.every(f => f.card === undefined || f.by));
 });
+
+test('the host may deal Artifacts to only some players, drawn at random', () => {
+  const start = (count, seed = 3) => {
+    const rng = seeded(seed);
+    const { state: s, player: host } = createRoom({ code: 'ART06', hostName: 'Chủ', now: 0, rng });
+    for (let i = 1; i < 8; i++) joinRoom(s, `P${i}`, 0, rng);
+    applyAction(s, host.id, 'autoBalance', {}, 0, rng);
+    applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false, artifactPlayers: count }, 0, rng);
+    applyAction(s, host.id, 'start', {}, 0, rng);
+    return { s, host };
+  };
+  const { s } = start(3);
+  const offered = Object.keys(s.game.art.draft);
+  assert.equal(offered.length, 3);
+  assert.deepEqual([...s.game.art.dealt].sort(), [...offered].sort());
+  const left = s.players.find(p => !offered.includes(p.id));
+  const v = viewFor(s, left.id, 0, 1).me.art;
+  assert.deepEqual([v.dealt, v.hand, v.draft], [false, [], null]);
+  assert.equal(viewFor(s, offered[0], 0, 1).me.art.dealt, true);
+  // Different players each game.
+  const picks = new Set([3, 4, 5, 6].map(seed => Object.keys(start(3, seed).s.game.art.draft).sort().join()));
+  assert.ok(picks.size > 1);
+  // 0, or as many as there are players: everyone.
+  assert.equal(start(0).s.game.art.dealt.length, 8);
+  assert.equal(start(8).s.game.art.dealt.length, 8);
+  // Settings: kept between 0 and the room size, and must be a number.
+  const { state: r, player: h } = createRoom({ code: 'ART07', hostName: 'Chủ', now: 0 });
+  applyAction(r, h.id, 'config', { artifactPlayers: 99 }, 0);
+  assert.equal(r.config.artifactPlayers, 18);
+  applyAction(r, h.id, 'config', { artifactPlayers: -2 }, 0);
+  assert.equal(r.config.artifactPlayers, 0);
+  assert.throws(() => applyAction(r, h.id, 'config', { artifactPlayers: 'nhiều' }, 0), GameError);
+});

@@ -342,3 +342,23 @@ test('notes: the Eye on a villager, a chosen Doppelgänger, a Hoodlum who passed
   g.untilPhase('MORNING');
   assert.match(notes(g.s, g.P[1]), /không phải Sói/);
 });
+
+test('the look-at-your-card time before the first night is the host\'s to set', () => {
+  for (const [secs, line] of [[10, 'game_soon'], [30, 'game_soon_any'], [99, 'game_soon_any']]) {
+    const rng = seeded(5);
+    const now = 1_000_000;
+    const { state: s, player: host } = createRoom({ code: 'REV01', hostName: 'Chủ', now, rng });
+    applyAction(s, host.id, 'addBot', { count: 4 }, now, rng);
+    applyAction(s, host.id, 'autoBalance', {}, now, rng);
+    applyAction(s, host.id, 'config', { swapEnabled: false, revealTime: secs }, now, rng);
+    applyAction(s, host.id, 'start', {}, now, rng);
+    assert.equal(s.phase, 'REVEAL');
+    assert.ok(s.narration.clips.some(c => c.k === line), `${secs} s: ${line}`);
+    const kept = Math.min(secs, 60);
+    assert.equal(viewFor(s, host.id, now, 1).config.revealTime, kept);
+    // The phase lasts at least the chosen time (longer only while the narrator talks).
+    assert.ok(s.game.phaseEndsAt - now >= kept * 1000);
+    tick(s, now + kept * 1000 - 1, rng);
+    if (secs === 30) assert.equal(s.phase, 'REVEAL', 'still looking at the card');
+  }
+});

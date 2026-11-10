@@ -1228,3 +1228,6 @@ dialog.art-notice .art-icon { font-size: 64px; line-height: 1.1; }
 dialog.art-notice h3 { margin: 0; font-family: var(--display); font-size: 1.6rem; }
 dialog.art-notice .art-who { margin: 0; font-weight: 600; }
 dialog.art-notice .desc { margin: 0; color: var(--soft); line-height: 1.5; }
+
+/* A small dropdown inside a settings row. */
+.select-small { width: auto; min-width: 7.5rem; padding: 8px 10px; flex: none; }

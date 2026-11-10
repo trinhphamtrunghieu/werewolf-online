@@ -510,7 +510,8 @@ function onTransitions(prev, next) {
   lastTaskKey = taskKey;
 
   if (prev && prev.phase === 'LOBBY' && next.phase !== 'LOBBY' && !['MORNING', 'REVEAL'].includes(next.phase) && next.me?.inGame) {
-    toast(next.me.art ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai, rồi chọn lá Artifact.' : 'Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
+    toast(next.me.art?.dealt ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai, rồi chọn lá Artifact.'
+      : next.me.art ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai.' : 'Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
   }
   document.body.dataset.time = ['NIGHT', 'LOBBY', 'SWAP', 'ARTPICK'].includes(next.phase) ? 'night' : 'day';
 }
@@ -937,13 +938,29 @@ function setupRules() {
     ${row('revealRoleOnDeath', 'Lật bài người chết', 'Cả làng thấy vai trò của người vừa bị loại.')}
     ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu (sau khi trao đổi vai), game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}
     ${row('artifacts', '🗝️ Chơi với Artifact', 'Luật mở rộng Ultimate Werewolf: Artifacts. Đầu ván mỗi người được chia 2 lá Artifact và giữ 1 lá, lật ra dùng trong lúc thảo luận ban ngày. Xem luật trong “Luật chơi”. Nên dùng khi cả bàn đã quen Ma Sói.')}
-    ${c.artifacts ? row('artifactsHomebrew', '🛠️ Thêm lá Artifact tự chế', 'Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép: không có trong bộ gốc, giúp khắc chế các lá phòng thủ.') : ''}`;
+    ${c.artifacts ? row('artifactsHomebrew', '🛠️ Thêm lá Artifact tự chế', 'Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép: không có trong bộ gốc, giúp khắc chế các lá phòng thủ.') : ''}
+    ${c.artifacts ? artPlayersRow() : ''}`;
+}
+
+// How many players get Artifacts: everyone, or a number drawn at random.
+function artPlayersRow() {
+  const n = view.players.filter(p => !(p.isHost && !view.config.hostPlays)).length;
+  const cur = view.config.artifactPlayers || 0;
+  const opts = [0, ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => i + 1)];
+  if (cur && !opts.includes(cur)) opts.push(cur);
+  return `
+    <label class="toggle-row">
+      <span><strong>🎴 Số người nhận Artifact</strong><span class="muted">Mỗi ván chọn ngẫu nhiên chừng này người để chia Artifact; chỉ người được chia biết mình có lá.</span></span>
+      <select class="input select-small" data-config="artifactPlayers" aria-label="Số người nhận Artifact">
+        ${opts.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${k ? `${k} người${k >= n ? ' (tất cả)' : ''}` : 'Tất cả'}</option>`).join('')}
+      </select>
+    </label>`;
 }
 
 // "Chuẩn bị ván", step 3: how long each part lasts. The day's main steps
 // up front, the rest (each night role, defence, verdict) folded away.
 function setupTimes() {
-  const main = ['discussionTime', 'voteTime', ...(view.config.swapEnabled ? ['swapTime'] : [])];
+  const main = ['discussionTime', 'voteTime', 'revealTime', ...(view.config.swapEnabled ? ['swapTime'] : [])];
   const all = [...SLIDERS, ...stepSliders()];
   return `
     <div class="step-head"><span class="step-num">3</span><h2>Thời gian</h2></div>
@@ -1047,6 +1064,7 @@ function musicControls() {
 
 const SLIDERS = [
   ['swapTime', 'Thời gian trao đổi vai', 5, 60, 5],
+  ['revealTime', 'Xem bài trước đêm đầu', 5, 60, 5],
   ['discussionTime', 'Thảo luận', 30, 600, 15],
   ['voteTime', 'Bỏ phiếu nghi phạm', 10, 120, 5],
   ['defenseTime', 'Biện hộ', 10, 180, 5],
@@ -1434,8 +1452,8 @@ function phaseSubtitle() {
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
     case 'SWAP': return 'Bấm “Trao đổi vai” nếu muốn nhận lá bài khác trước đêm đầu tiên.';
-    case 'ARTPICK': return 'Mỗi người giữ 1 trong 2 lá Artifact được chia.';
-    case 'REVEAL': return 'Trò chơi sẽ bắt đầu sau 10 giây.';
+    case 'ARTPICK': return view.config.artifactPlayers ? 'Người được chia Artifact giữ 1 trong 2 lá.' : 'Mỗi người giữ 1 trong 2 lá Artifact được chia.';
+    case 'REVEAL': return `Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}.`;
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
     case 'DEFENSE': return `${esc(player(g.defendant)?.name || '')} đang tự bào chữa.`;
@@ -1589,6 +1607,7 @@ function artDawn(d) {
 // The label on the Artifact card in the hand.
 function artHint(a) {
   const down = a.hand.filter(c => !c.revealed).length;
+  if (!a.dealt && !a.hand.length) return 'Không có lá';
   if (a.draft) return 'Chọn 1 trong 2';
   if (a.pending || a.dawn.length) return '⚡ Tới lượt bạn';
   if (down && a.canReveal) return 'Có thể lật';
@@ -1622,6 +1641,9 @@ function artCardHtml(c, canReveal) {
 
 function artTab() {
   const mine = view.me.art;
+  if (!mine.dealt && !mine.hand.length) {
+    return `<p class="muted art-when">Ván này bạn không được chia lá Artifact: chủ phòng chỉ chia cho ${view.config.artifactPlayers} người, chọn ngẫu nhiên.</p>`;
+  }
   const down = mine.hand.filter(c => !c.revealed);
   // Face-down cards first: those are the ones you may still play.
   const cards = [...down, ...mine.hand.filter(c => c.revealed)];
@@ -1704,7 +1726,7 @@ function stage() {
     return `
       <div class="panel stack reveal-panel">
         <h2>Xem lá bài của bạn</h2>
-        <p class="lead">Trò chơi sẽ bắt đầu sau 10 giây. Che màn hình khỏi người bên cạnh.</p>
+        <p class="lead">Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}. Che màn hình khỏi người bên cạnh.</p>
         ${view.config.autoLovers && m.inGame ? '<p class="small muted">💘 Quản trò đã ghép một cặp Tình Nhân: nếu là bạn, tên và vai người yêu ghi trên lá bài.</p>' : ''}
         ${m.inGame
           ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'

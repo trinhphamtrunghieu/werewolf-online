@@ -244,6 +244,7 @@ export const infoCap = (hasSeers) => (hasSeers ? 1 : 2);
 // The general rules, shown in the rules sheet.
 export const ARTIFACT_RULES = [
   'Đầu ván, mỗi người được chia 2 lá Artifact và bí mật chọn giữ 1 lá; lá kia trả về chồng bài. Hết giờ chưa chọn thì quản trò chọn ngẫu nhiên giúp. Chỉ mình bạn xem được lá của mình.',
+  'Chủ phòng có thể chỉ chia Artifact cho một số người (chọn ngẫu nhiên mỗi ván). Chỉ người được chia biết mình có lá; không ai biết những người khác có hay không.',
   'Bộ bài được xếp để tránh ván bị khoá: lá phòng thủ chỉ có khi bàn có ít nhất 2 cách giết ban đêm (Phù Thủy, Thợ Săn, Mục Sư, Lọ Độc, Cung Bạc, Hơi Thở Ông Lão); nếu bộ bài đã có vai soi người ban đêm (Tiên Tri, Thám Tử…) thì chỉ có tối đa 1 lá soi vai/phe, không thì tối đa 2.',
   'Lá tự chế (không có trong bộ gốc, chủ phòng tắt được): Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép, để khắc chế các lá phòng thủ.',
   'Lá Artifact chỉ được lật trong lúc cả làng thảo luận ban ngày, khi bạn còn sống. Không lật được ban đêm hay sau khi đã bị loại (trừ Gậy Luân Hồi và Quyền Trượng Tái Sinh, tự lật khi bạn bị loại).',
