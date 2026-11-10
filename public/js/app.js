@@ -440,7 +440,7 @@ let artSeen = null;
 let artRecent = [];
 let artWaiting = [];
 let artTickerTimer = null;
-const ART_TICKER_MS = 8000;
+const ART_TICKER_MS = 15000;
 
 function noticeArtifacts(next) {
   const feed = next.gameId === 'werewolf' ? next.game.art?.feed : null;
