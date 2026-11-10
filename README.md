@@ -58,6 +58,7 @@ Bật **"Chơi với Artifact"** trong *Luật ván này*. Luật chơi:
 - Áo Choàng Hoàng Tử, Bùa Hộ Mệnh và Khiên Vệ Sĩ giữ đúng tác dụng của bản gốc (bảo vệ không giới hạn số lần). Lá tự chế Kiếm Công Lý, Lọ Độc, Cung Bạc xuyên qua mọi lá bảo vệ; Găng Tay Kẻ Trộm, Gương Phá Phép và Kim Cương Chối Bỏ lấy hoặc huỷ được chúng.
 - **Lá tự chế** (không có trong bộ gốc, bật/tắt riêng, mặc định bật): Kiếm Công Lý (loại 1 người, không Artifact nào cứu được), Lọ Độc (người được chọn chết cuối đêm nay, Bảo Vệ/Bùa/Khiên không cứu), Cung Bạc (đêm nay bắn 1 người, chết nếu là Sói), Găng Tay Kẻ Trộm (cướp 1 lá ∞ đã lật), Gương Phá Phép (huỷ 1 lá ∞ đã lật).
 - Lá chỉ lật được trong lúc **thảo luận ban ngày**, khi còn sống; mỗi lần một lá, lá trước dùng xong mới lật được lá khác. Lật lá thì thảo luận còn ít nhất 20 giây.
+- **Thông báo cho cả bàn:** khi ai đó lật một lá Artifact (kể cả lá tự lật khi bị loại, lá bị bắt lật), điện thoại của mọi người khác hiện ngay lá đó và tác dụng của nó (rung nếu bật). Ban đêm thì chờ tới sáng mới hiện. Nhiều lá liền nhau thì hiện lần lượt.
 - Lá "1" dùng một lần, lá "∞" có tác dụng mãi. Lựa chọn công khai; kết quả "bí mật" ghi vào 📜 Nhật ký. Lá "mỗi sáng" dùng từ sáng hôm sau ngày lật. Lá đang chờ chọn khi hết thảo luận thì quản trò chọn ngẫu nhiên.
 - 38 lá gốc + 5 lá tự chế. Không đưa vào 6 lá chỉ giữ được bằng tự giác: Coin of Youth, Mirror of the Doppelgänger, Mask of Spellcasting, Shroud of Shame, Bow of Hunting, Vote from Beyond. Mô tả từng lá trong "Luật chơi" (`public/shared/artifacts.js`), luật chạy trong `lib/artifacts.js`.
 

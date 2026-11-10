@@ -431,7 +431,41 @@ function screenFor(v) {
 }
 
 // Side effects when the game moves on: narrator, sounds, vibration.
+// Artifacts turned over: every phone shows the card and what it does, one
+// at a time, never at night (phones lie face down then). A phone opening the
+// game midway does not replay the cards already shown.
+let artSeen = null;
+const artQueue = [];
+function noticeArtifacts(next) {
+  const feed = next.gameId === 'werewolf' ? next.game.art?.feed : null;
+  if (!feed || artSeen === null || feed.length < artSeen) {
+    artSeen = feed ? feed.length : null;
+    return;
+  }
+  feed.slice(artSeen).filter(f => f.card && f.by !== next.me?.id).forEach(f => artQueue.push(f));
+  artSeen = feed.length;
+  showArtNotice();
+}
+
+function showArtNotice() {
+  const dlg = document.getElementById('artNotice');
+  if (dlg.open || !artQueue.length || view?.phase === 'NIGHT') return;
+  const f = artQueue.shift();
+  const a = ARTIFACTS[f.card];
+  document.getElementById('artNoticeBody').innerHTML = `
+    <p class="card-kicker"><span>🗝️ Artifact vừa được lật</span><span class="pts">${a.once ? '1' : '∞'}</span></p>
+    <div class="art-icon" aria-hidden="true">${a.icon}</div>
+    <h3 id="artNoticeTitle">${esc(a.name)}</h3>
+    <p class="art-who">${esc(f.text)}</p>
+    <p class="desc">${esc(a.desc)}</p>
+    <p class="muted small">${a.once ? 'Dùng 1 lần khi lật.' : 'Luôn có tác dụng từ giờ.'}${artQueue.length ? ` Còn ${artQueue.length} lá nữa.` : ''}</p>
+    <button class="btn btn-primary btn-block" data-act="closeSheet">Đã hiểu</button>`;
+  dlg.showModal();
+  if (canVibrate && vibrateOn) navigator.vibrate(150);
+}
+
 function onTransitions(prev, next) {
+  noticeArtifacts(next);
   const phaseKey = `${next.phase}:${next.game.day}:${next.game.step}`;
   const phaseChanged = phaseKey !== lastPhaseKey;
   lastPhaseKey = phaseKey;
@@ -2543,6 +2577,9 @@ document.addEventListener('toggle', (e) => {
 
 // A game module asking for an action outside a tap (a typed guess).
 window.addEventListener('hub-act', (e) => act(e.detail.type, e.detail.payload));
+
+// The next Artifact notice, once one is closed.
+document.getElementById('artNotice').addEventListener('close', () => showArtNotice());
 
 // Close dialogs by tapping the backdrop.
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e) => {
