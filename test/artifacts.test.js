@@ -506,3 +506,49 @@ test('the host may deal Artifacts to only some players, drawn at random', () => 
   assert.equal(r.config.artifactPlayers, 0);
   assert.throws(() => applyAction(r, h.id, 'config', { artifactPlayers: 'nhiều' }, 0), GameError);
 });
+
+test('a choice that comes a moment too late still counts until the night falls; the host cannot cut the choosing short', () => {
+  const rng = seeded(9);
+  let now = 1_000_000;
+  const { state: s, player: host } = createRoom({ code: 'ART08', hostName: 'Chủ', now, rng });
+  for (let i = 1; i < 6; i++) joinRoom(s, `P${i}`, now, rng);
+  applyAction(s, host.id, 'autoBalance', {}, now, rng);
+  applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false }, now, rng);
+  applyAction(s, host.id, 'start', {}, now, rng);
+  const [, lan, minh, an] = s.players;
+  const offer = [...s.game.art.draft[lan.id]];
+  applyAction(s, an.id, 'artKeep', { index: 0 }, now, rng);
+  // The host's skip does nothing while people are still choosing.
+  applyAction(s, host.id, 'skip', {}, now, rng);
+  tick(s, now, rng);
+  assert.equal(s.phase, 'ARTPICK');
+  // Time runs out: a card is picked for Lan (and Minh).
+  now = s.game.phaseEndsAt;
+  tick(s, now, rng);
+  assert.equal(s.phase, 'REVEAL');
+  const deck = s.game.art.deck.length;
+  const ap = viewFor(s, lan.id, now, 1).me.art.autoPicked;
+  assert.deepEqual(ap.opts, offer);
+  assert.ok(offer.includes(ap.kept));
+  assert.match(notes(s, lan), /quản trò chọn giúp/);
+  // Lan's tap for the other card arrives now: she gets it, the picked one goes back.
+  const want = offer.find(id => id !== ap.kept);
+  applyAction(s, lan.id, 'artKeep', { index: offer.indexOf(want) }, now, rng);
+  assert.deepEqual(s.game.art.hands[lan.id].map(c => c.id), [want]);
+  assert.ok(s.game.art.deck.includes(ap.kept) && !s.game.art.deck.includes(want));
+  assert.equal(s.game.art.deck.length, deck);
+  assert.equal(viewFor(s, lan.id, now, 1).me.art.autoPicked, null);
+  assert.throws(() => applyAction(s, lan.id, 'artKeep', { index: 0 }, now, rng), /hết lúc/);
+  // Minh keeps the one picked for him: nothing changes.
+  const mine = s.game.art.hands[minh.id][0].id;
+  const mo = s.game.art.autoPicked[minh.id].opts;
+  assert.throws(() => applyAction(s, minh.id, 'artKeep', { index: 5 }, now, rng), /không hợp lệ/);
+  applyAction(s, minh.id, 'artKeep', { index: mo.indexOf(mine) }, now, rng);
+  assert.deepEqual(s.game.art.hands[minh.id].map(c => c.id), [mine]);
+  // An, who chose in time, cannot change; nobody can once the night has come.
+  assert.throws(() => applyAction(s, an.id, 'artKeep', { index: 1 }, now, rng), /hết lúc/);
+  now = s.game.phaseEndsAt;
+  tick(s, now, rng);
+  assert.equal(s.phase, 'NIGHT');
+  assert.throws(() => applyAction(s, an.id, 'artKeep', { index: 1 }, now, rng), /hết lúc/);
+});

@@ -1633,6 +1633,24 @@ function artDawn(d) {
     ${pickGrid('artDawn', { pool: view.players.filter(p => d.options.includes(p.id)) }).replace(/data-act="artDawn"/g, `data-act="artDawn" data-uid="${d.uid}"`)}</div>`;
 }
 
+// Time ran out on the Artifact draft: the card picked for this player, and
+// the other one they may still take before the night falls.
+function artAutoPicked() {
+  const ap = view.me?.art?.autoPicked;
+  if (!ap) return '';
+  const other = ap.opts.find(id => id !== ap.kept);
+  const i = ap.opts.indexOf(other);
+  return `<div class="panel stack" style="margin-top:12px">
+    <h3>🗝️ Hết giờ chọn Artifact</h3>
+    <p class="lead">Quản trò đã chọn giúp bạn <strong>${esc(artLabel(ap.kept))}</strong>. Muốn lá kia thì đổi ngay, trước khi đêm xuống:</p>
+    <p class="small muted">${esc(artLabel(other))}: ${esc(ARTIFACTS[other].desc)}</p>
+    <div class="footer-row">
+      <button class="btn btn-primary" data-act="artRekeep" data-index="${i}">Đổi sang ${esc(ARTIFACTS[other].name)}</button>
+      <button class="btn btn-ghost" data-act="artRekeep" data-index="${ap.opts.indexOf(ap.kept)}">Giữ lá này</button>
+    </div>
+  </div>`;
+}
+
 // The label on the Artifact card in the hand.
 function artHint(a) {
   const down = a.hand.filter(c => !c.revealed).length;
@@ -1760,20 +1778,20 @@ function stage() {
         ${m.inGame
           ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'
           : '<p class="muted">Mọi người đang xem lá bài của mình.</p>'}
-      </div>`;
+      </div>${artAutoPicked()}`;
   }
 
   if (view.phase === 'ARTPICK') {
     const offer = m.art?.draft;
     const left = g.art?.drafting || 0;
-    const hostSkip = isHost() ? '<button class="btn btn-ghost" data-act="skip">Chọn ngẫu nhiên cho người còn lại</button>' : '';
     if (!offer) {
       return `<div class="panel stack"><h2>${m.art?.hand.length ? 'Bạn đã chọn xong' : 'Mọi người đang chọn Artifact'}</h2>
-        <p class="lead">${left ? `Còn ${left} người đang chọn.` : 'Sắp xong.'} Hết giờ, ai chưa chọn sẽ được chọn ngẫu nhiên.</p>${hostSkip}</div>`;
+        <p class="lead">${left ? `Còn ${left} người đang chọn.` : 'Sắp xong.'} Mọi người chọn xong là ván tiếp tục ngay.</p></div>`;
     }
     return `<div class="panel stack">
         <h2>Giữ 1 lá Artifact</h2>
         <p class="lead">Bạn được chia 2 lá. Giữ 1 lá, lá còn lại trả về chồng bài. Che màn hình khỏi người bên cạnh.</p>
+        <p class="muted small">Hết giờ mà chưa chọn thì quản trò chọn giúp, nhưng bạn vẫn đổi được trước khi đêm xuống.</p>
       </div>
       <div class="draft">${offer.map((id, i) => {
         const a = ARTIFACTS[id];
@@ -2561,6 +2579,7 @@ document.addEventListener('click', async (e) => {
     }
     case 'artTicker': return openArtNotice();
     case 'artDecide': return act('artDecide', { force: el.dataset.force === '1' });
+    case 'artRekeep': return act('artKeep', { index: Number(el.dataset.index) });
     case 'artKeep': {
       const id = view.me.art?.draft?.[Number(el.dataset.index)];
       if (id && confirm(`Giữ ${ARTIFACTS[id].name}? Lá còn lại trả về chồng bài.`)) act('artKeep', { index: Number(el.dataset.index) });

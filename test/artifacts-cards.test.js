@@ -461,3 +461,13 @@ test('Emerald with an empty deck leaves its victim without a card; Diamond can t
   reveal(P[2], [P[3]]);
   assert.equal(s.game.art.amulet, null);
 });
+
+test('a card watched with the Sapphire that leaves its owner is no longer watched', () => {
+  const { s, P, untilPhase, reveal } = setup(V6, ['sapphire', 'void', 'spear']);
+  untilPhase('DISCUSSION');
+  reveal(P[0], [P[1]]);
+  assert.equal(s.game.art.fate.length, 1);
+  reveal(P[2], [P[1]]);
+  assert.equal(P[1].alive, false);
+  assert.equal(s.game.art.fate.length, 0);
+});
