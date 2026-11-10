@@ -49,6 +49,7 @@ Thêm các vai từ **Ultimate Werewolf**: Tiên Tri Tập Sự, Tiên Tri Hào 
 
 Bật **"Chơi với Artifact"** trong *Luật ván này*. Luật chơi:
 
+- **Số người nhận Artifact:** mặc định tất cả; chủ phòng có thể chọn chỉ N người (chọn ngẫu nhiên mỗi ván). Chỉ người được chia biết mình có lá.
 - **Chọn lá:** sau khi trao đổi vai, mỗi người được chia **2 lá Artifact** và bí mật giữ 1 lá (25 giây; hết giờ thì chọn ngẫu nhiên). Lá kia trả về chồng bài.
 - **Xếp bộ bài chống khoá ván:**
   - lá "đá quý" là 1 trên 5 lá được chia
