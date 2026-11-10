@@ -320,6 +320,12 @@ export const LINES = {
     'Hôm nay không ai lên bục.',
     'Làng chưa thống nhất. Không ai lên bục.'
   ],
+  // The same, when the host set another length than ten seconds.
+  game_soon_any: [
+    'Hãy xem lá bài của mình. Trò chơi sắp bắt đầu.',
+    'Xem lại lá bài của bạn. Màn đêm sắp buông xuống.',
+    'Hãy xem lá bài. Trò chơi sắp bắt đầu.'
+  ],
   game_soon: [
     'Trò chơi sẽ bắt đầu sau mười giây. Hãy xem lá bài của mình.',
     'Mười giây nữa trò chơi bắt đầu. Xem lại lá bài của bạn.',
