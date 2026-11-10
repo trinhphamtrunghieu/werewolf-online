@@ -431,41 +431,68 @@ function screenFor(v) {
 }
 
 // Side effects when the game moves on: narrator, sounds, vibration.
-// Artifacts turned over: every phone shows the card and what it does, one
-// at a time, never at night (phones lie face down then). A phone opening the
-// game midway does not replay the cards already shown.
+// Artifacts turned over: a small strip above the hand, never a box
+// that has to be closed. Cards turned over close together share one strip
+// ("3 lá Artifact vừa được lật"); it fades after a few seconds, and a tap
+// opens the list with what each card does. Held back at night (phones lie
+// face down). A phone opening the game midway does not replay old cards.
 let artSeen = null;
-const artQueue = [];
+let artRecent = [];
+let artWaiting = [];
+let artTickerTimer = null;
+const ART_TICKER_MS = 8000;
+
 function noticeArtifacts(next) {
   const feed = next.gameId === 'werewolf' ? next.game.art?.feed : null;
   if (!feed || artSeen === null || feed.length < artSeen) {
     artSeen = feed ? feed.length : null;
     return;
   }
-  feed.slice(artSeen).filter(f => f.card && f.by !== next.me?.id).forEach(f => artQueue.push(f));
+  artWaiting.push(...feed.slice(artSeen).filter(f => f.card && f.by !== next.me?.id));
   artSeen = feed.length;
-  showArtNotice();
+  flushArtNotice();
 }
 
-function showArtNotice() {
-  const dlg = document.getElementById('artNotice');
-  if (dlg.open || !artQueue.length || view?.phase === 'NIGHT') return;
-  const f = artQueue.shift();
-  const a = ARTIFACTS[f.card];
+function flushArtNotice() {
+  const strip = document.getElementById('artTicker');
+  if (!artWaiting.length || view?.phase === 'NIGHT') return;
+  // A strip that already faded starts a new group.
+  if (strip.hidden) artRecent = [];
+  artRecent.push(...artWaiting);
+  artWaiting = [];
+  const n = artRecent.length;
+  const icons = artRecent.map(f => ARTIFACTS[f.card].icon).join(' ');
+  strip.innerHTML = `<button class="art-ticker-btn" data-act="artTicker">
+    <span class="ic" aria-hidden="true">${n === 1 ? ARTIFACTS[artRecent[0].card].icon : '🗝️'}</span>
+    <span class="txt">${n === 1 ? esc(artRecent[0].text) : `${n} lá Artifact vừa được lật ${icons}`}</span>
+    <span class="go">Xem tác dụng</span>
+  </button>`;
+  strip.hidden = false;
+  clearTimeout(artTickerTimer);
+  artTickerTimer = setTimeout(() => { strip.hidden = true; }, ART_TICKER_MS);
+  if (canVibrate && vibrateOn) navigator.vibrate(80);
+}
+
+// The list behind the strip: each card, who turned it over, what it does.
+function openArtNotice() {
+  document.getElementById('artTicker').hidden = true;
   document.getElementById('artNoticeBody').innerHTML = `
-    <p class="card-kicker"><span>🗝️ Artifact vừa được lật</span><span class="pts">${a.once ? '1' : '∞'}</span></p>
-    <div class="art-icon" aria-hidden="true">${a.icon}</div>
-    <h3 id="artNoticeTitle">${esc(a.name)}</h3>
-    <p class="art-who">${esc(f.text)}</p>
-    <p class="desc">${esc(a.desc)}</p>
-    <p class="muted small">${a.once ? 'Dùng 1 lần khi lật.' : 'Luôn có tác dụng từ giờ.'}${artQueue.length ? ` Còn ${artQueue.length} lá nữa.` : ''}</p>
-    <button class="btn btn-primary btn-block" data-act="closeSheet">Đã hiểu</button>`;
-  dlg.showModal();
-  if (canVibrate && vibrateOn) navigator.vibrate(150);
+    <div class="sheet-head"><h3 id="artNoticeTitle">🗝️ Artifact vừa được lật</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
+    ${artRecent.map(f => {
+      const a = ARTIFACTS[f.card];
+      return `<div class="rules-art">
+        <span class="ic" aria-hidden="true">${a.icon}</span>
+        <span><strong>${esc(a.name)}</strong> <span class="pts">${a.once ? '1' : '∞'}</span><br>
+        <span class="muted small">${esc(f.text)}</span><br>${esc(a.desc)}</span></div>`;
+    }).join('')}
+    <p class="muted small">Xem lại mọi lá đã lật hôm nay trong khung “Artifact hôm nay”.</p>`;
+  document.getElementById('artNotice').showModal();
 }
 
 function onTransitions(prev, next) {
   noticeArtifacts(next);
+  // Cards turned over at night show up in the morning.
+  if (next.phase !== 'NIGHT') flushArtNotice();
   const phaseKey = `${next.phase}:${next.game.day}:${next.game.step}`;
   const phaseChanged = phaseKey !== lastPhaseKey;
   lastPhaseKey = phaseKey;
@@ -1560,7 +1587,9 @@ function artPanel() {
   if (!today.length && !parts.length) return '';
   return `<div class="panel stack art-panel">
     <h3>🗝️ Artifact hôm nay</h3>
-    ${today.length ? `<ul class="art-feed">${today.map(f => `<li>${esc(f.text)}</li>`).join('')}</ul>` : ''}
+    ${today.length ? `<ul class="art-feed">${today.map(f => `<li>${f.card
+      ? `<details><summary>${esc(f.text)}</summary><span class="muted small">${ARTIFACTS[f.card].icon} ${esc(ARTIFACTS[f.card].desc)}</span></details>`
+      : esc(f.text)}</li>`).join('')}</ul>` : ''}
     ${parts.join('')}
   </div>`;
 }
@@ -2530,6 +2559,7 @@ document.addEventListener('click', async (e) => {
       artPicks = [];
       return act('artChoose', { targets });
     }
+    case 'artTicker': return openArtNotice();
     case 'artDecide': return act('artDecide', { force: el.dataset.force === '1' });
     case 'artKeep': {
       const id = view.me.art?.draft?.[Number(el.dataset.index)];
@@ -2579,7 +2609,6 @@ document.addEventListener('toggle', (e) => {
 window.addEventListener('hub-act', (e) => act(e.detail.type, e.detail.payload));
 
 // The next Artifact notice, once one is closed.
-document.getElementById('artNotice').addEventListener('close', () => showArtNotice());
 
 // Close dialogs by tapping the backdrop.
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e) => {
