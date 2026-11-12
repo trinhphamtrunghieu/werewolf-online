@@ -58,7 +58,7 @@ export const ARTIFACTS = {
   cauldron: {
     name: 'Vạc Phép Thuật', en: 'The Cauldron of Sorcery', icon: '🍲', once: true, info: true,
     pick: { n: 1, from: 'alive' },
-    desc: 'Chọn 1 người: quản trò công bố người đó có phải Dân Làng thường hay không (không nói vai cụ thể).'
+    desc: 'Chọn 1 người: quản trò bí mật cho bạn biết người đó có phải Dân Làng thường hay không (không nói vai cụ thể).'
   },
   citrine: {
     name: 'Thạch Anh Vàng May Mắn', en: 'The Citrine of Fortune', icon: '🟠', gem: true, once: true,
@@ -110,7 +110,7 @@ export const ARTIFACTS = {
   mist: {
     name: 'Sương Hào Quang', en: 'The Mist of Aura', icon: '🌫️', once: true, info: true,
     pick: { n: 1, from: 'alive' },
-    desc: 'Chọn 1 người: quản trò công bố người đó có vai đặc biệt hay không (không phải Ma Sói thường hay Dân Làng thường).'
+    desc: 'Chọn 1 người: quản trò bí mật cho bạn biết người đó có vai đặc biệt hay không (không phải Ma Sói thường hay Dân Làng thường).'
   },
   onyx: {
     name: 'Mã Não Huỷ Diệt', en: 'The Onyx of Destruction', icon: '⚫', gem: true, once: true,
@@ -244,13 +244,14 @@ export const infoCap = (hasSeers) => (hasSeers ? 1 : 2);
 // The general rules, shown in the rules sheet.
 export const ARTIFACT_RULES = [
   'Đầu ván, mỗi người được chia 2 lá Artifact và bí mật chọn giữ 1 lá; lá kia trả về chồng bài. Hết giờ chưa chọn thì quản trò chọn ngẫu nhiên giúp, nhưng bạn vẫn đổi sang lá kia được cho tới khi đêm xuống. Chủ phòng không cắt ngang được lúc mọi người đang chọn. Chỉ mình bạn xem được lá của mình.',
-  'Chủ phòng có thể chỉ chia Artifact cho một số người (chọn ngẫu nhiên mỗi ván). Chỉ người được chia biết mình có lá; không ai biết những người khác có hay không.',
+  'Chủ phòng có thể chỉ cho một số người giữ Artifact (chọn ngẫu nhiên mỗi ván). Ai cũng được chia 2 lá và chọn 1 như nhau; người không được giữ chỉ biết điều đó (một mình) khi chọn xong, lá trả về chồng bài. Không ai biết những người khác có lá hay không: màn hình của người không có lá trông giống hệt (vẫn có một lá úp).',
+  'Cặp Tình Nhân khác phe luôn có lá Artifact: người yêu nào không được giữ lá thì nhận lại lá mình đã chọn ngay khi thành cặp (chỉ một lần, lúc đầu ván).',
   'Bộ bài được xếp để tránh ván bị khoá: lá phòng thủ chỉ có khi bàn có ít nhất 2 cách giết ban đêm (Phù Thủy, Thợ Săn, Mục Sư, Lọ Độc, Cung Bạc, Hơi Thở Ông Lão); nếu bộ bài đã có vai soi người ban đêm (Tiên Tri, Thám Tử…) thì chỉ có tối đa 1 lá soi vai/phe, không thì tối đa 2.',
   'Lá tự chế (không có trong bộ gốc, chủ phòng tắt được): Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép, để khắc chế các lá phòng thủ.',
   'Lá Artifact chỉ được lật trong lúc cả làng thảo luận ban ngày, khi bạn còn sống. Không lật được ban đêm hay sau khi đã bị loại (trừ Gậy Luân Hồi và Quyền Trượng Tái Sinh, tự lật khi bạn bị loại).',
   'Mỗi lần chỉ một lá được dùng: lá trước phải xong (kể cả lựa chọn đi kèm) thì người khác mới lật được. Lật lá thì thảo luận được thêm ít nhất 20 giây.',
   'Lá "1" chỉ dùng một lần khi lật. Lá "∞" có tác dụng mãi từ lúc lật. Lá đã lật để ngửa, cả làng đều thấy.',
-  'Mọi lựa chọn đều công khai (cả làng thấy bạn chọn ai). Không được chọn chính mình; với lá "∞", không chọn một người hai lần trong ván. Kết quả cũng công khai, trừ khi lá ghi "bí mật".',
+  'Cả làng chỉ được báo ai vừa lật (hoặc dùng) lá Artifact nào; bạn chọn ai và kết quả ra sao thì không công bố (chỉ người liên quan được báo trong 📜 Nhật ký). Riêng người phải rời làng (Gậy Mụ Già) hay không được bỏ phiếu (Trái Tim Thờ Ơ) vẫn hiện cho cả làng, vì mọi người phải tuân theo. Người bị loại ban ngày vẫn được báo. Không được chọn chính mình; với lá "∞", không chọn một người hai lần trong ván.',
   'Lá "mỗi sáng" (Bùa Hộ Mệnh, Gậy Mụ Già, Trái Tim Thờ Ơ, Khiên Vệ Sĩ) được dùng từ sáng hôm sau ngày lật, trước khi bỏ phiếu. Hết thảo luận mà chưa chọn thì Bùa Hộ Mệnh được trao ngẫu nhiên, các lá khác bỏ lượt hôm đó.',
   'Hết giờ thảo luận mà lựa chọn của một lá vẫn chưa xong thì quản trò chọn ngẫu nhiên giúp.',
   'Lá chưa lật của người bị loại được trả về chồng bài. Artifact luôn mạnh hơn vai trò (ví dụ Mũ Gã Khờ bắt Người Hoà Bình bỏ phiếu treo cổ). Tiên Tri và các vai soi đêm luôn thấy lá vai trò gốc.',

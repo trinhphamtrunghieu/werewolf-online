@@ -537,8 +537,8 @@ function onTransitions(prev, next) {
   lastTaskKey = taskKey;
 
   if (prev && prev.phase === 'LOBBY' && next.phase !== 'LOBBY' && !['MORNING', 'REVEAL'].includes(next.phase) && next.me?.inGame) {
-    toast(next.me.art?.dealt ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai, rồi chọn lá Artifact.'
-      : next.me.art ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai.' : 'Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
+    // (The same words with or without Artifact cards: a glance must not tell.)
+    toast(next.me.art ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai.' : 'Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
   }
   document.body.dataset.time = ['NIGHT', 'LOBBY', 'SWAP', 'ARTPICK'].includes(next.phase) ? 'night' : 'day';
 }
@@ -977,7 +977,7 @@ function artPlayersRow() {
   if (cur && !opts.includes(cur)) opts.push(cur);
   return `
     <label class="toggle-row">
-      <span><strong>🎴 Số người nhận Artifact</strong><span class="muted">Mỗi ván chọn ngẫu nhiên chừng này người để chia Artifact; chỉ người được chia biết mình có lá.</span></span>
+      <span><strong>🎴 Số người nhận Artifact</strong><span class="muted">Ai cũng chọn 1 trong 2 lá như nhau, rồi chỉ chừng này người (ngẫu nhiên mỗi ván) được giữ lá; chỉ người đó biết mình có lá.</span></span>
       <select class="input select-small" data-config="artifactPlayers" aria-label="Số người nhận Artifact">
         ${opts.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${k ? `${k} người${k >= n ? ' (tất cả)' : ''}` : 'Tất cả'}</option>`).join('')}
       </select>
@@ -1479,7 +1479,7 @@ function phaseSubtitle() {
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
     case 'SWAP': return 'Bấm “Trao đổi vai” nếu muốn nhận lá bài khác trước đêm đầu tiên.';
-    case 'ARTPICK': return view.config.artifactPlayers ? 'Người được chia Artifact giữ 1 trong 2 lá.' : 'Mỗi người giữ 1 trong 2 lá Artifact được chia.';
+    case 'ARTPICK': return 'Mỗi người giữ 1 trong 2 lá Artifact được chia.';
     case 'REVEAL': return `Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}.`;
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
@@ -1542,8 +1542,9 @@ function seat(p, opts = {}) {
 const alivePlayers = () => view.players.filter(p => p.inGame && p.alive);
 
 // ---------- Artifacts ----------
-// What everyone can see on a seat: the Artifacts turned face up, the
-// Amulet, and today's Artifact choices that concern this player.
+// What everyone can see on a seat: the Artifacts turned face up, and
+// today's Cudgel and Heart (everyone has to keep to them). Who holds the
+// Amulet and whom the Shield covers stay secret.
 const artLabel = (id) => `${ARTIFACTS[id].icon} ${ARTIFACTS[id].name}`;
 function artMarks(p) {
   if (!p.art) return [];
@@ -1551,10 +1552,8 @@ function artMarks(p) {
   const day = view.phase !== 'NIGHT';
   return [
     p.art.shown.map(id => ARTIFACTS[id].icon).join(''),
-    p.art.amulet ? '🧿 Giữ Bùa' : '',
     day && a.away?.includes(p.id) ? '🪵 Rời làng' : '',
-    day && a.noVote?.includes(p.id) ? '🖤 Không bỏ phiếu' : '',
-    day && a.shield === p.id ? '🔰 Được che đêm nay' : ''
+    day && a.noVote?.includes(p.id) ? '🖤 Không bỏ phiếu' : ''
   ];
 }
 // Out of the village or not allowed to vote today (Old Hag, Artifacts).
@@ -1576,13 +1575,14 @@ function artPanel() {
     const who = esc(nameOnly(w.owner));
     const what = w.type === 'choose' ? `${who} đang chọn người cho ${esc(artLabel(w.id))}`
       : w.type === 'decide' ? `${who} đang quyết định có bắt lật lá Artifact không`
-      : w.type === 'letter' ? `${who} đang chọn một chữ cái cho ${esc(nameOnly(w.by))}`
+      : w.type === 'letter' ? `Đang chờ chữ cái cho ${esc(nameOnly(w.by))}`
       : 'Đang dùng một lá Artifact';
     parts.push(`<p class="result">⏳ ${what}…</p>`);
   }
   (mine?.dawn || []).forEach(d => parts.push(artDawn(d)));
-  if (mine && view.phase === 'DISCUSSION' && view.me.alive && mine.hand.some(c => !c.revealed)) {
-    parts.push(`<p class="muted small">Bạn có lá Artifact chưa lật: bấm <strong>Artifact</strong> ở dưới cùng để xem và lật.${w ? ' (Đợi lá đang dùng xong.)' : ''}</p>`);
+  // Shown to every living player, card or not: a glance must not tell who holds one.
+  if (mine && view.phase === 'DISCUSSION' && view.me.alive) {
+    parts.push(`<p class="muted small">Bấm <strong>Artifact</strong> ở dưới cùng để xem lá của bạn.${w ? ' (Đợi lá đang dùng xong.)' : ''}</p>`);
   }
   if (!today.length && !parts.length) return '';
   return `<div class="panel stack art-panel">
@@ -1651,15 +1651,12 @@ function artAutoPicked() {
   </div>`;
 }
 
-// The label on the Artifact card in the hand.
+// The label on the Artifact card in the hand. The same for every player
+// whether they hold a card or not, so a glance at someone's phone tells
+// nothing; only a turn to act (a card already shown to all) changes it.
 function artHint(a) {
-  const down = a.hand.filter(c => !c.revealed).length;
-  if (!a.dealt && !a.hand.length) return 'Không có lá';
-  if (a.draft) return 'Chọn 1 trong 2';
   if (a.pending || a.dawn.length) return '⚡ Tới lượt bạn';
-  if (down && a.canReveal) return 'Có thể lật';
-  if (down) return 'Đang úp';
-  return a.hand.length ? 'Đã lật' : 'Không còn lá';
+  return 'Lá bí mật';
 }
 
 // One Artifact card, drawn like the role card: face down until tapped
@@ -1686,19 +1683,40 @@ function artCardHtml(c, canReveal) {
   </div>`;
 }
 
+// A player with no face-down card sees one anyway: the same back, the same
+// button. Only its face, which they alone see, says there is no card.
+function artNoneHtml(canReveal) {
+  const m = view.me.art;
+  const why = m.hand.length ? 'Bạn không còn lá Artifact nào đang úp.'
+    : m.dealt ? 'Bạn không còn lá Artifact nào.'
+    : `Ván này chủ phòng chỉ cho ${view.config.artifactPlayers} người giữ lá Artifact (chọn ngẫu nhiên) và bạn không nằm trong số đó.`;
+  const up = flipped.has('art-none');
+  return `<div class="art-slot">
+    <button class="card art-big ${up ? 'revealed' : ''}" data-act="flip" data-key="art-none" aria-label="Lá Artifact">
+      <div class="card-inner">
+        <div class="card-face card-back art-back"><span class="art-key" aria-hidden="true">🗝️</span><p>Artifact<br><span class="small muted">Chạm để xem. Che màn hình khỏi người bên cạnh</span></p></div>
+        <div class="card-face card-front">
+          <p class="card-top"><span>Artifact</span><span class="pts">–</span></p>
+          <div class="art-icon" aria-hidden="true">🫥</div>
+          <h3>Không có lá</h3>
+          <p class="desc">${esc(why)}</p>
+          <p class="art-state">🤫 Hãy giữ bí mật, như mọi người khác.</p>
+        </div>
+      </div>
+    </button>
+    ${canReveal ? '<button class="btn btn-primary btn-block art-use" data-act="artNone">Lật cho cả làng xem và dùng</button>' : ''}
+  </div>`;
+}
+
 function artTab() {
   const mine = view.me.art;
-  if (!mine.dealt && !mine.hand.length) {
-    return `<p class="muted art-when">Ván này bạn không được chia lá Artifact: chủ phòng chỉ chia cho ${view.config.artifactPlayers} người, chọn ngẫu nhiên.</p>`;
-  }
   const down = mine.hand.filter(c => !c.revealed);
-  // Face-down cards first: those are the ones you may still play.
-  const cards = [...down, ...mine.hand.filter(c => c.revealed)];
-  const when = !down.length ? ''
-    : mine.canReveal ? '<p class="art-when ok">Bạn có thể lật lá ngay bây giờ.</p>'
+  // Face-down cards first: those are the ones you may still play. With none,
+  // a stand-in card, so every player's screen looks alike.
+  const when = mine.canReveal ? '<p class="art-when ok">Bạn có thể lật lá ngay bây giờ.</p>'
     : view.phase === 'DISCUSSION' && view.me.alive ? '<p class="art-when">Đợi lá Artifact đang dùng xong rồi mới lật được.</p>'
     : view.me.alive ? '<p class="art-when">Chỉ lật được trong lúc cả làng thảo luận ban ngày.</p>' : '';
-  return `${when}${cards.length ? cards.map(c => artCardHtml(c, mine.canReveal)).join('') : '<p class="muted art-when">Bạn không còn lá Artifact nào.</p>'}`;
+  return `${when}${down.length ? down.map(c => artCardHtml(c, mine.canReveal)).join('') : artNoneHtml(mine.canReveal)}${mine.hand.filter(c => c.revealed).map(c => artCardHtml(c, false)).join('')}`;
 }
 
 function pickGrid(act, { exclude = [], disabled = [], selected = [], counts = {}, subs = {}, pool = alivePlayers() } = {}) {
@@ -1725,10 +1743,6 @@ function dayNews() {
   if (a) {
     a.away.forEach(id => items.push(`<p>🪵 <strong>${esc(nameOnly(id))}</strong> rời làng hôm nay: không ai được bỏ phiếu cho người này, người này cũng không bỏ phiếu.</p>`));
     a.noVote.forEach(id => items.push(`<p>🖤 <strong>${esc(nameOnly(id))}</strong> không được bỏ phiếu hôm nay.</p>`));
-    if (a.shield) items.push(`<p>🔰 <strong>${esc(nameOnly(a.shield))}</strong> không thể bị loại đêm nay.</p>`);
-    (a.shots || []).forEach(sh => items.push(sh.kind === 'vial'
-      ? `<p>🧴 <strong>${esc(nameOnly(sh.id))}</strong> đã trúng Lọ Độc: sẽ chết vào cuối đêm nay.</p>`
-      : `<p>🏹 Cung Bạc nhắm vào <strong>${esc(nameOnly(sh.id))}</strong>: nếu là Sói sẽ chết đêm nay.</p>`));
   }
   if (view.me?.spectator) items.push('<p class="muted small">👁️ Bạn đã chết và không còn ai hồi sinh được: ban đêm bạn được theo dõi diễn biến và vai của mọi người. Ban ngày màn hình không hiện vai của ai; hãy giữ im lặng.</p>');
   return items.length ? `<div class="day-news panel">${items.join('')}</div>` : '';
@@ -1785,7 +1799,7 @@ function stage() {
     const offer = m.art?.draft;
     const left = g.art?.drafting || 0;
     if (!offer) {
-      return `<div class="panel stack"><h2>${m.art?.hand.length ? 'Bạn đã chọn xong' : 'Mọi người đang chọn Artifact'}</h2>
+      return `<div class="panel stack"><h2>Mọi người đang chọn Artifact</h2>
         <p class="lead">${left ? `Còn ${left} người đang chọn.` : 'Sắp xong.'} Mọi người chọn xong là ván tiếp tục ngay.</p></div>`;
     }
     return `<div class="panel stack">
@@ -2223,7 +2237,7 @@ function renderCard(reset = true) {
   const revealed = flipped.has('role');
   const tabs = m.art ? `<div class="board-tabs sheet-tabs" role="group" aria-label="Bài trên tay">
       <button data-act="cardTab" data-tab="role" aria-pressed="${cardTab === 'role'}">🂠 Vai trò</button>
-      <button data-act="cardTab" data-tab="art" aria-pressed="${cardTab === 'art'}">🗝️ Artifact${m.art.hand.some(c => !c.revealed) ? ` (${m.art.hand.filter(c => !c.revealed).length})` : ''}</button>
+      <button data-act="cardTab" data-tab="art" aria-pressed="${cardTab === 'art'}">🗝️ Artifact</button>
     </div>` : '';
   if (cardTab === 'art') {
     body.innerHTML = `<h3 id="cardSheetTitle" class="hidden">Artifact của bạn</h3>${tabs}${artTab()}
@@ -2257,6 +2271,7 @@ function renderCard(reset = true) {
   if (m.charmedList?.length) extra.push(`🎶 Đã thôi miên: ${m.charmedList.map(seatName).join(', ')}`);
   if (m.powerless) extra.push('👴 Già Làng đã chết dưới tay dân làng: bạn đã mất chức năng đến hết ván. Hãy giữ bí mật điều này.');
   if (m.clawed) extra.push('🐾 Nhờ Artifact, bạn đã thành Sói: thức dậy cùng đàn Sói và thắng thua cùng phe Sói (vẫn giữ chức năng của vai này).');
+  if (m.art?.amulet) extra.push('🧿 Bạn đang giữ Bùa Hộ Mệnh: không ai loại được bạn. Chỉ mình bạn biết điều này.');
   if (m.art?.lostPower) extra.push('🗝️ Một lá Artifact đã lấy mất chức năng của vai này (xem 📜 Nhật ký).');
   if (!m.alive) extra.push('Bạn đã bị loại, hãy giữ im lặng nhé.');
   const teamColor = { village: 'var(--village)', werewolf: '#e0766b' }[r.team] || 'var(--third)';
@@ -2566,6 +2581,8 @@ document.addEventListener('click', async (e) => {
       }
       return;
     }
+    case 'artNone':
+      return toast('Bạn không có lá Artifact nào đang úp để lật.');
     case 'artPick': {
       const pd = view.me.art?.pending;
       if (!pd) return;

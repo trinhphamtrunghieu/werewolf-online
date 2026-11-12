@@ -7,7 +7,8 @@ import { setup, notes, seeded } from './helpers.js';
 
 const fails = (fn, re) => assert.throws(fn, (e) => e instanceof GameError && (!re || re.test(e.message)));
 const cards = (s, p) => s.game.art.hands[p.id].map(c => c.id);
-const feedText = (s) => s.game.art.feed.map(f => f.text).join('\n');
+// Results stay out of the public feed: they go to the game log.
+const feedText = (s) => s.game.log.join('\n');
 const V5 = ['werewolf', 'villager', 'villager', 'villager', 'seer'];
 const V6 = ['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'];
 
@@ -54,11 +55,15 @@ test('a dead player gives the Sheet of the Ghost its letter; the letter must be 
   reveal(P[1], [P[3]]);
   const v = viewFor(s, P[3].id, 0, 1);
   assert.deepEqual(v.me.art.pending, { type: 'letter', by: P[1].id });
-  assert.deepEqual(viewFor(s, P[4].id, 0, 1).game.art.waiting, { type: 'letter', owner: P[3].id, id: null, by: P[1].id });
+  // The dead player asked for a letter is the Sheet's target: not named.
+  assert.deepEqual(viewFor(s, P[4].id, 0, 1).game.art.waiting, { type: 'letter', owner: null, id: null, by: P[1].id });
   fails(() => act(P[3], 'artLetter', { letter: 'AB' }), /chữ cái/);
   fails(() => act(P[3], 'artLetter', {}), /chữ cái/);
   act(P[3], 'artLetter', { letter: 'đ' });
   assert.match(feedText(s), /chữ "Đ"/);
+  // Only the Sheet's owner learns the letter; the table only saw the reveal.
+  assert.match(notes(s, P[1]), /cho bạn chữ "Đ"/);
+  assert.doesNotMatch(s.game.art.feed.map(f => f.text).join('\n'), /Đ"|P4/);
 });
 
 test('cards that read people: Cauldron, Mist, Ring, Staff and Pendant', () => {
@@ -320,17 +325,17 @@ test('the Sword on a blessed player: the blessing still holds', () => {
   assert.match(feedText(s), /không bị loại/);
 });
 
-test('the Vial target lynched by day dies only once; the shots are public by day', () => {
+test('the Vial target lynched by day dies only once; the target stays secret', () => {
   const { s, P, act, untilPhase, reveal } = setup(V6, ['vial']);
   untilPhase('DISCUSSION');
   reveal(P[0], [P[2]]);
-  assert.deepEqual(viewFor(s, P[3].id, 0, 1).game.art.shots, [{ id: P[2].id, kind: 'vial' }]);
+  assert.equal(viewFor(s, P[3].id, 0, 1).game.art.shots, undefined);
+  assert.deepEqual(s.game.art.feed.map(f => f.text), [`${P[0].name} lật 🧴 Lọ Độc.`]);
   untilPhase('VOTE');
   P.filter(p => p !== P[2]).forEach(p => act(p, 'vote', { target: P[2].id }));
   untilPhase('JUDGE');
   P.filter(p => p !== P[2] && !s.game.judge[p.id]).forEach(p => act(p, 'judge', { choice: 'kill' }));
   untilPhase('NIGHT');
-  assert.deepEqual(viewFor(s, P[3].id, 0, 1).game.art.shots, []);
   untilPhase('MORNING');
   assert.ok(!s.game.lastNightDeaths.includes(P[2].id));
 });
@@ -346,10 +351,19 @@ test('dawn choices: wrong target, the Shield shown for the day, and the Amulet i
   const d = viewFor(s, P[1].id, 0, 1).me.art.dawn[0];
   fails(() => act(P[1], 'artDawn', { uid: d.uid, target: P[1].id }), /Không chọn được/);
   act(P[1], 'artDawn', { uid: d.uid, target: P[3].id });
-  assert.equal(viewFor(s, P[4].id, 0, 1).game.art.shield, P[3].id);
+  // Who used the Shield is public; on whom is not.
+  assert.equal(viewFor(s, P[4].id, 0, 1).game.art.shield, undefined);
+  assert.equal(s.game.art.feed.at(-1).text, `${P[1].name} dùng 🔰 Khiên Vệ Sĩ.`);
+  assert.match(feedText(s), new RegExp(`Khiên Vệ Sĩ với ${P[3].name}`));
   const am = viewFor(s, P[2].id, 0, 1).me.art.dawn[0];
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.art.amulet, true);
   act(P[2], 'artDawn', { uid: am.uid, target: P[4].id });
   assert.equal(s.game.art.amulet.holder, P[4].id);
+  // Only the new holder knows they hold the Amulet.
+  assert.equal(viewFor(s, P[4].id, 0, 1).me.art.amulet, true);
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.art.amulet, false);
+  assert.equal(viewFor(s, P[3].id, 0, 1).players.find(q => q.id === P[4].id).art.amulet, undefined);
+  assert.match(notes(s, P[4]), /trao cho bạn/);
 });
 
 test('bots: draft picks, waiting choices, decisions, letters, and refused moves', () => {
@@ -369,7 +383,7 @@ test('bots: draft picks, waiting choices, decisions, letters, and refused moves'
   b.P[3].isBot = true;
   b.reveal(b.P[0], [b.P[3]]);
   b.clock.advance(3000);
-  assert.match(feedText(b.s), /cho P1 chữ|cho Chủ chữ/);
+  assert.match(feedText(b.s), /cho bạn chữ/);
 
   // A move the rules refuse: skipped. A real bug: thrown.
   const A = makeArtifacts({ GameError, fail: (m) => { throw new GameError(m); }, findPlayer: (st, id) => st.players.find(p => p.id === id) });

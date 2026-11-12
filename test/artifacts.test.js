@@ -474,7 +474,7 @@ test('every phone is told which card was turned over and by whom, so it can show
   assert.ok(s.game.art.feed.every(f => f.card === undefined || f.by));
 });
 
-test('the host may deal Artifacts to only some players, drawn at random', () => {
+test('the host may let only some players keep an Artifact; everyone still picks', () => {
   const start = (count, seed = 3) => {
     const rng = seeded(seed);
     const { state: s, player: host } = createRoom({ code: 'ART06', hostName: 'Chủ', now: 0, rng });
@@ -485,15 +485,27 @@ test('the host may deal Artifacts to only some players, drawn at random', () => 
     return { s, host };
   };
   const { s } = start(3);
-  const offered = Object.keys(s.game.art.draft);
-  assert.equal(offered.length, 3);
-  assert.deepEqual([...s.game.art.dealt].sort(), [...offered].sort());
-  const left = s.players.find(p => !offered.includes(p.id));
+  // Everyone is offered two cards: the same screen for all.
+  assert.equal(Object.keys(s.game.art.draft).length, 8);
+  assert.equal(s.game.art.dealt.length, 3);
+  const keeper = s.players.find(p => s.game.art.dealt.includes(p.id));
+  const left = s.players.find(p => !s.game.art.dealt.includes(p.id));
   const v = viewFor(s, left.id, 0, 1).me.art;
-  assert.deepEqual([v.dealt, v.hand, v.draft], [false, [], null]);
-  assert.equal(viewFor(s, offered[0], 0, 1).me.art.dealt, true);
+  assert.deepEqual([v.dealt, v.hand, v.draft.length], [false, [], 2]);
+  assert.equal(viewFor(s, keeper.id, 0, 1).me.art.draft.length, 2);
+  // The keeper holds the card; the other one learns, alone, that theirs is set aside.
+  const deck = s.game.art.deck.length;
+  applyAction(s, keeper.id, 'artKeep', { index: 0 }, 0);
+  assert.equal(s.game.art.hands[keeper.id].length, 1);
+  const want = s.game.art.draft[left.id][1];
+  applyAction(s, left.id, 'artKeep', { index: 1 }, 0);
+  assert.deepEqual(s.game.art.hands[left.id], []);
+  assert.equal(s.game.art.stash[left.id], want);
+  assert.equal(s.game.art.deck.length, deck + 2);
+  assert.match(notes(s, left), /không nằm trong số đó/);
+  assert.doesNotMatch(notes(s, keeper), /không nằm trong số đó/);
   // Different players each game.
-  const picks = new Set([3, 4, 5, 6].map(seed => Object.keys(start(3, seed).s.game.art.draft).sort().join()));
+  const picks = new Set([3, 4, 5, 6].map(seed => [...start(3, seed).s.game.art.dealt].sort().join()));
   assert.ok(picks.size > 1);
   // 0, or as many as there are players: everyone.
   assert.equal(start(0).s.game.art.dealt.length, 8);
@@ -551,4 +563,149 @@ test('a choice that comes a moment too late still counts until the night falls; 
   tick(s, now, rng);
   assert.equal(s.phase, 'NIGHT');
   assert.throws(() => applyAction(s, an.id, 'artKeep', { index: 1 }, now, rng), /hết lúc/);
+});
+
+// Lovers from different sides always hold an Artifact, even when the host
+// deals the cards to only some of the players.
+test('cross-side lovers get an Artifact when Cupid pairs them; same-side lovers do not', () => {
+  const roles = ['werewolf', 'cupid', 'villager', 'villager', 'villager', 'seer'];
+  const cross = setup(roles, ['mark']);
+  const { s, P, act, untilNightRole } = cross;
+  s.game.art.dealt = [P[0].id];
+  untilNightRole('cupid');
+  act(P[1], 'night', { target: P[0].id });
+  act(P[1], 'night', { target: P[2].id });
+  untilNightRole('werewolf');
+  // The wolf already had a card: nothing more. The villager gets one, once.
+  assert.equal(s.game.art.hands[P[0].id].length, 1);
+  assert.equal(s.game.art.hands[P[2].id].length, 1);
+  assert.ok(s.game.art.dealt.includes(P[2].id));
+  assert.equal(viewFor(s, P[2].id, 0, 1).me.art.dealt, true);
+  assert.match(notes(s, P[2]), /người yêu khác phe/);
+  // A card they lose is not replaced.
+  s.game.art.hands[P[2].id] = [];
+  act(P[0], 'night', { noKill: true });
+  cross.untilPhase('MORNING');
+  assert.equal(s.game.art.hands[P[2].id].length, 0);
+
+  const same = setup(roles);
+  same.s.game.art.dealt = [];
+  same.untilNightRole('cupid');
+  same.act(same.P[1], 'night', { target: same.P[2].id });
+  same.act(same.P[1], 'night', { target: same.P[3].id });
+  same.untilNightRole('werewolf');
+  assert.equal(same.s.game.art.hands[same.P[2].id].length, 0);
+  // Given once, at the start: a lover who changes side later (here a wolf's
+  // claw) gets nothing.
+  same.P[2].clawed = true;
+  same.act(same.P[0], 'night', { noKill: true });
+  same.untilPhase('MORNING');
+  assert.equal(same.s.game.art.hands[same.P[2].id].length, 0);
+  assert.equal(same.s.game.art.hands[same.P[3].id].length, 0);
+});
+
+test('a lover not drawn to keep a card gets back the one they picked; the rest go back to the deck at dawn', () => {
+  const rng = seeded(11);
+  let now = 1_000_000;
+  const { state: s, player: host } = createRoom({ code: 'ART09', hostName: 'Chủ', now, rng });
+  for (let i = 1; i < 6; i++) joinRoom(s, `P${i}`, now, rng);
+  applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false, artifactPlayers: 1, autoLovers: false }, now, rng);
+  for (const r of Object.keys(s.roleCounts)) s.roleCounts[r] = 0;
+  Object.assign(s.roleCounts, { werewolf: 1, cupid: 1, villager: 3, seer: 1 });
+  applyAction(s, host.id, 'start', {}, now, rng);
+  const P = s.players;
+  const roles = ['werewolf', 'cupid', 'villager', 'villager', 'villager', 'seer'];
+  P.forEach((p, i) => { p.role = roles[i]; });
+  const a = s.game.art;
+  a.dealt = [P[5].id];
+  // Everyone picks the first card, but P1 lets the time run out.
+  const picked = Object.fromEntries(P.map(p => [p.id, a.draft[p.id]]));
+  P.slice(1).forEach(p => applyAction(s, p.id, 'artKeep', { index: 0 }, now, rng));
+  now = s.game.phaseEndsAt; tick(s, now, rng);
+  assert.equal(s.phase, 'REVEAL');
+  // Picked for P1 at random, set aside: P1 sees the same screen as a keeper
+  // and may still swap (the swap stays set aside).
+  const ap = viewFor(s, P[0].id, now, 1).me.art.autoPicked;
+  assert.equal(ap.kept, a.stash[P[0].id]);
+  const other = ap.opts.find(id => id !== ap.kept);
+  applyAction(s, P[0].id, 'artKeep', { index: ap.opts.indexOf(other) }, now, rng);
+  assert.equal(a.stash[P[0].id], other);
+  assert.deepEqual(a.hands[P[0].id], []);
+  // A swap back to the card already held changes nothing.
+  a.autoPicked[P[0].id] = { opts: ap.opts, uid: null };
+  applyAction(s, P[0].id, 'artKeep', { index: ap.opts.indexOf(other) }, now, rng);
+  assert.equal(a.stash[P[0].id], other);
+  // Cupid pairs the wolf P1 with the villager P3: both get their own picks back.
+  for (let i = 0; i < 40 && !(s.phase === 'NIGHT' && s.game.queue[s.game.step] === 'cupid' && s.game.nightStage === 'act'); i++) {
+    now = s.game.phaseEndsAt; tick(s, now, rng);
+  }
+  applyAction(s, P[1].id, 'night', { target: P[0].id }, now, rng);
+  applyAction(s, P[1].id, 'night', { target: P[2].id }, now, rng);
+  for (let i = 0; i < 40 && s.game.queue[s.game.step] === 'cupid'; i++) { now = s.game.phaseEndsAt; tick(s, now, rng); }
+  assert.deepEqual(a.hands[P[0].id].map(c => c.id), [other]);
+  assert.deepEqual(a.hands[P[2].id].map(c => c.id), [picked[P[2].id][0]]);
+  assert.equal(a.stash[P[0].id], undefined);
+  // The cards set aside for the others go back to the deck at dawn.
+  const setAside = Object.values(a.stash);
+  assert.equal(setAside.length, 3);
+  for (let i = 0; i < 80 && s.phase !== 'MORNING'; i++) { now = s.game.phaseEndsAt; tick(s, now, rng); }
+  assert.deepEqual(a.stash, {});
+  setAside.forEach(id => assert.ok(a.deck.includes(id)));
+});
+
+test('a lover with no card set aside is armed from the deck, or from any card', () => {
+  const roles = ['werewolf', 'cupid', 'villager', 'villager', 'villager', 'seer'];
+  const { s, P, act, untilNightRole } = setup(roles);
+  s.game.art.dealt = [];
+  s.game.art.deck = [];
+  untilNightRole('cupid');
+  act(P[1], 'night', { target: P[0].id });
+  act(P[1], 'night', { target: P[2].id });
+  untilNightRole('werewolf');
+  for (const p of [P[0], P[2]]) assert.equal(ARTIFACTS[s.game.art.hands[p.id][0].id].gem, undefined);
+});
+
+test('without homebrew cards, a lover armed from an empty deck gets no homebrew card', () => {
+  const roles = ['werewolf', 'cupid', 'villager', 'villager', 'villager', 'seer'];
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const { s, P, act, untilNightRole } = setup(roles, [], { config: { artifactsHomebrew: false }, rng: seeded(seed) });
+    s.game.art.dealt = [];
+    s.game.art.deck = [];
+    untilNightRole('cupid');
+    act(P[1], 'night', { target: P[0].id });
+    act(P[1], 'night', { target: P[2].id });
+    untilNightRole('werewolf');
+    for (const p of [P[0], P[2]]) {
+      const [c] = s.game.art.hands[p.id];
+      assert.ok(c && !ARTIFACTS[c.id].homebrew && !ARTIFACTS[c.id].gem);
+    }
+  }
+});
+
+test('a lover paired by the game whose card was picked at random may still swap it', () => {
+  let tried = 0;
+  for (let seed = 1; seed < 60 && !tried; seed++) {
+    const rng = seeded(seed);
+    let now = 1_000_000;
+    const { state: s, player: host } = createRoom({ code: 'ART10', hostName: 'Chủ', now, rng });
+    for (let i = 1; i < 6; i++) joinRoom(s, `P${i}`, now, rng);
+    applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false, artifactPlayers: 1, autoLovers: true }, now, rng);
+    for (const r of Object.keys(s.roleCounts)) s.roleCounts[r] = 0;
+    Object.assign(s.roleCounts, { werewolf: 1, villager: 4, seer: 1 });
+    applyAction(s, host.id, 'start', {}, now, rng);
+    const a = s.game.art;
+    const dealt = [...a.dealt];
+    now = s.game.phaseEndsAt; tick(s, now, rng);
+    // Nobody picked: every card was picked at random. A lover from the other
+    // side who was not drawn to keep one now holds theirs.
+    const lover = s.game.lovers.find(id => !dealt.includes(id) && a.dealt.includes(id));
+    if (!lover) continue;
+    tried += 1;
+    const ap = viewFor(s, lover, now, 1).me.art.autoPicked;
+    assert.equal(a.hands[lover][0].id, ap.kept);
+    const other = ap.opts.find(id => id !== ap.kept);
+    applyAction(s, lover, 'artKeep', { index: ap.opts.indexOf(other) }, now, rng);
+    assert.deepEqual(a.hands[lover].map(c => c.id), [other]);
+  }
+  assert.equal(tried, 1);
 });
