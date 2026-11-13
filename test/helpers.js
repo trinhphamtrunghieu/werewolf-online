@@ -23,8 +23,7 @@ export function setup(roles, arts = [], { config = {}, rng = seeded() } = {}) {
   for (const roleId of Object.keys(s.roleCounts)) s.roleCounts[roleId] = 0;
   Object.assign(s.roleCounts, counts);
   applyAction(s, host.id, 'start', {}, now, rng);
-  // The test deals the Artifacts itself: no draft.
-  if (s.game.art) s.game.art.draft = {};
+  // The test deals the Artifacts itself.
   s.players.forEach((p, i) => {
     p.role = roles[i];
     if (s.game.art) s.game.art.hands[p.id] = arts[i] ? [{ uid: 100 + i, id: arts[i], revealed: false, day: null }] : [];

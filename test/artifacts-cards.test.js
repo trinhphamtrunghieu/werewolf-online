@@ -7,7 +7,7 @@ import { setup, notes, seeded } from './helpers.js';
 
 const fails = (fn, re) => assert.throws(fn, (e) => e instanceof GameError && (!re || re.test(e.message)));
 const cards = (s, p) => s.game.art.hands[p.id].map(c => c.id);
-// Results stay out of the public feed: they go to the game log.
+// The game log: the public feed plus the results told to one player only.
 const feedText = (s) => s.game.log.join('\n');
 const V5 = ['werewolf', 'villager', 'villager', 'villager', 'seer'];
 const V6 = ['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'];
@@ -19,7 +19,7 @@ test('Artifact moves are refused when off, out of turn, or not allowed', () => {
   fails(() => plain.act(plain.P[1], 'artReveal', { uid: 1 }), /không dùng Artifact/);
 
   const { s, P, act, untilPhase, reveal } = setup(V6, ['spear', 'amethyst', 'void', 'void']);
-  fails(() => act(P[0], 'artKeep', { index: 0 }), /hết lúc chọn/);
+  fails(() => act(P[0], 'artKeep', { index: 0 }), /thảo luận ban ngày/);
   untilPhase('DISCUSSION');
   fails(() => act(P[0], 'artDance'), /không hợp lệ/);
   fails(() => act(P[0], 'artReveal', { uid: 999 }), /không hợp lệ/);
@@ -61,9 +61,11 @@ test('a dead player gives the Sheet of the Ghost its letter; the letter must be 
   fails(() => act(P[3], 'artLetter', {}), /chữ cái/);
   act(P[3], 'artLetter', { letter: 'đ' });
   assert.match(feedText(s), /chữ "Đ"/);
-  // Only the Sheet's owner learns the letter; the table only saw the reveal.
+  // Only the Sheet's owner learns the letter; the table saw whom they asked.
   assert.match(notes(s, P[1]), /cho bạn chữ "Đ"/);
-  assert.doesNotMatch(s.game.art.feed.map(f => f.text).join('\n'), /Đ"|P4/);
+  const pub = s.game.art.feed.map(f => f.text).join('\n');
+  assert.doesNotMatch(pub, /Đ"/);
+  assert.match(pub, new RegExp(`chọn ${P[3].name}`));
 });
 
 test('cards that read people: Cauldron, Mist, Ring, Staff and Pendant', () => {
@@ -325,12 +327,12 @@ test('the Sword on a blessed player: the blessing still holds', () => {
   assert.match(feedText(s), /không bị loại/);
 });
 
-test('the Vial target lynched by day dies only once; the target stays secret', () => {
+test('the Vial target lynched by day dies only once; the target is chosen in public', () => {
   const { s, P, act, untilPhase, reveal } = setup(V6, ['vial']);
   untilPhase('DISCUSSION');
   reveal(P[0], [P[2]]);
   assert.equal(viewFor(s, P[3].id, 0, 1).game.art.shots, undefined);
-  assert.deepEqual(s.game.art.feed.map(f => f.text), [`${P[0].name} lật 🧴 Lọ Độc.`]);
+  assert.deepEqual(s.game.art.feed.map(f => f.text), [`${P[0].name} lật 🧴 Lọ Độc.`, `${P[0].name} dùng 🧴 Lọ Độc chọn ${P[2].name}.`]);
   untilPhase('VOTE');
   P.filter(p => p !== P[2]).forEach(p => act(p, 'vote', { target: P[2].id }));
   untilPhase('JUDGE');
@@ -351,10 +353,8 @@ test('dawn choices: wrong target, the Shield shown for the day, and the Amulet i
   const d = viewFor(s, P[1].id, 0, 1).me.art.dawn[0];
   fails(() => act(P[1], 'artDawn', { uid: d.uid, target: P[1].id }), /Không chọn được/);
   act(P[1], 'artDawn', { uid: d.uid, target: P[3].id });
-  // Who used the Shield is public; on whom is not.
-  assert.equal(viewFor(s, P[4].id, 0, 1).game.art.shield, undefined);
-  assert.equal(s.game.art.feed.at(-1).text, `${P[1].name} dùng 🔰 Khiên Vệ Sĩ.`);
-  assert.match(feedText(s), new RegExp(`Khiên Vệ Sĩ với ${P[3].name}`));
+  // Chosen in public, as every choice is.
+  assert.equal(s.game.art.feed.at(-1).text, `${P[1].name} dùng 🔰 Khiên Vệ Sĩ chọn ${P[3].name}.`);
   const am = viewFor(s, P[2].id, 0, 1).me.art.dawn[0];
   assert.equal(viewFor(s, P[2].id, 0, 1).me.art.amulet, true);
   act(P[2], 'artDawn', { uid: am.uid, target: P[4].id });
@@ -366,7 +366,7 @@ test('dawn choices: wrong target, the Shield shown for the day, and the Amulet i
   assert.match(notes(s, P[4]), /trao cho bạn/);
 });
 
-test('bots: draft picks, waiting choices, decisions, letters, and refused moves', () => {
+test('bots: waiting choices, decisions, letters, and refused moves', () => {
   // A bot owner of each kind of waiting item.
   const g = setup(V6, ['amethyst', 'void', 'staff']);
   g.untilPhase('DISCUSSION');
@@ -387,7 +387,7 @@ test('bots: draft picks, waiting choices, decisions, letters, and refused moves'
 
   // A move the rules refuse: skipped. A real bug: thrown.
   const A = makeArtifacts({ GameError, fail: (m) => { throw new GameError(m); }, findPlayer: (st, id) => st.players.find(p => p.id === id) });
-  const s = { phase: 'DISCUSSION', game: { day: 1, art: { queue: [], draft: {}, hands: {}, botDay: 1 } }, players: [{ id: 'b', isBot: true, inGame: true, alive: true }] };
+  const s = { phase: 'DISCUSSION', game: { day: 1, art: { queue: [], hands: {}, botDay: 1 } }, players: [{ id: 'b', isBot: true, inGame: true, alive: true }] };
   s.game.art.queue = [{ type: 'decide', owner: 'b' }];
   assert.equal(A.bots(s, () => 0.1, () => { throw new GameError('no'); }), false);
   assert.throws(() => A.bots(s, () => 0.1, () => { throw new TypeError('bug'); }), TypeError);
@@ -396,7 +396,7 @@ test('bots: draft picks, waiting choices, decisions, letters, and refused moves'
   assert.equal(A.bots(s, () => 0.1, () => {}), false);
 });
 
-test('views: the draft, the waiting choice for its owner, and nothing for a bystander', () => {
+test('views: the narrator, the waiting choice for its owner, and nothing for a bystander', () => {
   const rng = seeded(4);
   const { state: s, player: host } = createRoom({ code: 'VIEW1', hostName: 'Chủ', now: 0, rng });
   applyAction(s, host.id, 'addBot', { count: 5 }, 0, rng);
@@ -404,17 +404,9 @@ test('views: the draft, the waiting choice for its owner, and nothing for a byst
   applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false, hostPlays: false }, 0, rng);
   applyAction(s, host.id, 'autoBalance', {}, 0, rng);
   applyAction(s, host.id, 'start', {}, 0, rng);
-  assert.equal(s.phase, 'ARTPICK');
+  assert.equal(s.phase, 'REVEAL');
   assert.equal(viewFor(s, host.id, 0, 1).me.art, null, 'the narrator has no Artifact');
-  assert.equal(viewFor(s, host.id, 0, 1).game.art.drafting, 5);
-  const p = s.players[1];
-  fails(() => applyAction(s, p.id, 'artKeep', { index: 5 }, 0, rng), /không hợp lệ/);
-  applyAction(s, p.id, 'artKeep', { index: 0 }, 0, rng);
-  assert.equal(viewFor(s, p.id, 0, 1).me.art.draft, null);
-  // Everyone chose: on to the reveal straight away (once the narrator is done).
-  const before = s.game.phaseEndsAt;
-  s.players.slice(2).forEach(q => applyAction(s, q.id, 'artKeep', { index: 1 }, 0, rng));
-  assert.ok(s.game.phaseEndsAt < before);
+  assert.equal(viewFor(s, s.players[1].id, 0, 1).me.art.hand.length, 1);
 
   const g = setup(['villager', 'werewolf', 'werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], ['orb', 'spear', 'ruby', 'void', 'void']);
   g.untilPhase('DISCUSSION');
@@ -452,7 +444,7 @@ test('a bot Orb that finds both wolves ends the game, and the other bots stop', 
   assert.fail('no seed where the bot Orb guessed right');
 });
 
-test('a big table may be short of cards: some get a single Artifact, kept without choosing', () => {
+test('a big table: one card each, none twice, and nobody holds two', () => {
   const rng = seeded(2);
   const { state: s, player: host } = createRoom({ code: 'BIG01', hostName: 'Chủ', now: 0, rng });
   applyAction(s, host.id, 'addBot', { count: 17 }, 0, rng);
@@ -460,9 +452,11 @@ test('a big table may be short of cards: some get a single Artifact, kept withou
   for (const k of Object.keys(s.roleCounts)) s.roleCounts[k] = 0;
   Object.assign(s.roleCounts, { werewolf: 4, villager: 13, seer: 1 });
   applyAction(s, host.id, 'start', {}, 0, rng);
-  const kept = Object.values(s.game.art.hands).filter(h => h.length === 1).length;
-  assert.ok(kept > 0, 'single cards are kept at once');
-  assert.equal(kept + Object.keys(s.game.art.draft).length, 18);
+  const hands = Object.values(s.game.art.hands);
+  assert.ok(hands.every(h => h.length <= 1));
+  const ids = hands.flat().map(c => c.id);
+  assert.ok(ids.length > 0);
+  assert.equal(new Set(ids).size, ids.length);
 });
 
 test('Emerald with an empty deck leaves its victim without a card; Diamond can take the Amulet', () => {
@@ -484,4 +478,16 @@ test('a card watched with the Sapphire that leaves its owner is no longer watche
   reveal(P[2], [P[1]]);
   assert.equal(P[1].alive, false);
   assert.equal(s.game.art.fate.length, 0);
+});
+
+test('a bot holding a morning card makes its choice during the discussion', () => {
+  const { s, P, act, untilPhase, untilNightRole, reveal, clock } = setup(V6, [null, 'heart']);
+  untilPhase('DISCUSSION');
+  reveal(P[1]);
+  untilNightRole('werewolf');
+  act(P[0], 'night', { noKill: true });
+  untilPhase('DISCUSSION');
+  P[1].isBot = true;
+  clock.advance(3000);
+  assert.equal(s.game.art.today.noVote.length, 1);
 });
