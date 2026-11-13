@@ -529,7 +529,7 @@ function onTransitions(prev, next) {
   // A sheet left open (the card, the notes…) covers the whole screen: close
   // it when the game starts and when it is your turn, so the choices can be
   // tapped straight away.
-  const gameStarts = prev && ((['SWAP', 'ARTPICK', 'REVEAL'].includes(prev.phase) && next.phase === 'NIGHT')
+  const gameStarts = prev && ((['SWAP', 'REVEAL'].includes(prev.phase) && next.phase === 'NIGHT')
     || (prev.phase === 'LOBBY' && next.phase !== 'LOBBY' && next.gameId !== 'werewolf'));
   if (gameStarts || (taskKey && taskKey !== lastTaskKey)) {
     document.querySelectorAll('dialog[open]').forEach(d => d.close());
@@ -540,7 +540,7 @@ function onTransitions(prev, next) {
     // (The same words with or without Artifact cards: a glance must not tell.)
     toast(next.me.art ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai.' : 'Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
   }
-  document.body.dataset.time = ['NIGHT', 'LOBBY', 'SWAP', 'ARTPICK'].includes(next.phase) ? 'night' : 'day';
+  document.body.dataset.time = ['NIGHT', 'LOBBY', 'SWAP'].includes(next.phase) ? 'night' : 'day';
 }
 
 async function requestWakeLock() {
@@ -964,7 +964,7 @@ function setupRules() {
     ${row('swapEnabled', 'Cho phép trao đổi vai', 'Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai”; hết giờ các lá được chia lại ngẫu nhiên, ẩn danh.')}
     ${row('revealRoleOnDeath', 'Lật bài người chết', 'Cả làng thấy vai trò của người vừa bị loại.')}
     ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu (sau khi trao đổi vai), game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}
-    ${row('artifacts', '🗝️ Chơi với Artifact', 'Luật mở rộng Ultimate Werewolf: Artifacts. Đầu ván mỗi người được chia 2 lá Artifact và giữ 1 lá, lật ra dùng trong lúc thảo luận ban ngày. Xem luật trong “Luật chơi”. Nên dùng khi cả bàn đã quen Ma Sói.')}
+    ${row('artifacts', '🗝️ Chơi với Artifact', 'Luật mở rộng Ultimate Werewolf: Artifacts. Đầu ván mỗi người được chia 1 lá Artifact úp, lật ra dùng trong lúc thảo luận ban ngày. Xem luật trong “Luật chơi”. Nên dùng khi cả bàn đã quen Ma Sói.')}
     ${c.artifacts ? row('artifactsHomebrew', '🛠️ Thêm lá Artifact tự chế', 'Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép: không có trong bộ gốc, giúp khắc chế các lá phòng thủ.') : ''}
     ${c.artifacts ? artPlayersRow() : ''}`;
 }
@@ -977,7 +977,7 @@ function artPlayersRow() {
   if (cur && !opts.includes(cur)) opts.push(cur);
   return `
     <label class="toggle-row">
-      <span><strong>🎴 Số người nhận Artifact</strong><span class="muted">Ai cũng chọn 1 trong 2 lá như nhau, rồi chỉ chừng này người (ngẫu nhiên mỗi ván) được giữ lá; chỉ người đó biết mình có lá.</span></span>
+      <span><strong>🎴 Số người nhận Artifact</strong><span class="muted">Chỉ chừng này người (ngẫu nhiên mỗi ván) được chia lá; chỉ người đó biết mình có lá, màn hình ai cũng có một lá úp.</span></span>
       <select class="input select-small" data-config="artifactPlayers" aria-label="Số người nhận Artifact">
         ${opts.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${k ? `${k} người${k >= n ? ' (tất cả)' : ''}` : 'Tất cả'}</option>`).join('')}
       </select>
@@ -1147,7 +1147,6 @@ const PHASE_TITLE = {
   NIGHT: (g) => `Đêm ${g.day}`,
   MORNING: (g) => `Sáng ngày ${g.day}`,
   SWAP: () => 'Trao đổi vai',
-  ARTPICK: () => 'Chọn Artifact',
   REVEAL: () => 'Xem lá bài',
   DISCUSSION: (g) => `Ngày ${g.day}: thảo luận`,
   VOTE: (g) => `Ngày ${g.day}: bỏ phiếu`,
@@ -1252,7 +1251,7 @@ function renderGame() {
 
   // Before the first night (swap, then a look at the cards) the screen is
   // kept to the card and the swap: the rest appears when the game starts.
-  const opening = ['SWAP', 'ARTPICK', 'REVEAL'].includes(view.phase);
+  const opening = ['SWAP', 'REVEAL'].includes(view.phase);
   document.getElementById('narration').hidden = opening;
   renderNarration();
   // The host's tools and this phone's sound options, folded under the table.
@@ -1479,7 +1478,6 @@ function phaseSubtitle() {
     }
     case 'MORNING': return g.lastNightDeaths.length ? 'Một đêm đẫm máu.' : 'Một đêm bình yên.';
     case 'SWAP': return 'Bấm “Trao đổi vai” nếu muốn nhận lá bài khác trước đêm đầu tiên.';
-    case 'ARTPICK': return 'Mỗi người giữ 1 trong 2 lá Artifact được chia.';
     case 'REVEAL': return `Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}.`;
     case 'DISCUSSION': return 'Nói chuyện, nghi ngờ, và tìm ra Sói.';
     case 'VOTE': return 'Chọn người bạn nghi ngờ nhất.';
@@ -1515,7 +1513,9 @@ function seat(p, opts = {}) {
   // who watch the night see roles only at night: by day the table looks the
   // same as everyone else's (no pack mates, no lover, not even their own).
   const watching = view.me?.spectator && view.phase === 'NIGHT';
-  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || watching || (!p.alive && view.config.revealRoleOnDeath);
+  // A card shown to the whole village (Spear of Fury, a hanged Hoàng Tử) is
+  // on the table for everyone too.
+  const showRole = view.phase === 'GAME_OVER' || !view.me?.inGame || watching || p.shown || (!p.alive && view.config.revealRoleOnDeath);
   const role = p.role && showRole ? ROLES[p.role] : null;
   const roleName = role && (p.turned ? 'Sói Nguyền (đã hoá Sói)' : role.name);
   const isMe = p.id === view.me?.id;
@@ -1543,8 +1543,8 @@ const alivePlayers = () => view.players.filter(p => p.inGame && p.alive);
 
 // ---------- Artifacts ----------
 // What everyone can see on a seat: the Artifacts turned face up, and
-// today's Cudgel and Heart (everyone has to keep to them). Who holds the
-// Amulet and whom the Shield covers stay secret.
+// today's Cudgel and Heart (everyone has to keep to them). The other
+// choices (Amulet, Shield...) are in the day's Artifact news.
 const artLabel = (id) => `${ARTIFACTS[id].icon} ${ARTIFACTS[id].name}`;
 function artMarks(p) {
   if (!p.art) return [];
@@ -1631,24 +1631,6 @@ function artDawn(d) {
   }[d.kind];
   return `<div class="stack"><h3>☀️ ${esc(artLabel(d.id))}</h3><p class="lead">${lead}</p>
     ${pickGrid('artDawn', { pool: view.players.filter(p => d.options.includes(p.id)) }).replace(/data-act="artDawn"/g, `data-act="artDawn" data-uid="${d.uid}"`)}</div>`;
-}
-
-// Time ran out on the Artifact draft: the card picked for this player, and
-// the other one they may still take before the night falls.
-function artAutoPicked() {
-  const ap = view.me?.art?.autoPicked;
-  if (!ap) return '';
-  const other = ap.opts.find(id => id !== ap.kept);
-  const i = ap.opts.indexOf(other);
-  return `<div class="panel stack" style="margin-top:12px">
-    <h3>🗝️ Hết giờ chọn Artifact</h3>
-    <p class="lead">Quản trò đã chọn giúp bạn <strong>${esc(artLabel(ap.kept))}</strong>. Muốn lá kia thì đổi ngay, trước khi đêm xuống:</p>
-    <p class="small muted">${esc(artLabel(other))}: ${esc(ARTIFACTS[other].desc)}</p>
-    <div class="footer-row">
-      <button class="btn btn-primary" data-act="artRekeep" data-index="${i}">Đổi sang ${esc(ARTIFACTS[other].name)}</button>
-      <button class="btn btn-ghost" data-act="artRekeep" data-index="${ap.opts.indexOf(ap.kept)}">Giữ lá này</button>
-    </div>
-  </div>`;
 }
 
 // The label on the Artifact card in the hand. The same for every player
@@ -1792,31 +1774,7 @@ function stage() {
         ${m.inGame
           ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'
           : '<p class="muted">Mọi người đang xem lá bài của mình.</p>'}
-      </div>${artAutoPicked()}`;
-  }
-
-  if (view.phase === 'ARTPICK') {
-    const offer = m.art?.draft;
-    const left = g.art?.drafting || 0;
-    if (!offer) {
-      return `<div class="panel stack"><h2>Mọi người đang chọn Artifact</h2>
-        <p class="lead">${left ? `Còn ${left} người đang chọn.` : 'Sắp xong.'} Mọi người chọn xong là ván tiếp tục ngay.</p></div>`;
-    }
-    return `<div class="panel stack">
-        <h2>Giữ 1 lá Artifact</h2>
-        <p class="lead">Bạn được chia 2 lá. Giữ 1 lá, lá còn lại trả về chồng bài. Che màn hình khỏi người bên cạnh.</p>
-        <p class="muted small">Hết giờ mà chưa chọn thì quản trò chọn giúp, nhưng bạn vẫn đổi được trước khi đêm xuống.</p>
-      </div>
-      <div class="draft">${offer.map((id, i) => {
-        const a = ARTIFACTS[id];
-        return `<div class="draft-card">
-          <p class="art-top"><span>${a.homebrew ? '🛠️ Tự chế · ' : a.gem ? '💠 Đá quý · ' : ''}${a.once ? 'Dùng 1 lần' : 'Luôn có tác dụng'}</span><span class="pts">${a.once ? '1' : '∞'}</span></p>
-          <div class="art-icon" aria-hidden="true">${a.icon}</div>
-          <h3>${esc(a.name)}</h3>
-          <p class="small">${esc(a.desc)}</p>
-          <button class="btn btn-primary btn-block" data-act="artKeep" data-index="${i}">Giữ lá này</button>
-        </div>`;
-      }).join('')}</div>`;
+      </div>`;
   }
 
   if (view.phase === 'SWAP') {
@@ -2362,7 +2320,7 @@ function renderRules() {
     const ids = Object.keys(ARTIFACTS);
     body.innerHTML = `${head}
       <div class="stack small">
-        <p class="lead">${view?.config?.artifacts ? 'Ván này có Artifact.' : 'Chủ phòng bật Artifact trong “Luật ván này” ở phòng chờ.'} Đầu ván mỗi người được chia 2 lá Artifact, giữ 1 lá úp ngoài lá vai trò.</p>
+        <p class="lead">${view?.config?.artifacts ? 'Ván này có Artifact.' : 'Chủ phòng bật Artifact trong “Luật ván này” ở phòng chờ.'} Đầu ván mỗi người được chia 1 lá Artifact úp ngoài lá vai trò.</p>
         <details class="section rules-how"><summary><span class="btn-link">📖 Cách dùng Artifact (${ARTIFACT_RULES.length} điều)</span></summary>
           <ul class="rules-list">${ARTIFACT_RULES.map(r => `<li>${esc(r)}</li>`).join('')}</ul></details>
         ${group('💠 Đá quý (tác động lên Artifact khác)', ids.filter(id => ARTIFACTS[id].gem))}
@@ -2596,12 +2554,6 @@ document.addEventListener('click', async (e) => {
     }
     case 'artTicker': return openArtNotice();
     case 'artDecide': return act('artDecide', { force: el.dataset.force === '1' });
-    case 'artRekeep': return act('artKeep', { index: Number(el.dataset.index) });
-    case 'artKeep': {
-      const id = view.me.art?.draft?.[Number(el.dataset.index)];
-      if (id && confirm(`Giữ ${ARTIFACTS[id].name}? Lá còn lại trả về chồng bài.`)) act('artKeep', { index: Number(el.dataset.index) });
-      return;
-    }
     case 'artLetter': return act('artLetter', { letter: el.dataset.letter });
     case 'artDawn': return act('artDawn', { uid: Number(el.dataset.uid), target: id });
   }
