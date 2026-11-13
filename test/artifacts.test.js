@@ -687,3 +687,34 @@ test('when only some players hold an Artifact, no card can find out who holds on
   }
   assert.ok(PICK_HELD.some(id => seen.has(id)));
 });
+
+// The Kẻ Say's real side was there from the start, only hidden: when it
+// shows on the third night, a couple that turns out to be from different
+// sides gets its Artifacts then (not earlier: the card would give it away).
+test('a Kẻ Say who sobers up on the other side of their lover: both get an Artifact that night', () => {
+  const play = (real) => {
+    const g = setup(['werewolf', 'cupid', 'drunk', 'villager', 'villager', 'villager', 'seer'], [null, null, null, 'mark']);
+    const { s, P, act, untilNightRole, untilPhase } = g;
+    P[2].drunkRole = real;
+    s.game.art.dealt = [P[3].id];
+    untilNightRole('cupid');
+    act(P[1], 'night', { target: P[2].id });
+    act(P[1], 'night', { target: P[3].id });
+    for (let night = 1; night < 3; night++) {
+      untilNightRole('werewolf');
+      assert.equal(s.game.art.hands[P[2].id].length, 0, 'nothing before the third night');
+      act(P[0], 'night', { noKill: true });
+      untilPhase('DISCUSSION');
+      untilPhase('NIGHT');
+    }
+    return g;
+  };
+  const { s, P } = play('werewolf');
+  assert.equal(P[2].role, 'werewolf');
+  assert.equal(s.game.art.hands[P[2].id].length, 1);
+  assert.equal(s.game.art.hands[P[3].id].length, 1, 'the lover who had one gets no second card');
+  assert.match(notes(s, P[2]), /người yêu khác phe/);
+  // Sober on the same side: nothing.
+  const same = play('villager');
+  assert.equal(same.s.game.art.hands[same.P[2].id].length, 0);
+});
