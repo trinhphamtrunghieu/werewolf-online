@@ -651,3 +651,39 @@ test('every card says whether what it does is public or secret', () => {
   assert.equal(artPrivacy('talisman'), '📢 Công khai: cả làng thấy lá này và tác dụng của nó.');
   assert.match(artPrivacy('claw'), /^📢 Công khai: cả làng biết bạn có lá này/);
 });
+
+test('a holder who dies is not given away: the deck size is not shown to anyone', () => {
+  const { s, P, act, untilPhase, untilNightRole } = setup(['werewolf', 'villager', 'villager', 'villager', 'villager', 'seer'], [null, 'mark', null]);
+  untilNightRole('werewolf');
+  act(P[0], 'night', { target: P[1].id });
+  untilPhase('MORNING');
+  assert.equal(P[1].alive, false);
+  assert.equal(viewFor(s, P[3].id, 0, 1).game.art.deck, undefined);
+});
+
+test('when only some players hold an Artifact, no card can find out who holds one', () => {
+  const PICK_HELD = ARTIFACT_IDS.filter(id => ARTIFACTS[id].pick?.from === 'unrevealed');
+  assert.deepEqual(PICK_HELD.sort(), ['amethyst', 'emerald', 'onyx', 'ruby', 'sapphire']);
+  for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const rng = seeded(seed);
+    const { state: s, player: host } = createRoom({ code: 'ART12', hostName: 'Chủ', now: 0, rng });
+    for (let i = 1; i < 12; i++) joinRoom(s, `P${i}`, 0, rng);
+    applyAction(s, host.id, 'autoBalance', {}, 0, rng);
+    applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false, artifactPlayers: 6 }, 0, rng);
+    applyAction(s, host.id, 'start', {}, 0, rng);
+    const all = [...Object.values(s.game.art.hands).flat().map(c => c.id), ...s.game.art.deck];
+    assert.ok(all.every(id => !PICK_HELD.includes(id)), `seed ${seed}`);
+  }
+  // Everyone holds one: those cards may be dealt.
+  const seen = new Set();
+  for (const seed of [1, 2, 3, 4, 5, 6]) {
+    const rng = seeded(seed);
+    const { state: s, player: host } = createRoom({ code: 'ART13', hostName: 'Chủ', now: 0, rng });
+    for (let i = 1; i < 12; i++) joinRoom(s, `P${i}`, 0, rng);
+    applyAction(s, host.id, 'autoBalance', {}, 0, rng);
+    applyAction(s, host.id, 'config', { artifacts: true, swapEnabled: false }, 0, rng);
+    applyAction(s, host.id, 'start', {}, 0, rng);
+    Object.values(s.game.art.hands).flat().forEach(c => seen.add(c.id));
+  }
+  assert.ok(PICK_HELD.some(id => seen.has(id)));
+});
