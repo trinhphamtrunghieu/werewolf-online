@@ -8,7 +8,7 @@ import { moodForPhase, THEMES, THEME_IDS } from './ambience.js';
 import { clipMs, gapAfter, lineText } from '/shared/voice-lines.js';
 import { GAMES_INFO, gameInfo } from '/shared/games.js';
 import { GAME_UI } from './games/index.js';
-import { ARTIFACTS, ARTIFACT_RULES } from '/shared/artifacts.js';
+import { ARTIFACTS, ARTIFACT_RULES, artPrivacy } from '/shared/artifacts.js';
 
 // The browser side of the game on the table, unless it is Ma Sói.
 const gameUI = () => (view && view.gameId !== 'werewolf' ? GAME_UI[view.gameId] : null);
@@ -483,7 +483,7 @@ function openArtNotice() {
       return `<div class="rules-art">
         <span class="ic" aria-hidden="true">${a.icon}</span>
         <span><strong>${esc(a.name)}</strong> <span class="pts">${a.once ? '1' : '∞'}</span><br>
-        <span class="muted small">${esc(f.text)}</span><br>${esc(a.desc)}</span></div>`;
+        <span class="muted small">${esc(f.text)}</span><br>${esc(a.desc)}<br><span class="muted small">${esc(artPrivacy(f.card))}</span></span></div>`;
     }).join('')}
     <p class="muted small">Xem lại mọi lá đã lật hôm nay trong khung “Artifact hôm nay”.</p>`;
   document.getElementById('artNotice').showModal();
@@ -1588,7 +1588,7 @@ function artPanel() {
   return `<div class="panel stack art-panel">
     <h3>🗝️ Artifact hôm nay</h3>
     ${today.length ? `<ul class="art-feed">${today.map(f => `<li>${f.card
-      ? `<details><summary>${esc(f.text)}</summary><span class="muted small">${ARTIFACTS[f.card].icon} ${esc(ARTIFACTS[f.card].desc)}</span></details>`
+      ? `<details><summary>${esc(f.text)}</summary><span class="muted small">${ARTIFACTS[f.card].icon} ${esc(ARTIFACTS[f.card].desc)}<br>${esc(artPrivacy(f.card))}</span></details>`
       : esc(f.text)}</li>`).join('')}</ul>` : ''}
     ${parts.join('')}
   </div>`;
@@ -1600,6 +1600,7 @@ function artPending(pd) {
     const ordered = pd.ordered ? ' theo thứ tự (người chọn trước lật trước)' : '';
     return `<div class="stack"><h3>${esc(artLabel(pd.id))}</h3>
       <p class="lead">${esc(ARTIFACTS[pd.id].desc)}</p>
+      <p class="small muted">${esc(artPrivacy(pd.id))}</p>
       <p>Chọn ${pd.n} người${ordered}: ${picks.length}/${pd.n}${picks.length ? ` (${esc(picks.map(nameOnly).join(', '))})` : ''}</p>
       ${pickGrid('artPick', { pool: view.players.filter(p => pd.options.includes(p.id)), selected: picks,
         subs: pd.ordered ? Object.fromEntries(picks.map((id, i) => [id, `Thứ ${i + 1}`])) : {} })}
@@ -1657,6 +1658,7 @@ function artCardHtml(c, canReveal) {
           <h3>${esc(a.name)}</h3>
           <p class="art-en">${esc(a.en)}</p>
           <p class="desc">${esc(a.desc)}</p>
+          <p class="art-privacy">${esc(artPrivacy(c.id))}</p>
           <p class="art-state">${c.revealed ? (c.copy ? '✨ Dùng nhờ Lam Ngọc Số Phận' : '👁️ Đã lật: cả làng đều thấy') : '🤫 Đang úp: chỉ mình bạn biết'}</p>
         </div>
       </div>
@@ -2316,7 +2318,7 @@ function renderRules() {
     const group = (title, ids) => ids.length ? `<h3 class="rules-group">${title} <span class="muted">(${ids.length})</span></h3>
       <div class="rules-arts">${ids.map(id => { const a = ARTIFACTS[id]; return `<div class="rules-art">
         <span class="ic" aria-hidden="true">${a.icon}</span>
-        <span><strong>${esc(a.name)}</strong> <span class="pts">${a.once ? '1' : '∞'}</span><br><span class="muted en">${esc(a.en)}</span><br>${esc(a.desc)}</span></div>`; }).join('')}</div>` : '';
+        <span><strong>${esc(a.name)}</strong> <span class="pts">${a.once ? '1' : '∞'}</span><br><span class="muted en">${esc(a.en)}</span><br>${esc(a.desc)}<br><span class="muted small">${esc(artPrivacy(id))}</span></span></div>`; }).join('')}</div>` : '';
     const ids = Object.keys(ARTIFACTS);
     body.innerHTML = `${head}
       <div class="stack small">

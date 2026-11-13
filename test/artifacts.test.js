@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRoom, joinRoom, applyAction, tick, viewFor, isWinner, GameError } from '../lib/engine.js';
-import { ARTIFACTS, ARTIFACT_IDS, gemsFor } from '../public/shared/artifacts.js';
+import { ARTIFACTS, ARTIFACT_IDS, gemsFor, artPrivacy } from '../public/shared/artifacts.js';
 import { seeded, setup, notes } from './helpers.js';
 
 
@@ -637,4 +637,17 @@ test('nobody can tell who holds an Artifact until it is turned over', () => {
   // Neither of them is told anything the other is not (no note about it).
   assert.equal(s.game.notes[holder.id]?.some(n => /Artifact/.test(n.text)) || false, false);
   assert.equal(s.game.notes[other.id]?.some(n => /Artifact/.test(n.text)) || false, false);
+});
+
+test('every card says whether what it does is public or secret', () => {
+  for (const id of ARTIFACT_IDS) assert.match(artPrivacy(id), /^(📢 Công khai|🔒 Bí mật): /, id);
+  // Results told to one player only: marked secret.
+  for (const id of ['ring', 'staff', 'pendant', 'amethyst', 'sapphire', 'sheet', 'diary', 'stone', 'eye', 'rod', 'skimmer', 'onyx']) {
+    assert.match(artPrivacy(id), /^🔒/, id);
+  }
+  // Results told to the whole village.
+  assert.equal(artPrivacy('cauldron'), '📢 Công khai: cả làng thấy bạn chọn ai và kết quả.');
+  assert.equal(artPrivacy('cudgel'), '📢 Công khai: cả làng thấy bạn chọn ai và kết quả.');
+  assert.equal(artPrivacy('talisman'), '📢 Công khai: cả làng thấy lá này và tác dụng của nó.');
+  assert.match(artPrivacy('claw'), /^📢 Công khai: cả làng biết bạn có lá này/);
 });
