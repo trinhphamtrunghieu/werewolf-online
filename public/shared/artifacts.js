@@ -267,7 +267,7 @@ export const infoCap = (hasSeers) => (hasSeers ? 1 : 2);
 // The general rules, shown in the rules sheet.
 export const ARTIFACT_RULES = [
   'Đầu ván, mỗi người được chia 1 lá Artifact úp, cùng lúc với lá vai trò. Chỉ mình bạn xem được lá của mình.',
-  'Chủ phòng có thể chỉ cho một số người giữ Artifact (chọn ngẫu nhiên mỗi ván). Không ai biết những người khác có lá hay không: màn hình của người không có lá trông giống hệt (vẫn có một lá úp).',
+  'Chủ phòng có thể chỉ cho một số người giữ Artifact (chọn ngẫu nhiên mỗi ván). Không ai biết những người khác có lá hay không: màn hình của người không có lá trông giống hệt (vẫn có một lá úp). Khi đó bộ bài bỏ 5 lá đá quý chọn "người có lá chưa lật" (Thạch Anh Tím, Ngọc Lục Bảo, Mã Não, Hồng Ngọc, Lam Ngọc), vì chúng sẽ cho biết ai đang giữ lá.',
   'Cặp Tình Nhân khác phe luôn có lá Artifact: người yêu nào chưa có lá thì được chia 1 lá ngay khi thành cặp (chỉ một lần, lúc đầu ván).',
   'Bộ bài được xếp để tránh ván bị khoá: lá phòng thủ chỉ có khi bàn có ít nhất 2 cách giết ban đêm (Phù Thủy, Thợ Săn, Mục Sư, Lọ Độc, Cung Bạc, Hơi Thở Ông Lão); nếu bộ bài đã có vai soi người ban đêm (Tiên Tri, Thám Tử…) thì chỉ có tối đa 1 lá soi vai/phe, không thì tối đa 2.',
   'Lá tự chế (không có trong bộ gốc, chủ phòng tắt được): Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép, để khắc chế các lá phòng thủ.',

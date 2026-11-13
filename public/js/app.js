@@ -2231,7 +2231,7 @@ function renderCard(reset = true) {
   if (m.charmedList?.length) extra.push(`🎶 Đã thôi miên: ${m.charmedList.map(seatName).join(', ')}`);
   if (m.powerless) extra.push('👴 Già Làng đã chết dưới tay dân làng: bạn đã mất chức năng đến hết ván. Hãy giữ bí mật điều này.');
   if (m.clawed) extra.push('🐾 Nhờ Artifact, bạn đã thành Sói: thức dậy cùng đàn Sói và thắng thua cùng phe Sói (vẫn giữ chức năng của vai này).');
-  if (m.art?.amulet) extra.push('🧿 Bạn đang giữ Bùa Hộ Mệnh: không ai loại được bạn. Chỉ mình bạn biết điều này.');
+  if (m.art?.amulet) extra.push('🧿 Bạn đang giữ Bùa Hộ Mệnh: không ai loại được bạn.');
   if (m.art?.lostPower) extra.push('🗝️ Một lá Artifact đã lấy mất chức năng của vai này (xem 📜 Nhật ký).');
   if (!m.alive) extra.push('Bạn đã bị loại, hãy giữ im lặng nhé.');
   const teamColor = { village: 'var(--village)', werewolf: '#e0766b' }[r.team] || 'var(--third)';
