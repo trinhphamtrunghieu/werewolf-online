@@ -50,7 +50,7 @@ Thêm các vai từ **Ultimate Werewolf**: Tiên Tri Tập Sự, Tiên Tri Hào 
 Bật **"Chơi với Artifact"** trong *Luật ván này*. Luật chơi:
 
 - **Số người nhận Artifact:** mặc định tất cả; chủ phòng có thể chọn chỉ N người (chọn ngẫu nhiên mỗi ván). Chỉ người được giữ biết mình có lá. Khi đó bộ bài bỏ 5 lá đá quý chọn "người có lá chưa lật" (Thạch Anh Tím, Ngọc Lục Bảo, Mã Não, Hồng Ngọc, Lam Ngọc), vì danh sách chọn người của chúng sẽ cho biết ai đang giữ lá; và số lá còn trong chồng bài không gửi cho ai (người giữ lá úp chết thì lá về chồng bài, số này sẽ lộ họ có lá). Giao diện lá Artifact giống hệt nhau với mọi người (người không có lá vẫn thấy một lá úp, nhãn trên tay luôn là "Lá bí mật", tab không đếm số lá), để liếc màn hình không biết ai có lá.
-- **Tình Nhân khác phe luôn có Artifact:** người yêu chưa có lá thì được chia 1 lá ngay khi thành cặp (Thần Tình Yêu ghép đôi hoặc quản trò tự ghép). Chỉ cấp một lần lúc đầu ván: đổi phe giữa ván không tính, lá đã dùng hay bị mất không được bù.
+- **Tình Nhân khác phe luôn có Artifact:** người yêu chưa có lá thì được chia 1 lá ngay khi thành cặp (Thần Tình Yêu ghép đôi hoặc quản trò tự ghép). Chỉ cấp một lần lúc đầu ván: đổi phe giữa ván không tính, lá đã dùng hay bị mất không được bù. Riêng Kẻ Say có phe thật từ đầu, chỉ bị giấu: nếu đêm thứ 3 tỉnh rượu mới lộ ra cặp khác phe thì người yêu chưa có lá được chia lá đêm đó (không chia sớm hơn, vì lá sẽ cho Kẻ Say biết vai thật).
 - **Chia lá:** như luật gốc, đầu ván mỗi người được chia **1 lá Artifact úp**, cùng lúc với lá vai trò; không có bước chọn lá.
 - **Xếp bộ bài chống khoá ván:**
   - lá "đá quý" là 1 trên 5 lá được chia
