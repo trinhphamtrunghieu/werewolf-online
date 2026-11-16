@@ -13,6 +13,7 @@ import {
 import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
 } from '../lib/store.js';
+import { notifyGameOver } from '../lib/zalo.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SEEN_REFRESH_MS = 15000;
@@ -27,16 +28,36 @@ function normalizeCode(raw) {
   return code;
 }
 
-function newCode() {
+export function newCode() {
   let code = '';
   for (let i = 0; i < 5; i++) code += CODE_ALPHABET[Math.floor(secureRandom() * CODE_ALPHABET.length)];
   return code;
 }
 
-function readBody(req) {
+export function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   if (typeof req.body === 'string' && req.body) return JSON.parse(req.body);
   return {};
+}
+
+// Run a room change and note whether it ended a game (only one request can
+// save that change, so the end is reported once). A bot room numbers its
+// games here, in the same save.
+function watchEnd(fn) {
+  const out = { ended: false };
+  out.fn = (s) => {
+    const before = s.phase;
+    const r = fn(s);
+    out.ended = before !== 'GAME_OVER' && s.phase === 'GAME_OVER';
+    if (out.ended && s.zalo) s.zalo.games = (s.zalo.games || 0) + 1;
+    return r;
+  };
+  return out;
+}
+
+// A room opened by the Zalo bot tells the bot when a game ends.
+async function reportEnd(watch, saved, state, now) {
+  if (watch.ended && saved && state.zalo) await notifyGameOver(state, now);
 }
 
 async function handleCreate(store, body) {
@@ -55,26 +76,30 @@ async function handleCreate(store, body) {
 async function handleJoin(store, body) {
   const code = normalizeCode(body.code);
   const now = Date.now();
-  const { state, version, result } = await mutateRoom(store, code, (s) => {
+  const watch = watchEnd((s) => {
     tick(s, now);
     return { result: joinRoom(s, body.name, now) };
-  }, notFound);
+  });
+  const { state, version, result, saved } = await mutateRoom(store, code, watch.fn, notFound);
   await store.notify(code, version);
+  await reportEnd(watch, saved, state, now);
   return { code, playerId: result.id, token: result.token, view: viewFor(state, result.id, now, version) };
 }
 
 async function handleAct(store, body) {
   const code = normalizeCode(body.code);
   const now = Date.now();
-  const { state, version } = await mutateRoom(store, code, (s) => {
+  const watch = watchEnd((s) => {
     const p = authenticate(s, body.pid, body.token);
     p.lastSeen = now;
     tick(s, now);
     applyAction(s, p.id, String(body.type || ''), body.payload || {}, now);
     tick(s, now);
     return { changed: true };
-  }, notFound);
+  });
+  const { state, version, saved } = await mutateRoom(store, code, watch.fn, notFound);
   await store.notify(code, version);
+  await reportEnd(watch, saved, state, now);
   if (body.type === 'leave') return { left: true };
   return { view: viewFor(state, body.pid, now, version) };
 }
@@ -96,7 +121,7 @@ async function handlePoll(store, query) {
   const now = Date.now();
   let advanced = false;
   let newHostPicked = false;
-  const { state, version, saved } = await mutateRoom(store, code, (s) => {
+  const watch = watchEnd((s) => {
     const p = authenticate(s, query.pid, query.token);
     advanced = tick(s, now);
     const refresh = p.id === s.hostId ? HOST_SEEN_REFRESH_MS : SEEN_REFRESH_MS;
@@ -111,9 +136,11 @@ async function handlePoll(store, query) {
     // Close a host vote whose time is up.
     newHostPicked = resolveHostVote(s, now);
     return { changed: advanced || seen || staleVotes || newHostPicked };
-  }, notFound);
+  });
+  const { state, version, saved } = await mutateRoom(store, code, watch.fn, notFound);
   // Only real game changes wake the other phones; a "last seen" refresh does not.
   if (saved && (advanced || newHostPicked)) await store.notify(code, version);
+  await reportEnd(watch, saved, state, now);
   if (version === since) return { same: true, version, serverNow: now };
   return { view: viewFor(state, query.pid, now, version) };
 }

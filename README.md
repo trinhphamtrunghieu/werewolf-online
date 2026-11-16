@@ -159,6 +159,48 @@ Lưu ý: edge-tts dùng dịch vụ đọc văn bản của trình duyệt Edge,
 **Cách 3: tự thu âm** (tự nhiên và có cảm xúc nhất)
 Thu các câu trong `voice-lines.js`, lưu thành `public/audio/<key>_<biến thể>.mp3` (ví dụ `werewolf_wake_0.mp3`, `seat_3_0.mp3`), rồi chạy `node scripts/generate-voice.mjs --manifest-only`. Có thể chỉ thu một phần: câu nào thiếu file sẽ dùng giọng trình duyệt.
 
+## Zalo Bot
+
+Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc (tài liệu: [Zalo Bot webhook](https://docs.zaloplatforms.com/docs/BOT/webhook)).
+
+**Tạo phòng từ Zalo:** nhắn cho bot `>createRoom wolf` (hoặc `spyfall`, `undercover`, `avalon`; không ghi tên trò thì là Ma Sói). Server tạo sẵn một phòng trống và bot trả lời link phòng trong cuộc trò chuyện. Người vào phòng đầu tiên thành chủ phòng (và là người chơi). Phòng không có ai vào sau 30 phút thì tự xoá như mọi phòng khác.
+
+**Báo kết quả:** mỗi khi một ván trong phòng do bot tạo kết thúc, server gửi `POST` tới `ZALO_EVENT_URL` (webhook của bot), header `X-Bot-Api-Secret-Token`, body JSON:
+
+```json
+{
+  "event_name": "room.game_over",
+  "chat_id": "<chat.id của tin nhắn tạo phòng>",
+  "message_id": "<message_id của tin nhắn >createRoom>",
+  "game_no": 1,
+  "created_by": { "id": "...", "display_name": "..." },
+  "room": { "code": "ABCDE", "game": "werewolf", "url": "https://.../?room=ABCDE" },
+  "ended_at": 1763280000000,
+  "winner": "werewolf",
+  "encoding": "base64",
+  "log": "<base64: nhật ký ván chơi, mỗi dòng một sự kiện>",
+  "roles": "<base64: JSON [{ seat, name, role, team, alive }]>",
+  "roles_image": "<base64: ảnh chia vai>",
+  "roles_image_mime": "image/svg+xml"
+}
+```
+
+**Biết kết quả của phòng nào:** mỗi phòng tự lưu chat đã tạo ra nó, nên nhiều chat tạo phòng cùng lúc không lẫn nhau. `chat_id` là nơi gửi kết quả, `room.code` là phòng (đúng mã bot đã trả lời trong chat), `message_id` là tin nhắn `>createRoom` đã tạo phòng (một chat tạo nhiều phòng thì phân biệt bằng trường này hoặc `room.code`), `game_no` là ván thứ mấy của phòng đó (phòng chơi nhiều ván thì mỗi ván một sự kiện).
+
+Các trường nội dung (`log`, `roles`, `roles_image`) là base64 của chuỗi UTF-8. Ảnh chia vai là SVG (ai cầm vai gì, màu theo phe, người đã chết bị làm mờ); `sendPhoto` của Zalo nhận link ảnh, nên bot cần đổi sang PNG hoặc tải lên rồi gửi link. Gửi lỗi thì chỉ ghi log, không ảnh hưởng ván chơi.
+
+**Cài đặt:**
+1. Thêm biến môi trường trên Vercel:
+   - `ZALO_WEBHOOK_SECRET`: chuỗi bí mật 8–256 ký tự (bắt buộc; thiếu thì `/api/zalo` trả 503).
+   - `ZALO_BOT_TOKEN`: token của bot, để trả lời link phòng trong chat.
+   - `ZALO_EVENT_URL`: nơi nhận sự kiện kết thúc ván (bỏ trống thì không gửi).
+   - `ZALO_EVENT_SECRET` (tuỳ chọn): gửi kèm sự kiện, mặc định bằng `ZALO_WEBHOOK_SECRET`.
+   - `APP_URL` (tuỳ chọn): địa chỉ trang, ví dụ `https://masoi.vercel.app`; mặc định lấy theo địa chỉ webhook được gọi.
+2. Đăng ký webhook với Zalo:
+   ```bash
+   curl -X POST "https://bot-api.zaloplatforms.com/bot$ZALO_BOT_TOKEN/setWebhook" -H 'Content-Type: application/json' -d '{"url":"https://<trang-cua-ban>/api/zalo","secret_token":"<ZALO_WEBHOOK_SECRET>"}'
+   ```
+
 ## Chạy ở máy cá nhân
 
 Workflow **Kiểm thử** (`.github/workflows/test.yml`) chạy `npm run coverage` cho mọi pull request và mỗi lần push lên `main`. Code giao diện trong `public/js/` chạy trên trình duyệt nên không tính vào coverage; kiểm tra phần đó bằng `npm run dev`.
@@ -175,7 +217,9 @@ npm run coverage # test + đo coverage; báo lỗi nếu lib/, api/, public/shar
 
 ```
 api/room.js              Vercel Function: tạo/vào phòng, nhận hành động, trả trạng thái
+api/zalo.js              Webhook Zalo Bot: lệnh >createRoom
 lib/engine.js            Luật chơi (hàm thuần, có test)
+lib/zalo.js              Zalo Bot: đọc lệnh, trả lời chat, sự kiện kết thúc ván + ảnh chia vai
 lib/store.js             Supabase (PostgREST + Realtime broadcast), compare-and-set; RAM khi chạy local
 public/js/realtime.js    Nghe kênh Realtime của phòng (SSE giả lập khi chạy local)
 supabase/schema.sql      Bảng rooms + RLS
