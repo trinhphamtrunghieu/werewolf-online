@@ -19,7 +19,7 @@ import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
 } from '../lib/store.js';
 import {
-  notifyGameOver, checkWebhookUrl, siteUrl, roomUrl, sameSecret, zaloConfig, newGameId, SECRET_HEADER
+  notifyGameOver, checkWebhookUrl, siteUrl, roomUrl, sameSecret, zaloConfig, newGameId, underRoomLimit, ROOM_LIMIT_MESSAGE, SECRET_HEADER
 } from '../lib/zalo.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -88,6 +88,7 @@ async function handleCreate(store, body, req) {
     if (!sameSecret(req.headers?.[SECRET_HEADER], roomSecret)) throw new StatusError(403, 'Unauthorized');
     webhookUrl = checkWebhookUrl(body.webhook_url, { local: !process.env.VERCEL });
     if (!webhookUrl) throw new GameError('Webhook URL không hợp lệ: cần một địa chỉ https công khai.');
+    if (!(await underRoomLimit(store, now))) throw new StatusError(429, ROOM_LIMIT_MESSAGE);
   }
   const hostless = !!webhookUrl && !body.name;
   const base = siteUrl(req);

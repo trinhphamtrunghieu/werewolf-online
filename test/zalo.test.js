@@ -4,11 +4,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import zaloHandler from '../api/zalo.js';
 import roomHandler from '../api/room.js';
-import { getStore, setStoreForTests } from '../lib/store.js';
+import { getStore, setStoreForTests, _supabaseStoreForTests } from '../lib/store.js';
 import { createRoom, joinRoom, applyAction } from '../lib/engine.js';
 import {
   parseCommand, checkWebhookUrl, sameSecret, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
-  gameOverEvent, notifyGameOver, outcome, ZALO_API
+  gameOverEvent, notifyGameOver, underRoomLimit, ROOM_LIMIT_MESSAGE, outcome, ZALO_API
 } from '../lib/zalo.js';
 import { LOCATIONS } from '../public/shared/spyfall.js';
 
@@ -265,12 +265,12 @@ test('Zalo webhook: the store failing is reported in the chat', async () => {
     const error = console.error;
     console.error = () => {};
     try {
-      setStoreForTests({ cas: async () => false });
+      setStoreForTests({ cas: async () => false, countBotRooms: async () => 0 });
       const busy = await hook(textUpdate('>createRoom wolf'));
       assert.equal(busy.statusCode, 503);
       assert.equal(busy.body.message, 'Không tạo được phòng, hãy thử lại.');
       assert.match(calls.at(-1).body.text, /Không tạo được phòng/);
-      setStoreForTests({ cas: async () => { throw new Error('db down'); } });
+      setStoreForTests({ cas: async () => { throw new Error('db down'); }, countBotRooms: async () => 0 });
       const down = await hook(textUpdate('>createRoom wolf'));
       assert.equal(down.body.message, 'Server error');
     } finally {
@@ -584,6 +584,64 @@ test('Zalo: secrets are compared exactly', () => {
   assert.equal(sameSecret('abcd', 'abc'), false);
   assert.equal(sameSecret(undefined, 'abc'), false);
   assert.equal(sameSecret('', ''), false);
+});
+
+test('Rate limit: the bot and the API open at most 10 rooms in 5 minutes, together', async () => {
+  await withEnv({ ROOM_API_SECRET: 's', ZALO_WEBHOOK_SECRET: SECRET, ZALO_BOT_TOKEN: 'T' }, async (calls) => {
+    const realNow = Date.now;
+    const start = realNow();
+    const at = (minutes) => { Date.now = () => start + minutes * 60 * 1000; };
+    const api = () => call(roomHandler, 'POST', { body: { action: 'create', webhook_url: 'https://bot.vn/h' }, headers: { 'x-bot-api-secret-token': 's' } });
+    try {
+      at(0);
+      for (let i = 0; i < 6; i++) assert.equal((await api()).statusCode, 200);
+      at(1);
+      for (let i = 0; i < 4; i++) assert.equal((await hook(textUpdate('>createRoom wolf'))).body.message, 'Success');
+      // The 11th, by either way in, is refused.
+      const no = await api();
+      assert.equal(no.statusCode, 429);
+      assert.equal(no.body.error, ROOM_LIMIT_MESSAGE);
+      const zalo = await hook(textUpdate('>createRoom wolf'));
+      assert.equal(zalo.statusCode, 200);
+      assert.equal(zalo.body.message, 'Rate limited');
+      assert.equal(calls.at(-1).body.text, ROOM_LIMIT_MESSAGE);
+      assert.equal(globalThis.__masoiRooms.size, 10);
+      // Rooms from the web page are not counted or limited.
+      assert.equal((await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan' } })).statusCode, 200);
+      // Once the first six are more than 5 minutes old, six more fit.
+      at(5.01);
+      for (let i = 0; i < 6; i++) assert.equal((await api()).statusCode, 200);
+      assert.equal((await api()).statusCode, 429);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+});
+
+test('Rate limit: Supabase counts recent bot rooms with one HEAD request', async () => {
+  const realFetch = globalThis.fetch;
+  const seen = [];
+  const reply = { range: '*/7', ok: true };
+  globalThis.fetch = async (url, init) => {
+    seen.push({ url, init });
+    return { ok: reply.ok, status: reply.ok ? 200 : 500, headers: new Headers(reply.range ? { 'content-range': reply.range } : {}) };
+  };
+  try {
+    const store = _supabaseStoreForTests('https://demo.supabase.co', 'sb_secret_x');
+    assert.equal(await store.countBotRooms(1700000000000), 7);
+    assert.equal(seen[0].url, 'https://demo.supabase.co/rest/v1/rooms?select=code&state->zalo=not.is.null&state->>createdAt=gte.1700000000000');
+    assert.equal(seen[0].init.method, 'HEAD');
+    assert.equal(seen[0].init.headers.Prefer, 'count=exact');
+    assert.equal(await underRoomLimit(store, 1700000300000), true);
+    reply.range = '0-9/10';
+    assert.equal(await underRoomLimit(store, 1700000300000), false);
+    reply.range = null;
+    assert.equal(await store.countBotRooms(0), 0);
+    reply.ok = false;
+    await assert.rejects(store.countBotRooms(0), /Supabase: 500/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test('API create: an empty room waits a day for its first player', async () => {

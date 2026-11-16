@@ -9,7 +9,7 @@
 import { createRoom, secureRandom } from '../lib/engine.js';
 import { getStore, createRoomRecord, StoreError } from '../lib/store.js';
 import {
-  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, sameSecret, newGameId, SECRET_HEADER
+  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, sameSecret, newGameId, underRoomLimit, ROOM_LIMIT_MESSAGE, SECRET_HEADER
 } from '../lib/zalo.js';
 import { newCode, readBody } from './room.js';
 
@@ -66,9 +66,15 @@ export default async function handler(req, res) {
     return res.status(200).json({ message: 'Invalid webhook URL' });
   }
   try {
+    const store = getStore();
+    // Zalo gets a 200 either way, so it does not send the message again.
+    if (!(await underRoomLimit(store, Date.now()))) {
+      await reply(ROOM_LIMIT_MESSAGE);
+      return res.status(200).json({ message: 'Rate limited' });
+    }
     const base = siteUrl(req, config);
     const gameId = newGameId();
-    const code = await openRoom(getStore(), command.gameId, {
+    const code = await openRoom(store, command.gameId, {
       gameId,
       chatId,
       messageId: msg.message_id || null,
