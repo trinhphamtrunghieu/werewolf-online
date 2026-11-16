@@ -7,6 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import handler from '../api/room.js';
+import zaloHandler from '../api/zalo.js';
 import { devEvents } from '../lib/store.js';
 
 const root = fileURLToPath(new URL('../public/', import.meta.url));
@@ -43,7 +44,7 @@ const server = http.createServer(async (req, res) => {
     req.on('close', () => devEvents.off('update', send));
     return;
   }
-  if (url.pathname === '/api/room') {
+  if (url.pathname === '/api/room' || url.pathname === '/api/zalo') {
     let raw = '';
     for await (const chunk of req) raw += chunk;
     req.query = Object.fromEntries(url.searchParams);
@@ -52,7 +53,7 @@ const server = http.createServer(async (req, res) => {
     } catch {
       req.body = raw;
     }
-    return handler(req, shimResponse(res));
+    return (url.pathname === '/api/zalo' ? zaloHandler : handler)(req, shimResponse(res));
   }
   let path = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, '');
   if (path.endsWith('/')) path += 'index.html';
