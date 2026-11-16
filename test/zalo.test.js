@@ -8,7 +8,7 @@ import { getStore, setStoreForTests } from '../lib/store.js';
 import { createRoom, joinRoom, applyAction } from '../lib/engine.js';
 import {
   parseCommand, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
-  gameOverEvent, notifyGameOver, ZALO_API
+  gameOverEvent, notifyGameOver, outcome, ZALO_API
 } from '../lib/zalo.js';
 import { LOCATIONS } from '../public/shared/spyfall.js';
 
@@ -301,6 +301,13 @@ test('Zalo: the cards for Avalon, Spyfall and Undercover', () => {
   ]);
 });
 
+test('Zalo: the outcome comes from Ma Sói or from the other games', () => {
+  assert.deepEqual(outcome({ game: { winner: 'village', winReason: 'Hết Sói.' } }), { winner: 'village', reason: 'Hết Sói.' });
+  assert.deepEqual(outcome({ game: {}, play: { result: { winner: 'good', reason: 'Ba nhiệm vụ.' } } }), { winner: 'good', reason: 'Ba nhiệm vụ.' });
+  assert.deepEqual(outcome({ game: {}, play: { result: null } }), { winner: null, reason: '' });
+  assert.deepEqual(outcome({}), { winner: null, reason: '' });
+});
+
 test('Zalo: the end-of-game event carries the log, cards and picture in base64', () => {
   const s = wolfRoom();
   const ev = gameOverEvent(s, 5000);
@@ -380,6 +387,8 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
     assert.match(fromB64(ev.log), /Gián điệp .* đoán đúng địa điểm/);
     assert.equal(ev.message_id, 'm1');
     assert.equal(ev.game_no, 1);
+    assert.equal(ev.winner, 'spy');
+    assert.match(fromB64(ev.roles_image), /đoán đúng địa điểm/);
     // Later requests in the finished game do not report again.
     await call(roomHandler, 'GET', { query: { code, pid: host.playerId, token: host.token } });
     await act(host, 'restart', {});
