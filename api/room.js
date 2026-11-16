@@ -19,7 +19,7 @@ import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
 } from '../lib/store.js';
 import {
-  notifyGameOver, checkWebhookUrl, siteUrl, roomUrl, sameSecret, zaloConfig, SECRET_HEADER
+  notifyGameOver, checkWebhookUrl, siteUrl, roomUrl, sameSecret, zaloConfig, newGameId, SECRET_HEADER
 } from '../lib/zalo.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -96,10 +96,11 @@ async function handleCreate(store, body, req) {
     const { state, player } = createRoom({
       code, hostName: body.name, now, debug: !!body.debug, gameId: String(body.game || 'werewolf'), hostless
     });
-    if (webhookUrl) state.zalo = { chatId: null, messageId: null, from: null, webhookUrl, appUrl: base };
+    const gameId = webhookUrl ? newGameId() : null;
+    if (webhookUrl) state.zalo = { gameId, chatId: null, messageId: null, from: null, webhookUrl, appUrl: base };
     if (await createRoomRecord(store, code, state)) {
       if (Math.random() < 0.2) await store.cleanup();
-      const link = { url: roomUrl(base, code), webhook_url: webhookUrl };
+      const link = { url: roomUrl(base, code), webhook_url: webhookUrl, game_id: gameId };
       if (hostless) return { code, ...link };
       return { code, ...link, playerId: player.id, token: player.token, view: viewFor(state, player.id, now, 1) };
     }

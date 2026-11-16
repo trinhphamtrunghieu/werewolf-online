@@ -9,7 +9,7 @@
 import { createRoom, secureRandom } from '../lib/engine.js';
 import { getStore, createRoomRecord, StoreError } from '../lib/store.js';
 import {
-  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, sameSecret, SECRET_HEADER
+  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, sameSecret, newGameId, SECRET_HEADER
 } from '../lib/zalo.js';
 import { newCode, readBody } from './room.js';
 
@@ -67,7 +67,9 @@ export default async function handler(req, res) {
   }
   try {
     const base = siteUrl(req, config);
+    const gameId = newGameId();
     const code = await openRoom(getStore(), command.gameId, {
+      gameId,
       chatId,
       messageId: msg.message_id || null,
       webhookUrl,
@@ -76,7 +78,7 @@ export default async function handler(req, res) {
     });
     const url = roomUrl(base, code);
     await reply(createdMessage(command.gameId, url, code));
-    return res.status(200).json({ message: 'Success', code, url, webhook_url: webhookUrl });
+    return res.status(200).json({ message: 'Success', code, url, webhook_url: webhookUrl, game_id: gameId });
   } catch (err) {
     console.error(err);
     await reply('Không tạo được phòng, hãy thử lại sau.');
