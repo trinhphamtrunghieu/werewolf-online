@@ -17,7 +17,7 @@ export function setup(roles, arts = [], { config = {}, rng = seeded() } = {}) {
   let now = 1_000_000;
   const { state: s, player: host } = createRoom({ code: 'ART01', hostName: 'Chủ', now, rng });
   for (let i = 1; i < roles.length; i++) joinRoom(s, `P${i + 1}`, now, rng);
-  applyAction(s, host.id, 'config', { swapEnabled: false, artifacts: true, ...config }, now, rng);
+  applyAction(s, host.id, 'config', { swapEnabled: false, autoPick: false, artifacts: true, ...config }, now, rng);
   const counts = {};
   roles.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
   for (const roleId of Object.keys(s.roleCounts)) s.roleCounts[roleId] = 0;
