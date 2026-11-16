@@ -570,6 +570,7 @@ function render() {
   if (screen === 'home') renderHome();
   else if (screen === 'lobby') renderLobby();
   else renderGame();
+  if (screen !== 'home') syncHostSheet();
 }
 
 function topbar(extra = '') {
@@ -783,6 +784,7 @@ function renderLobby() {
   document.getElementById('players').innerHTML = `
     <div class="section-head">
       <p class="muted small">Người chơi đã vào: ${participants.length}</p>
+      ${host && view.players.some(p => !p.isBot && p.id !== view.me.id) ? '<button class="btn btn-ghost btn-small" data-act="hostSheet">👑 Đổi chủ phòng</button>' : ''}
     </div>
     ${host ? botAdder() : ''}
     <ul class="tokens">
@@ -1503,7 +1505,34 @@ function hostBar() {
         ? '<button class="btn btn-ghost btn-small" disabled title="Đợi quản trò gọi xong">Đang gọi vai…</button>'
         : '<button class="btn btn-ghost btn-small" data-act="skip">Sang bước tiếp</button>'}
       <button class="btn btn-ghost btn-small" data-act="endGame">Kết thúc ván</button>
+      ${view.phase === 'NIGHT'
+        ? '<button class="btn btn-ghost btn-small" disabled title="Đợi trời sáng">👑 Đổi chủ phòng</button>'
+        : '<button class="btn btn-ghost btn-small" data-act="hostSheet">👑 Đổi chủ phòng</button>'}
     </div>`;
+}
+
+// The host picks who takes the room over: a person with the room open
+// (bots cannot narrate). The new host keeps their own card and learns
+// nothing more.
+// Keep an open sheet up to date, and close it once this phone is no
+// longer the host (or night falls).
+function syncHostSheet() {
+  const sheet = document.getElementById('hostSheet');
+  if (!sheet.open) return;
+  if (!isHost() || view.phase === 'NIGHT') sheet.close();
+  else renderHostSheet();
+}
+
+function renderHostSheet() {
+  const people = view.players.filter(p => !p.isBot && p.id !== view.me.id);
+  document.getElementById('hostSheetBody').innerHTML = `
+    <div class="sheet-head"><h3 id="hostSheetTitle">👑 Đổi chủ phòng</h3><button class="btn btn-ghost btn-small" data-act="closeSheet">Đóng</button></div>
+    <p class="muted small">Chọn người nhận chủ phòng. Máy của họ sẽ đọc lời quản trò, bắt đầu và kết thúc ván. Bạn trở thành người chơi bình thường.${view.phase === 'LOBBY' ? '' : ' Người nhận vẫn chỉ thấy lá bài của mình.'}</p>
+    ${people.length ? pickGrid('giveHost', {
+      pool: people,
+      disabled: people.filter(p => !isOnline(p)).map(p => p.id),
+      subs: Object.fromEntries(people.filter(p => !isOnline(p)).map(p => [p.id, 'Mất kết nối']))
+    }) : '<p class="muted">Chưa có ai khác trong phòng.</p>'}`;
 }
 
 function seat(p, opts = {}) {
@@ -2426,6 +2455,13 @@ document.addEventListener('click', async (e) => {
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
     case 'share': return share();
+    case 'hostSheet': renderHostSheet(); return document.getElementById('hostSheet').showModal();
+    case 'giveHost': {
+      const p = player(id);
+      if (!p || !confirm(`Nhường chủ phòng cho ${p.name}?`)) return;
+      document.getElementById('hostSheet').close();
+      return act('giveHost', { id });
+    }
     case 'kick': {
       const p = player(id);
       if (p && confirm(`Mời ${p.name} ra khỏi phòng?`)) act('kick', { id });
