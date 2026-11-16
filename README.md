@@ -173,13 +173,14 @@ Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc
 curl -X POST https://<trang-cua-ban>/api/room -H 'Content-Type: application/json' -H 'X-Bot-Api-Secret-Token: <ROOM_API_SECRET>' -d '{"action":"create","webhook_url":"https://bot.example.com/hook","game":"werewolf","debug":false}'
 ```
 
-Trả về `{"code":"ABCDE","url":"https://<trang>/?room=ABCDE","webhook_url":"https://bot.example.com/hook"}`. Phòng trống, người vào đầu tiên thành chủ phòng; mỗi ván kết thúc được gửi tới `webhook_url` như trên (`chat_id`, `message_id`, `created_by` là `null`). `webhook_url` không ghi `https://` thì được hiểu là `https`; cùng quy tắc kiểm tra như trên, sai thì trả 400. Có thêm `name` thì người đó là chủ phòng và nhận `playerId`/`token` như tạo phòng bình thường. Tạo phòng có `webhook_url` bắt buộc gửi header `X-Bot-Api-Secret-Token` đúng bằng `ROOM_API_SECRET` (không đặt thì dùng `ZALO_WEBHOOK_SECRET`): thiếu hoặc sai trả 403, server chưa cấu hình secret trả 503. Tạo phòng không có `webhook_url` (trang web) không cần header.
+Trả về `{"code":"ABCDE","url":"https://<trang>/?room=ABCDE","webhook_url":"https://bot.example.com/hook","game_id":"b0063f41-…"}`. `game_id` là mã định danh (UUID) của phòng, được gửi lại trong mọi sự kiện `room.game_over` của phòng đó để bạn khớp kết quả với lần tạo phòng; phòng chơi nhiều ván thì cùng `game_id`, khác `game_no`. Phòng tạo bằng lệnh Zalo cũng có `game_id` (trong response của `/api/zalo`). Phòng trống, người vào đầu tiên thành chủ phòng; mỗi ván kết thúc được gửi tới `webhook_url` như trên (`chat_id`, `message_id`, `created_by` là `null`). `webhook_url` không ghi `https://` thì được hiểu là `https`; cùng quy tắc kiểm tra như trên, sai thì trả 400. Có thêm `name` thì người đó là chủ phòng và nhận `playerId`/`token` như tạo phòng bình thường. Tạo phòng có `webhook_url` bắt buộc gửi header `X-Bot-Api-Secret-Token` đúng bằng `ROOM_API_SECRET` (không đặt thì dùng `ZALO_WEBHOOK_SECRET`): thiếu hoặc sai trả 403, server chưa cấu hình secret trả 503. Tạo phòng không có `webhook_url` (trang web) không cần header.
 
 **Báo kết quả:** mỗi khi một ván trong phòng do bot tạo kết thúc, server gửi `POST` tới webhook của phòng (hoặc `ZALO_EVENT_URL`), header `X-Bot-Api-Secret-Token`, body JSON:
 
 ```json
 {
   "event_name": "room.game_over",
+  "game_id": "<mã định danh nhận được lúc tạo phòng>",
   "chat_id": "<chat.id của tin nhắn tạo phòng>",
   "message_id": "<message_id của tin nhắn >createRoom>",
   "game_no": 1,

@@ -173,7 +173,8 @@ test('Zalo webhook: ">createRoom wolf" opens an empty room; the first to join be
     });
     assert.equal(res.statusCode, 200);
     assert.equal(res.headers['Cache-Control'], 'no-store');
-    const { code, url } = res.body;
+    const { code, url, game_id: gameId } = res.body;
+    assert.match(gameId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     assert.equal(url, `https://masoi.vn/?room=${code}`);
     assert.equal(calls[0].url, `${ZALO_API}/botT/sendMessage`);
     assert.equal(calls[0].body.chat_id, 'chat-1');
@@ -183,7 +184,7 @@ test('Zalo webhook: ">createRoom wolf" opens an empty room; the first to join be
     assert.equal(room.state.hostId, null);
     assert.equal(room.state.players.length, 0);
     assert.equal(room.state.gameId, 'werewolf');
-    assert.deepEqual(room.state.zalo, { chatId: 'chat-1', messageId: 'm1', webhookUrl: null, from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' });
+    assert.deepEqual(room.state.zalo, { gameId, chatId: 'chat-1', messageId: 'm1', webhookUrl: null, from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' });
 
     const lan = await call(roomHandler, 'POST', { body: { action: 'join', code, name: 'Lan' } });
     assert.equal(lan.body.view.hostId, lan.body.playerId);
@@ -365,6 +366,8 @@ test('Zalo: the end-of-game event carries the log, cards and picture in base64',
   const s = wolfRoom();
   const ev = gameOverEvent(s, 5000);
   assert.equal(ev.event_name, 'room.game_over');
+  assert.equal(ev.game_id, null); // a room from before game ids
+  assert.equal(gameOverEvent({ ...s, zalo: { ...s.zalo, gameId: 'g-1' } }, 5000).game_id, 'g-1');
   assert.equal(ev.chat_id, 'chat-1');
   assert.equal(ev.message_id, 'm1');
   assert.equal(ev.game_no, 2);
@@ -458,6 +461,7 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
     await act(spy2, 'guess', { location: next.play.location });
     assert.equal(calls.length, 2);
     assert.equal(calls[1].body.game_no, 2);
+    assert.equal(calls[1].body.game_id, calls[0].body.game_id);
     assert.equal(calls[1].body.room.code, code);
   });
 });
@@ -465,7 +469,10 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
 test('Zalo: rooms opened from different chats at once each report to their own webhook', async () => {
   await withEnv({ ZALO_WEBHOOK_SECRET: SECRET }, async (calls) => {
     const open = (chat, mid) => hook(textUpdate(`>createRoom spyfall https://bot.vn/${mid}`, { chat: { id: chat }, message_id: mid }));
-    const [a, b, a2] = (await Promise.all([open('chat-A', 'mA'), open('chat-B', 'mB'), open('chat-A', 'mA2')])).map(r => r.body.code);
+    const opened = (await Promise.all([open('chat-A', 'mA'), open('chat-B', 'mB'), open('chat-A', 'mA2')])).map(r => r.body);
+    const [a, b, a2] = opened.map(r => r.code);
+    const id = Object.fromEntries(opened.map(r => [r.code, r.game_id]));
+    assert.equal(new Set(Object.values(id)).size, 3);
     assert.equal(new Set([a, b, a2]).size, 3);
     // End them in a different order from the one they were opened in.
     for (const code of [b, a2, a]) {
@@ -476,10 +483,10 @@ test('Zalo: rooms opened from different chats at once each report to their own w
       const s = (await getStore().load(code)).state;
       await act(seats.find(p => p.playerId === s.play.spy), 'guess', { location: s.play.location });
     }
-    assert.deepEqual(calls.map(c => [c.url, c.body.room.code, c.body.chat_id, c.body.message_id, c.body.game_no]), [
-      ['https://bot.vn/mB', b, 'chat-B', 'mB', 1],
-      ['https://bot.vn/mA2', a2, 'chat-A', 'mA2', 1],
-      ['https://bot.vn/mA', a, 'chat-A', 'mA', 1]
+    assert.deepEqual(calls.map(c => [c.url, c.body.game_id, c.body.room.code, c.body.chat_id, c.body.message_id, c.body.game_no]), [
+      ['https://bot.vn/mB', id[b], b, 'chat-B', 'mB', 1],
+      ['https://bot.vn/mA2', id[a2], a2, 'chat-A', 'mA2', 1],
+      ['https://bot.vn/mA', id[a], a, 'chat-A', 'mA', 1]
     ]);
   });
 });
@@ -492,13 +499,15 @@ test('API create: a webhook_url and no name opens an empty room that reports to 
     });
     assert.equal(res.statusCode, 200);
     const { code } = res.body;
-    assert.deepEqual(res.body, { code, url: `http://localhost:3000/?room=${code}`, webhook_url: 'http://127.0.0.1:4000/hook' });
+    const gameId = res.body.game_id;
+    assert.match(gameId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    assert.deepEqual(res.body, { code, url: `http://localhost:3000/?room=${code}`, webhook_url: 'http://127.0.0.1:4000/hook', game_id: gameId });
     const state = (await getStore().load(code)).state;
     assert.equal(state.hostId, null);
     assert.equal(state.players.length, 0);
     assert.equal(state.gameId, 'spyfall');
     assert.equal(state.debug, false);
-    assert.deepEqual(state.zalo, { chatId: null, messageId: null, from: null, webhookUrl: 'http://127.0.0.1:4000/hook', appUrl: 'http://localhost:3000' });
+    assert.deepEqual(state.zalo, { gameId, chatId: null, messageId: null, from: null, webhookUrl: 'http://127.0.0.1:4000/hook', appUrl: 'http://localhost:3000' });
 
     // The first to join hosts the room; a finished game goes to the webhook.
     const seats = [];
@@ -512,6 +521,7 @@ test('API create: a webhook_url and no name opens an empty room that reports to 
     assert.equal(calls[0].url, 'http://127.0.0.1:4000/hook');
     const ev = calls[0].body;
     assert.equal(ev.event_name, 'room.game_over');
+    assert.equal(ev.game_id, gameId);
     assert.equal(ev.chat_id, null);
     assert.equal(ev.message_id, null);
     assert.equal(ev.created_by, null);
@@ -583,6 +593,7 @@ test('API create: without a webhook or a name, a name is still needed', async ()
     const plain = await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan', webhook_url: '' } });
     assert.equal(plain.statusCode, 200);
     assert.equal(plain.body.webhook_url, null);
+    assert.equal(plain.body.game_id, null);
     assert.equal((await getStore().load(plain.body.code)).state.zalo, undefined);
   });
 });
