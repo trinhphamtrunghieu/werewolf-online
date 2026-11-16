@@ -7,7 +7,7 @@ import roomHandler from '../api/room.js';
 import { getStore, setStoreForTests } from '../lib/store.js';
 import { createRoom, joinRoom, applyAction } from '../lib/engine.js';
 import {
-  parseCommand, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
+  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
   gameOverEvent, notifyGameOver, outcome, ZALO_API
 } from '../lib/zalo.js';
 import { LOCATIONS } from '../public/shared/spyfall.js';
@@ -67,18 +67,38 @@ const hook = (body, headers = { 'x-bot-api-secret-token': SECRET }) => call(zalo
 const fromB64 = (b) => Buffer.from(b, 'base64').toString('utf8');
 
 test('Zalo: parse ">createRoom" commands', () => {
-  assert.deepEqual(parseCommand('>createRoom wolf'), { gameId: 'werewolf' });
-  assert.deepEqual(parseCommand('  > createroom   Ma-Sói '), { gameId: 'werewolf' });
-  assert.deepEqual(parseCommand('>createRoom'), { gameId: 'werewolf' });
-  assert.deepEqual(parseCommand('>CREATEROOM spyfall'), { gameId: 'spyfall' });
-  assert.deepEqual(parseCommand('>createRoom gián điệp'), { gameId: 'spyfall' });
-  assert.deepEqual(parseCommand('>createRoom undercover'), { gameId: 'undercover' });
-  assert.deepEqual(parseCommand('>createRoom avalon'), { gameId: 'avalon' });
+  assert.deepEqual(parseCommand('>createRoom wolf'), { gameId: 'werewolf', webhookUrl: null });
+  assert.deepEqual(parseCommand('  > createroom   Ma-Sói '), { gameId: 'werewolf', webhookUrl: null });
+  assert.deepEqual(parseCommand('>createRoom'), { gameId: 'werewolf', webhookUrl: null });
+  assert.deepEqual(parseCommand('>CREATEROOM spyfall'), { gameId: 'spyfall', webhookUrl: null });
+  assert.deepEqual(parseCommand('>createRoom gián điệp'), { gameId: 'spyfall', webhookUrl: null });
+  assert.deepEqual(parseCommand('>createRoom undercover'), { gameId: 'undercover', webhookUrl: null });
+  assert.deepEqual(parseCommand('>createRoom avalon'), { gameId: 'avalon', webhookUrl: null });
   assert.match(parseCommand('>createRoom cờ vua').error, /Không có trò "cờ vua"/);
+  // A webhook anywhere after the command; the rest is the game.
+  assert.deepEqual(parseCommand('>createRoom wolf https://bot.vn/hook?room=1'), { gameId: 'werewolf', webhookUrl: 'https://bot.vn/hook?room=1' });
+  assert.deepEqual(parseCommand('>createRoom HTTPS://bot.vn/x avalon'), { gameId: 'avalon', webhookUrl: 'HTTPS://bot.vn/x' });
+  assert.deepEqual(parseCommand('>createRoom http://localhost:4000/hook'), { gameId: 'werewolf', webhookUrl: 'http://localhost:4000/hook' });
+  assert.match(parseCommand('>createRoom chess https://bot.vn').error, /Không có trò "chess"\. Dùng: .*\[webhook URL\]/);
   assert.equal(parseCommand('createRoom wolf'), null);
   assert.equal(parseCommand('>createRoomwolf'), null);
   assert.equal(parseCommand('xin chào'), null);
   assert.equal(parseCommand(undefined), null);
+});
+
+test('Zalo: a room webhook must be https on a public host, except when running locally', () => {
+  assert.equal(checkWebhookUrl('https://bot.vn/hook?x=1'), 'https://bot.vn/hook?x=1');
+  assert.equal(checkWebhookUrl('HTTPS://Bot.VN/h'), 'https://bot.vn/h');
+  for (const bad of ['http://bot.vn/h', 'https://localhost/h', 'https://a.localhost/h', 'https://db.internal/h', 'https://printer.local/',
+    'https://127.0.0.1/', 'https://10.1.2.3/', 'https://192.168.1.1/', 'https://172.16.0.1/', 'https://172.31.9.9/',
+    'https://169.254.169.254/latest', 'https://0.0.0.0/', 'https://[::1]/', 'https://user:pw@bot.vn/', 'ftp://bot.vn/', 'not a url', undefined]) {
+    assert.equal(checkWebhookUrl(bad), null, String(bad));
+  }
+  assert.equal(checkWebhookUrl('https://172.32.0.1/'), 'https://172.32.0.1/');
+  assert.equal(checkWebhookUrl('http://127.0.0.1:4000/hook', { local: true }), 'http://127.0.0.1:4000/hook');
+  assert.equal(checkWebhookUrl('https://localhost/h', { local: true }), 'https://localhost/h');
+  assert.equal(checkWebhookUrl('ftp://bot.vn/', { local: true }), null);
+  assert.equal(checkWebhookUrl('http://u:p@localhost/', { local: true }), null);
 });
 
 test('Zalo: config, links and the reply text', async () => {
@@ -159,7 +179,7 @@ test('Zalo webhook: ">createRoom wolf" opens an empty room; the first to join be
     assert.equal(room.state.hostId, null);
     assert.equal(room.state.players.length, 0);
     assert.equal(room.state.gameId, 'werewolf');
-    assert.deepEqual(room.state.zalo, { chatId: 'chat-1', messageId: 'm1', from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' });
+    assert.deepEqual(room.state.zalo, { chatId: 'chat-1', messageId: 'm1', webhookUrl: null, from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' });
 
     const lan = await call(roomHandler, 'POST', { body: { action: 'join', code, name: 'Lan' } });
     assert.equal(lan.body.view.hostId, lan.body.playerId);
@@ -189,6 +209,35 @@ test('Zalo webhook: room links use APP_URL, or the local address; no token means
     assert.match(fwd.body.url, /^https:\/\/a\.vn\//);
     const bare = await call(zaloHandler, 'POST', { body: textUpdate('>createRoom'), headers: { 'x-bot-api-secret-token': SECRET } });
     assert.match(bare.body.url, /^http:\/\/localhost:3000\//);
+  });
+});
+
+test('Zalo webhook: the room keeps the webhook from the message or from the update', async () => {
+  await withEnv({ ZALO_WEBHOOK_SECRET: SECRET }, async () => {
+    const inText = await hook(textUpdate('>createRoom wolf https://bot.vn/a'));
+    assert.equal(inText.body.webhook_url, 'https://bot.vn/a');
+    assert.equal((await getStore().load(inText.body.code)).state.zalo.webhookUrl, 'https://bot.vn/a');
+    const inBody = await hook({ ...textUpdate('>createRoom wolf'), webhook_url: 'https://bot.vn/b' });
+    assert.equal((await getStore().load(inBody.body.code)).state.zalo.webhookUrl, 'https://bot.vn/b');
+    // The message's own webhook wins.
+    const both = await hook({ ...textUpdate('>createRoom wolf https://bot.vn/c'), webhook_url: 'https://bot.vn/d' });
+    assert.equal(both.body.webhook_url, 'https://bot.vn/c');
+    // Running locally, a webhook on this machine is fine.
+    const local = await hook(textUpdate('>createRoom wolf http://127.0.0.1:4000/hook'));
+    assert.equal(local.body.webhook_url, 'http://127.0.0.1:4000/hook');
+  });
+});
+
+test('Zalo webhook: a bad webhook gets a reply and no room', async () => {
+  await withEnv({ ZALO_WEBHOOK_SECRET: SECRET, ZALO_BOT_TOKEN: 'T' }, async (calls) => {
+    const bad = await hook({ ...textUpdate('>createRoom wolf'), webhook_url: 'ftp://bot.vn' });
+    assert.equal(bad.body.message, 'Invalid webhook URL');
+    assert.match(calls[0].body.text, /Webhook URL không hợp lệ/);
+    // On Vercel, only https on a public host.
+    process.env.VERCEL = '1';
+    const internal = await hook(textUpdate('>createRoom wolf http://127.0.0.1:4000/hook'));
+    assert.equal(internal.body.message, 'Invalid webhook URL');
+    assert.equal(globalThis.__masoiRooms.size, 0);
   });
 });
 
@@ -357,6 +406,11 @@ test('Zalo: notifyGameOver posts the event only for bot rooms with a target, and
     console.warn = warn;
   }
   assert.equal(warned, 1);
+  // The room's own webhook wins over ZALO_EVENT_URL.
+  await notifyGameOver({ ...s, zalo: { ...s.zalo, webhookUrl: 'https://room.vn/h' } }, 1, { config, fetchImpl: fake });
+  assert.equal(calls.at(-1).url, 'https://room.vn/h');
+  assert.equal(await notifyGameOver({ ...s, zalo: { ...s.zalo, webhookUrl: 'https://room.vn/h' } }, 1, { config: { eventUrl: '' }, fetchImpl: fake }), true);
+  assert.equal(calls.at(-1).url, 'https://room.vn/h');
   // Defaults: the environment and the global fetch.
   await withEnv({ ZALO_EVENT_URL: 'https://env.vn/e' }, async (envCalls) => {
     assert.equal(await notifyGameOver(s, 1), true);
@@ -404,9 +458,9 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
   });
 });
 
-test('Zalo: rooms opened from different chats at once each report to their own chat', async () => {
-  await withEnv({ ZALO_WEBHOOK_SECRET: SECRET, ZALO_EVENT_URL: 'https://bot.vn/hook' }, async (calls) => {
-    const open = (chat, mid) => hook(textUpdate('>createRoom spyfall', { chat: { id: chat }, message_id: mid }));
+test('Zalo: rooms opened from different chats at once each report to their own webhook', async () => {
+  await withEnv({ ZALO_WEBHOOK_SECRET: SECRET }, async (calls) => {
+    const open = (chat, mid) => hook(textUpdate(`>createRoom spyfall https://bot.vn/${mid}`, { chat: { id: chat }, message_id: mid }));
     const [a, b, a2] = (await Promise.all([open('chat-A', 'mA'), open('chat-B', 'mB'), open('chat-A', 'mA2')])).map(r => r.body.code);
     assert.equal(new Set([a, b, a2]).size, 3);
     // End them in a different order from the one they were opened in.
@@ -418,10 +472,10 @@ test('Zalo: rooms opened from different chats at once each report to their own c
       const s = (await getStore().load(code)).state;
       await act(seats.find(p => p.playerId === s.play.spy), 'guess', { location: s.play.location });
     }
-    assert.deepEqual(calls.map(c => [c.body.room.code, c.body.chat_id, c.body.message_id, c.body.game_no]), [
-      [b, 'chat-B', 'mB', 1],
-      [a2, 'chat-A', 'mA2', 1],
-      [a, 'chat-A', 'mA', 1]
+    assert.deepEqual(calls.map(c => [c.url, c.body.room.code, c.body.chat_id, c.body.message_id, c.body.game_no]), [
+      ['https://bot.vn/mB', b, 'chat-B', 'mB', 1],
+      ['https://bot.vn/mA2', a2, 'chat-A', 'mA2', 1],
+      ['https://bot.vn/mA', a, 'chat-A', 'mA', 1]
     ]);
   });
 });
