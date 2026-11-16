@@ -797,6 +797,7 @@ function renderLobby() {
           ${host && !p.isHost ? `<button class="kick" data-act="kick" data-id="${esc(p.id)}" aria-label="Mời ${esc(p.name)} ra khỏi phòng">✕</button>` : ''}
         </li>`).join('')}
     </ul>
+    <button class="btn btn-ghost btn-small" style="margin-top:12px" data-act="renameSheet">✏️ Đổi tên của tôi</button>
     ${participants.length < info.min ? `<p class="hint">${info.name} cần ít nhất ${info.min} người chơi. Hãy gửi link mời cho bạn bè.</p>` : ''}`;
 
   // Each game's own panel: the deck for Ma Sói, settings for the others.
@@ -1208,6 +1209,7 @@ function endTurnButton(m) {
 }
 
 function renderGame() {
+  syncRenameSheet();
   // Ma Sói is drawn here; the other games draw their stage and card through
   // their module, inside the same room shell.
   const wolf = view.gameId === 'werewolf';
@@ -2467,6 +2469,13 @@ document.addEventListener('click', async (e) => {
       if (p && confirm(`Mời ${p.name} ra khỏi phòng?`)) act('kick', { id });
       return;
     }
+    case 'renameSheet': {
+      const input = document.getElementById('renameInput');
+      input.value = player(view.me.id)?.name || '';
+      document.getElementById('renameSheet').showModal();
+      input.select();
+      return;
+    }
     case 'setupOpen':
       setupOpen = true;
       window.scrollTo(0, 0);
@@ -2653,6 +2662,25 @@ window.addEventListener('hub-act', (e) => act(e.detail.type, e.detail.payload));
 // The next Artifact notice, once one is closed.
 
 // Close dialogs by tapping the backdrop.
+// A new name, from the lobby. It is also the name this phone fills in next
+// time (and the one to type to get the seat back on another phone).
+document.getElementById('renameForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('renameInput').value.trim();
+  if (!name) return toast('Hãy nhập tên của bạn.', 'error');
+  if (await act('rename', { name })) {
+    store(NAME_KEY, name);
+    document.getElementById('renameSheet').close();
+    toast('Đã đổi tên.');
+  }
+});
+
+// The lobby is the only place to rename: close the sheet once the game starts.
+function syncRenameSheet() {
+  const sheet = document.getElementById('renameSheet');
+  if (sheet.open) sheet.close();
+}
+
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e) => {
   if (e.target === d) d.close();
 }));
