@@ -570,7 +570,6 @@ function render() {
   if (screen === 'home') renderHome();
   else if (screen === 'lobby') renderLobby();
   else renderGame();
-  syncRenameSheet();
 }
 
 function topbar(extra = '') {
@@ -1208,6 +1207,7 @@ function endTurnButton(m) {
 }
 
 function renderGame() {
+  syncRenameSheet();
   // Ma Sói is drawn here; the other games draw their stage and card through
   // their module, inside the same room shell.
   const wolf = view.gameId === 'werewolf';
@@ -2428,16 +2428,16 @@ document.addEventListener('click', async (e) => {
     case 'closeSheet': return el.closest('dialog').close();
     case 'leave': return leaveRoom();
     case 'share': return share();
+    case 'kick': {
+      const p = player(id);
+      if (p && confirm(`Mời ${p.name} ra khỏi phòng?`)) act('kick', { id });
+      return;
+    }
     case 'renameSheet': {
       const input = document.getElementById('renameInput');
       input.value = player(view.me.id)?.name || '';
       document.getElementById('renameSheet').showModal();
       input.select();
-      return;
-    }
-    case 'kick': {
-      const p = player(id);
-      if (p && confirm(`Mời ${p.name} ra khỏi phòng?`)) act('kick', { id });
       return;
     }
     case 'setupOpen':
@@ -2642,7 +2642,7 @@ document.getElementById('renameForm').addEventListener('submit', async (e) => {
 // The lobby is the only place to rename: close the sheet once the game starts.
 function syncRenameSheet() {
   const sheet = document.getElementById('renameSheet');
-  if (sheet.open && screen !== 'lobby') sheet.close();
+  if (sheet.open) sheet.close();
 }
 
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', (e) => {

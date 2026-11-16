@@ -23,6 +23,18 @@
     <div class="sheet-body" id="cardSheetBody"></div>
   </dialog>
 
+  <dialog class="sheet" id="renameSheet" aria-labelledby="renameTitle">
+    <form class="sheet-body stack" id="renameForm" autocomplete="off">
+      <div class="sheet-head"><h3 id="renameTitle">✏️ Đổi tên</h3><button class="btn btn-ghost btn-small" type="button" data-act="closeSheet">Đóng</button></div>
+      <div class="field">
+        <label for="renameInput">Tên mới của bạn</label>
+        <input class="input" id="renameInput" maxlength="20" required enterkeyhint="done" />
+        <p class="hint">Chỉ đổi được ở phòng chờ, trước khi bắt đầu ván. Ai trong phòng cũng thấy tên mới ngay.</p>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Lưu tên</button>
+    </form>
+  </dialog>
+
   <dialog class="sheet sheet-wide" id="rulesSheet" aria-labelledby="rulesTitle">
     <div class="sheet-body" id="rulesBody"></div>
   </dialog>
@@ -37,18 +49,6 @@
 
   <dialog class="sheet" id="notesSheet" aria-labelledby="notesTitle">
     <div class="sheet-body" id="notesBody"></div>
-  </dialog>
-
-  <dialog class="sheet" id="renameSheet" aria-labelledby="renameTitle">
-    <form class="sheet-body stack" id="renameForm" autocomplete="off">
-      <div class="sheet-head"><h3 id="renameTitle">✏️ Đổi tên</h3><button class="btn btn-ghost btn-small" type="button" data-act="closeSheet">Đóng</button></div>
-      <div class="field">
-        <label for="renameInput">Tên mới của bạn</label>
-        <input class="input" id="renameInput" maxlength="20" required enterkeyhint="done" />
-        <p class="hint">Chỉ đổi được ở phòng chờ, trước khi bắt đầu ván. Ai trong phòng cũng thấy tên mới ngay.</p>
-      </div>
-      <button class="btn btn-primary btn-block" type="submit">Lưu tên</button>
-    </form>
   </dialog>
 
   <script type="module" src="/js/app.js"></script>
