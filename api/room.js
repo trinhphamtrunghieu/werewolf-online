@@ -6,7 +6,9 @@
 //   POST /api/room { action: 'create', name, game }               create a room for that game
 //   POST /api/room { action: 'create', webhook_url, game, debug } an empty room: the first to join
 //                                                                 hosts it, and each finished game
-//                                                                 is posted to webhook_url
+//                                                                 is posted to webhook_url. Needs the
+//                                                                 header X-Bot-Api-Secret-Token
+//                                                                 (ROOM_API_SECRET)
 //   POST /api/room { action: 'join', code, name }                 join a room
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
 
@@ -16,12 +18,22 @@ import {
 import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
 } from '../lib/store.js';
-import { notifyGameOver, checkWebhookUrl, siteUrl, roomUrl } from '../lib/zalo.js';
+import {
+  notifyGameOver, checkWebhookUrl, siteUrl, roomUrl, sameSecret, zaloConfig, SECRET_HEADER
+} from '../lib/zalo.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SEEN_REFRESH_MS = 15000;
 // The host checks in more often so the room notices quickly if it drops out.
 const HOST_SEEN_REFRESH_MS = 3000;
+
+// A refusal with its own HTTP status (403, 503).
+class StatusError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
 
 const notFound = () => new GameError('Không tìm thấy phòng. Hãy kiểm tra lại mã phòng.');
 
@@ -70,6 +82,10 @@ async function handleCreate(store, body, req) {
   const now = Date.now();
   let webhookUrl = null;
   if (body.webhook_url) {
+    // Only the bot may have the server post to a URL of its choosing.
+    const { roomSecret } = zaloConfig();
+    if (!roomSecret) throw new StatusError(503, 'Chưa cấu hình ROOM_API_SECRET.');
+    if (!sameSecret(req.headers?.[SECRET_HEADER], roomSecret)) throw new StatusError(403, 'Unauthorized');
     webhookUrl = checkWebhookUrl(body.webhook_url, { local: !process.env.VERCEL });
     if (!webhookUrl) throw new GameError('Webhook URL không hợp lệ: cần một địa chỉ https công khai.');
   }
@@ -210,6 +226,7 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   } catch (err) {
     if (err instanceof GameError) return res.status(400).json({ error: err.message });
+    if (err instanceof StatusError) return res.status(err.status).json({ error: err.message });
     if (err instanceof SyntaxError) return res.status(400).json({ error: 'Dữ liệu gửi lên không hợp lệ.' });
     console.error(err);
     const message = err instanceof StoreError ? err.message : 'Máy chủ gặp lỗi, hãy thử lại.';
