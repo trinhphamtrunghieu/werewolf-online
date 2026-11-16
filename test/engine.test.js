@@ -1195,6 +1195,36 @@ test('a silent host phone is replaced by a majority vote, with no new secrets', 
   assert.equal(viewFor(s, host.id, later, 3).me.isHost, false, 'the old host is a normal player when back');
 });
 
+test('players rename themselves in the lobby; names stay unique; the leaderboard follows', () => {
+  const now = 0;
+  const { state: s, player: host } = createRoom({ code: 'NAME1', hostName: 'Chủ', now });
+  const a = joinRoom(s, 'An', now);
+  const b = joinRoom(s, 'Bình', now);
+  // No game played yet: no leaderboard to update.
+  applyAction(s, a.id, 'rename', { name: '  An   Nguyễn ' }, now);
+  assert.equal(a.name, 'An Nguyễn');
+  applyAction(s, a.id, 'rename', { name: 'an nguyễn' }, now);
+  assert.equal(a.name, 'an nguyễn', 'a change of case is still your own name');
+  assert.throws(() => applyAction(s, a.id, 'rename', { name: 'BÌNH' }, now), /đã có người dùng/);
+  assert.throws(() => applyAction(s, a.id, 'rename', { name: '   ' }, now), /nhập tên/);
+  assert.throws(() => applyAction(s, a.id, 'rename', {}, now), /nhập tên/);
+  applyAction(s, host.id, 'rename', { name: 'Trưởng phòng' }, now);
+  assert.equal(host.name, 'Trưởng phòng');
+
+  // Past games: the rows for this player take the new name, others stay.
+  s.stats = { games: 1, sideWins: {}, players: { [a.id]: { name: 'An', played: 1, wins: 1, sides: {} }, [b.id]: { name: 'Bình', played: 1, wins: 0, sides: {} } } };
+  s.statsByGame = { avalon: { games: 1, sideWins: {}, players: { [b.id]: { name: 'Bình', played: 1, wins: 1, sides: {} } } } };
+  applyAction(s, b.id, 'rename', { name: 'Bé Bình' }, now);
+  assert.equal(s.stats.players[b.id].name, 'Bé Bình');
+  assert.equal(s.stats.players[a.id].name, 'An');
+  assert.equal(s.statsByGame.avalon.players[b.id].name, 'Bé Bình');
+  assert.equal(viewFor(s, a.id, now, 1).players.find(p => p.id === b.id).name, 'Bé Bình');
+
+  // Not once the cards are dealt.
+  const g = setup(['villager', 'werewolf', 'villager', 'villager', 'villager']);
+  assert.throws(() => applyAction(g.s, g.P[1].id, 'rename', { name: 'Mới' }, g.clock.now), /phòng chờ/);
+});
+
 test('when the host leaves the lobby, the next player hosts and also plays', () => {
   let now = 0;
   const { state: s, player: host } = createRoom({ code: 'LEAVE', hostName: 'Host', now });
