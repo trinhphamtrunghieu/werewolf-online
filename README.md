@@ -171,6 +171,8 @@ Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc
 {
   "event_name": "room.game_over",
   "chat_id": "<chat.id của tin nhắn tạo phòng>",
+  "message_id": "<message_id của tin nhắn >createRoom>",
+  "game_no": 1,
   "created_by": { "id": "...", "display_name": "..." },
   "room": { "code": "ABCDE", "game": "werewolf", "url": "https://.../?room=ABCDE" },
   "ended_at": 1763280000000,
@@ -182,6 +184,8 @@ Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc
   "roles_image_mime": "image/svg+xml"
 }
 ```
+
+**Biết kết quả của phòng nào:** mỗi phòng tự lưu chat đã tạo ra nó, nên nhiều chat tạo phòng cùng lúc không lẫn nhau. `chat_id` là nơi gửi kết quả, `room.code` là phòng (đúng mã bot đã trả lời trong chat), `message_id` là tin nhắn `>createRoom` đã tạo phòng (một chat tạo nhiều phòng thì phân biệt bằng trường này hoặc `room.code`), `game_no` là ván thứ mấy của phòng đó (phòng chơi nhiều ván thì mỗi ván một sự kiện).
 
 Các trường nội dung (`log`, `roles`, `roles_image`) là base64 của chuỗi UTF-8. Ảnh chia vai là SVG (ai cầm vai gì, màu theo phe, người đã chết bị làm mờ); `sendPhoto` của Zalo nhận link ảnh, nên bot cần đổi sang PNG hoặc tải lên rồi gửi link. Gửi lỗi thì chỉ ghi log, không ảnh hưởng ván chơi.
 

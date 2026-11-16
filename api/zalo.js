@@ -69,6 +69,7 @@ export default async function handler(req, res) {
     const base = siteUrl(req, config);
     const code = await openRoom(getStore(), command.gameId, {
       chatId,
+      messageId: msg.message_id || null,
       from: { id: msg.from?.id || null, display_name: msg.from?.display_name || null },
       appUrl: base
     });

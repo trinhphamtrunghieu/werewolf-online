@@ -159,7 +159,7 @@ test('Zalo webhook: ">createRoom wolf" opens an empty room; the first to join be
     assert.equal(room.state.hostId, null);
     assert.equal(room.state.players.length, 0);
     assert.equal(room.state.gameId, 'werewolf');
-    assert.deepEqual(room.state.zalo, { chatId: 'chat-1', from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' });
+    assert.deepEqual(room.state.zalo, { chatId: 'chat-1', messageId: 'm1', from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' });
 
     const lan = await call(roomHandler, 'POST', { body: { action: 'join', code, name: 'Lan' } });
     assert.equal(lan.body.view.hostId, lan.body.playerId);
@@ -178,6 +178,8 @@ test('Zalo webhook: room links use APP_URL, or the local address; no token means
     const room = await getStore().load(res.body.code);
     assert.equal(room.state.gameId, 'avalon');
     assert.deepEqual(room.state.zalo.from, { id: null, display_name: null });
+    const noId = await hook(textUpdate('>createRoom', { message_id: undefined }));
+    assert.equal((await getStore().load(noId.body.code)).state.zalo.messageId, null);
     assert.equal(calls.length, 0);
   });
   await withEnv({ ZALO_WEBHOOK_SECRET: SECRET }, async () => {
@@ -240,7 +242,7 @@ function wolfRoom() {
   s.game.winner = 'werewolf';
   s.game.winReason = 'Số Sói (1) đã bằng hoặc nhiều hơn số người còn lại (1).';
   s.game.log = ['🌙 Đêm 1 buông xuống.', '🏆 PHE MA SÓI CHIẾN THẮNG!'];
-  s.zalo = { chatId: 'chat-1', from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' };
+  s.zalo = { chatId: 'chat-1', messageId: 'm1', games: 2, from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' };
   return s;
 }
 
@@ -304,6 +306,8 @@ test('Zalo: the end-of-game event carries the log, cards and picture in base64',
   const ev = gameOverEvent(s, 5000);
   assert.equal(ev.event_name, 'room.game_over');
   assert.equal(ev.chat_id, 'chat-1');
+  assert.equal(ev.message_id, 'm1');
+  assert.equal(ev.game_no, 2);
   assert.deepEqual(ev.created_by, { id: 'u1', display_name: 'Ted' });
   assert.deepEqual(ev.room, { code: 'WOLF1', game: 'werewolf', url: 'https://masoi.vn/?room=WOLF1' });
   assert.equal(ev.ended_at, 5000);
@@ -314,10 +318,12 @@ test('Zalo: the end-of-game event carries the log, cards and picture in base64',
   assert.equal(fromB64(ev.roles_image), cardsSvg(s));
   assert.equal(ev.roles_image_mime, 'image/svg+xml');
   // Without a site address, a game record or a winner.
-  s.zalo.appUrl = '';
+  s.zalo = { chatId: 'chat-1', from: null, appUrl: '' };
   const bare = gameOverEvent({ ...s, game: undefined, players: [] }, 1);
   assert.equal(bare.room.url, null);
   assert.equal(bare.winner, null);
+  assert.equal(bare.message_id, null);
+  assert.equal(bare.game_no, 1);
   assert.equal(fromB64(bare.log), '');
 });
 
@@ -372,10 +378,42 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
     assert.equal(ev.room.game, 'spyfall');
     assert.equal(JSON.parse(fromB64(ev.roles)).length, 3);
     assert.match(fromB64(ev.log), /Gián điệp .* đoán đúng địa điểm/);
+    assert.equal(ev.message_id, 'm1');
+    assert.equal(ev.game_no, 1);
     // Later requests in the finished game do not report again.
     await call(roomHandler, 'GET', { query: { code, pid: host.playerId, token: host.token } });
     await act(host, 'restart', {});
     assert.equal(calls.length, 1);
+    // The room's next game is game 2.
+    await act(host, 'start', {});
+    const next = (await getStore().load(code)).state;
+    const spy2 = seats.find(p => p.playerId === next.play.spy);
+    await act(spy2, 'guess', { location: next.play.location });
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].body.game_no, 2);
+    assert.equal(calls[1].body.room.code, code);
+  });
+});
+
+test('Zalo: rooms opened from different chats at once each report to their own chat', async () => {
+  await withEnv({ ZALO_WEBHOOK_SECRET: SECRET, ZALO_EVENT_URL: 'https://bot.vn/hook' }, async (calls) => {
+    const open = (chat, mid) => hook(textUpdate('>createRoom spyfall', { chat: { id: chat }, message_id: mid }));
+    const [a, b, a2] = (await Promise.all([open('chat-A', 'mA'), open('chat-B', 'mB'), open('chat-A', 'mA2')])).map(r => r.body.code);
+    assert.equal(new Set([a, b, a2]).size, 3);
+    // End them in a different order from the one they were opened in.
+    for (const code of [b, a2, a]) {
+      const seats = [];
+      for (const name of ['Lan', 'Minh', 'An']) seats.push((await call(roomHandler, 'POST', { body: { action: 'join', code, name } })).body);
+      const act = (p, type, payload) => call(roomHandler, 'POST', { body: { action: 'act', code, pid: p.playerId, token: p.token, type, payload } });
+      await act(seats[0], 'start', {});
+      const s = (await getStore().load(code)).state;
+      await act(seats.find(p => p.playerId === s.play.spy), 'guess', { location: s.play.location });
+    }
+    assert.deepEqual(calls.map(c => [c.body.room.code, c.body.chat_id, c.body.message_id, c.body.game_no]), [
+      [b, 'chat-B', 'mB', 1],
+      [a2, 'chat-A', 'mA2', 1],
+      [a, 'chat-A', 'mA', 1]
+    ]);
   });
 });
 

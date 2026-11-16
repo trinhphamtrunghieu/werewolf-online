@@ -41,13 +41,15 @@ export function readBody(req) {
 }
 
 // Run a room change and note whether it ended a game (only one request can
-// save that change, so the end is reported once).
+// save that change, so the end is reported once). A bot room numbers its
+// games here, in the same save.
 function watchEnd(fn) {
   const out = { ended: false };
   out.fn = (s) => {
     const before = s.phase;
     const r = fn(s);
     out.ended = before !== 'GAME_OVER' && s.phase === 'GAME_OVER';
+    if (out.ended && s.zalo) s.zalo.games = (s.zalo.games || 0) + 1;
     return r;
   };
   return out;
