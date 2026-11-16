@@ -167,6 +167,14 @@ Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc
 
 **Webhook nhận kết quả của từng phòng:** ghi URL ngay sau lệnh, ví dụ `>createRoom wolf https://bot.example.com/hook?game=123`. Bot gửi cập nhật tới `/api/zalo` thì cũng có thể đặt URL vào trường `webhook_url` ở gốc body JSON; URL ghi trong tin nhắn được ưu tiên. Mỗi phòng nhớ webhook của mình, nên mỗi phòng có thể báo về một nơi khác nhau. URL phải là `https` trên một máy công khai (không nhận `localhost`, IP nội bộ, URL có user/mật khẩu); URL sai thì bot báo lỗi và không tạo phòng. Khi chạy `npm run dev`, nhận cả `http` và `localhost` để thử. Phòng không có webhook riêng thì dùng `ZALO_EVENT_URL`, nếu có.
 
+**Tạo phòng qua API (không cần Zalo):**
+
+```bash
+curl -X POST https://<trang-cua-ban>/api/room -H 'Content-Type: application/json' -d '{"action":"create","webhook_url":"https://bot.example.com/hook","game":"werewolf","debug":false}'
+```
+
+Trả về `{"code":"ABCDE","url":"https://<trang>/?room=ABCDE","webhook_url":"https://bot.example.com/hook"}`. Phòng trống, người vào đầu tiên thành chủ phòng; mỗi ván kết thúc được gửi tới `webhook_url` như trên (`chat_id`, `message_id`, `created_by` là `null`). `webhook_url` không ghi `https://` thì được hiểu là `https`; cùng quy tắc kiểm tra như trên, sai thì trả 400. Có thêm `name` thì người đó là chủ phòng và nhận `playerId`/`token` như tạo phòng bình thường.
+
 **Báo kết quả:** mỗi khi một ván trong phòng do bot tạo kết thúc, server gửi `POST` tới webhook của phòng (hoặc `ZALO_EVENT_URL`), header `X-Bot-Api-Secret-Token`, body JSON:
 
 ```json

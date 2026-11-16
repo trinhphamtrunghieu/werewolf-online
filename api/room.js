@@ -4,6 +4,9 @@
 //   GET  /api/room?code=ABCDE&pid=...&token=...&since=<version>   fetch my view (also advances timers)
 //   GET  /api/room?code=ABCDE&pid=...&token=...&check=1           is my seat still there? (read-only)
 //   POST /api/room { action: 'create', name, game }               create a room for that game
+//   POST /api/room { action: 'create', webhook_url, game, debug } an empty room: the first to join
+//                                                                 hosts it, and each finished game
+//                                                                 is posted to webhook_url
 //   POST /api/room { action: 'join', code, name }                 join a room
 //   POST /api/room { action: 'act', code, pid, token, type, payload }
 
@@ -13,7 +16,7 @@ import {
 import {
   getStore, mutateRoom, createRoomRecord, realtimeClientConfig, StoreError
 } from '../lib/store.js';
-import { notifyGameOver } from '../lib/zalo.js';
+import { notifyGameOver, checkWebhookUrl, siteUrl, roomUrl } from '../lib/zalo.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SEEN_REFRESH_MS = 15000;
@@ -60,14 +63,29 @@ async function reportEnd(watch, saved, state, now) {
   if (watch.ended && saved && state.zalo) await notifyGameOver(state, now);
 }
 
-async function handleCreate(store, body) {
+// With a webhook_url, the room reports each finished game there (see
+// lib/zalo.js). Without a name too, nobody is in it yet: it waits for
+// players, and the first to join becomes the host.
+async function handleCreate(store, body, req) {
   const now = Date.now();
+  let webhookUrl = null;
+  if (body.webhook_url) {
+    webhookUrl = checkWebhookUrl(body.webhook_url, { local: !process.env.VERCEL });
+    if (!webhookUrl) throw new GameError('Webhook URL không hợp lệ: cần một địa chỉ https công khai.');
+  }
+  const hostless = !!webhookUrl && !body.name;
+  const base = siteUrl(req);
   for (let i = 0; i < 6; i++) {
     const code = newCode();
-    const { state, player } = createRoom({ code, hostName: body.name, now, debug: !!body.debug, gameId: String(body.game || 'werewolf') });
+    const { state, player } = createRoom({
+      code, hostName: body.name, now, debug: !!body.debug, gameId: String(body.game || 'werewolf'), hostless
+    });
+    if (webhookUrl) state.zalo = { chatId: null, messageId: null, from: null, webhookUrl, appUrl: base };
     if (await createRoomRecord(store, code, state)) {
       if (Math.random() < 0.2) await store.cleanup();
-      return { code, playerId: player.id, token: player.token, view: viewFor(state, player.id, now, 1) };
+      const link = { url: roomUrl(base, code), webhook_url: webhookUrl };
+      if (hostless) return { code, ...link };
+      return { code, ...link, playerId: player.id, token: player.token, view: viewFor(state, player.id, now, 1) };
     }
   }
   throw new StoreError('Không tạo được phòng, hãy thử lại.');
@@ -181,7 +199,7 @@ export default async function handler(req, res) {
       out = await handlePoll(store, req.query || {});
     } else if (req.method === 'POST') {
       const body = readBody(req);
-      if (body.action === 'create') out = await handleCreate(store, body);
+      if (body.action === 'create') out = await handleCreate(store, body, req);
       else if (body.action === 'join') out = await handleJoin(store, body);
       else if (body.action === 'act') out = await handleAct(store, body);
       else throw new GameError('Yêu cầu không hợp lệ.');
