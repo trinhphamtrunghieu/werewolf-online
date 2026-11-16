@@ -7,12 +7,12 @@ import roomHandler from '../api/room.js';
 import { getStore, setStoreForTests } from '../lib/store.js';
 import { createRoom, joinRoom, applyAction } from '../lib/engine.js';
 import {
-  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
+  parseCommand, checkWebhookUrl, sameSecret, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
   gameOverEvent, notifyGameOver, outcome, ZALO_API
 } from '../lib/zalo.js';
 import { LOCATIONS } from '../public/shared/spyfall.js';
 
-const ENV_KEYS = ['ZALO_WEBHOOK_SECRET', 'ZALO_BOT_TOKEN', 'ZALO_EVENT_URL', 'ZALO_EVENT_SECRET', 'APP_URL',
+const ENV_KEYS = ['ZALO_WEBHOOK_SECRET', 'ROOM_API_SECRET', 'ZALO_BOT_TOKEN', 'ZALO_EVENT_URL', 'ZALO_EVENT_SECRET', 'APP_URL',
   'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEY', 'VERCEL'];
 
 // Run `fn` with these environment variables (and none of the others) and a
@@ -106,12 +106,13 @@ test('Zalo: a room webhook must be https on a public host, except when running l
 
 test('Zalo: config, links and the reply text', async () => {
   await withEnv({}, () => {
-    assert.deepEqual(zaloConfig(), { secret: '', botToken: '', eventUrl: '', eventSecret: '', appUrl: '' });
+    assert.deepEqual(zaloConfig(), { secret: '', roomSecret: '', botToken: '', eventUrl: '', eventSecret: '', appUrl: '' });
   });
   await withEnv({ ZALO_WEBHOOK_SECRET: 'a', ZALO_EVENT_SECRET: 'b', APP_URL: 'https://x.vn//', ZALO_BOT_TOKEN: 't', ZALO_EVENT_URL: 'https://bot' }, () => {
-    assert.deepEqual(zaloConfig(), { secret: 'a', botToken: 't', eventUrl: 'https://bot', eventSecret: 'b', appUrl: 'https://x.vn' });
+    assert.deepEqual(zaloConfig(), { secret: 'a', roomSecret: 'a', botToken: 't', eventUrl: 'https://bot', eventSecret: 'b', appUrl: 'https://x.vn' });
   });
   await withEnv({ ZALO_WEBHOOK_SECRET: 'a' }, () => assert.equal(zaloConfig().eventSecret, 'a'));
+  await withEnv({ ZALO_WEBHOOK_SECRET: 'a', ROOM_API_SECRET: 'r' }, () => assert.equal(zaloConfig().roomSecret, 'r'));
   assert.equal(roomUrl('https://x.vn', 'ABCDE'), 'https://x.vn/?room=ABCDE');
   assert.equal(toBase64('Sói'), Buffer.from('Sói').toString('base64'));
   assert.match(createdMessage('werewolf', 'https://x.vn/?room=ABCDE', 'ABCDE'), /🐺 Đã tạo phòng Ma Sói: ABCDE\nVào chơi: https:\/\/x\.vn\/\?room=ABCDE\nNgười vào phòng đầu tiên/);
@@ -484,10 +485,10 @@ test('Zalo: rooms opened from different chats at once each report to their own w
 });
 
 test('API create: a webhook_url and no name opens an empty room that reports to it', async () => {
-  await withEnv({}, async (calls) => {
+  await withEnv({ ROOM_API_SECRET: 'room-secret' }, async (calls) => {
     const res = await call(roomHandler, 'POST', {
       body: { action: 'create', webhook_url: 'http://127.0.0.1:4000/hook', game: 'spyfall', debug: false },
-      headers: { host: 'localhost:3000' }
+      headers: { host: 'localhost:3000', 'x-bot-api-secret-token': 'room-secret' }
     });
     assert.equal(res.statusCode, 200);
     const { code } = res.body;
@@ -521,9 +522,10 @@ test('API create: a webhook_url and no name opens an empty room that reports to 
 });
 
 test('API create: a webhook_url with a name makes that player the host; a bare host means https', async () => {
-  await withEnv({ APP_URL: 'https://masoi.vn' }, async () => {
+  await withEnv({ APP_URL: 'https://masoi.vn', ZALO_WEBHOOK_SECRET: SECRET }, async () => {
     process.env.VERCEL = '1'; // after the in-memory store is set up
-    const res = await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan', webhook_url: 'webhook.site/abc' } });
+    const headers = { 'x-bot-api-secret-token': SECRET }; // ROOM_API_SECRET falls back to ZALO_WEBHOOK_SECRET
+    const res = await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan', webhook_url: 'webhook.site/abc' }, headers });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.webhook_url, 'https://webhook.site/abc');
     assert.equal(res.body.url, `https://masoi.vn/?room=${res.body.code}`);
@@ -534,11 +536,44 @@ test('API create: a webhook_url with a name makes that player the host; a bare h
     assert.equal(state.gameId, 'werewolf');
     // On Vercel: no plain http, nothing on this machine.
     for (const bad of ['http://bot.vn/h', 'https://127.0.0.1/h', 'ftp://bot.vn']) {
-      const no = await call(roomHandler, 'POST', { body: { action: 'create', webhook_url: bad } });
+      const no = await call(roomHandler, 'POST', { body: { action: 'create', webhook_url: bad }, headers });
       assert.equal(no.statusCode, 400);
       assert.match(no.body.error, /Webhook URL không hợp lệ/);
     }
   });
+});
+
+test('API create: a webhook_url needs the secret header', async () => {
+  const body = { action: 'create', webhook_url: 'https://bot.vn/hook', game: 'werewolf' };
+  await withEnv({}, async () => {
+    const off = await call(roomHandler, 'POST', { body, headers: { 'x-bot-api-secret-token': 'anything' } });
+    assert.equal(off.statusCode, 503);
+    assert.match(off.body.error, /ROOM_API_SECRET/);
+  });
+  await withEnv({ ROOM_API_SECRET: 'room-secret', ZALO_WEBHOOK_SECRET: SECRET }, async () => {
+    for (const headers of [{}, { 'x-bot-api-secret-token': 'wrong' }, { 'x-bot-api-secret-token': SECRET }, { 'x-bot-api-secret-token': 'room-secret!' }]) {
+      const no = await call(roomHandler, 'POST', { body, headers });
+      assert.equal(no.statusCode, 403);
+      assert.deepEqual(no.body, { error: 'Unauthorized' });
+    }
+    // Without headers at all (as some callers send).
+    const bare = await call(roomHandler, 'POST', { body, headers: undefined });
+    assert.equal(bare.statusCode, 403);
+    assert.equal(globalThis.__masoiRooms.size, 0);
+    const ok = await call(roomHandler, 'POST', { body, headers: { 'x-bot-api-secret-token': 'room-secret' } });
+    assert.equal(ok.statusCode, 200);
+    // Rooms without a webhook (the web page) need no secret.
+    const web = await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan' } });
+    assert.equal(web.statusCode, 200);
+  });
+});
+
+test('Zalo: secrets are compared exactly', () => {
+  assert.equal(sameSecret('abc', 'abc'), true);
+  assert.equal(sameSecret('abd', 'abc'), false);
+  assert.equal(sameSecret('abcd', 'abc'), false);
+  assert.equal(sameSecret(undefined, 'abc'), false);
+  assert.equal(sameSecret('', ''), false);
 });
 
 test('API create: without a webhook or a name, a name is still needed', async () => {

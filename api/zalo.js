@@ -9,7 +9,7 @@
 import { createRoom, secureRandom } from '../lib/engine.js';
 import { getStore, createRoomRecord, StoreError } from '../lib/store.js';
 import {
-  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, SECRET_HEADER
+  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, sameSecret, SECRET_HEADER
 } from '../lib/zalo.js';
 import { newCode, readBody } from './room.js';
 
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   }
   const config = zaloConfig();
   if (!config.secret) return res.status(503).json({ message: 'Chưa cấu hình ZALO_WEBHOOK_SECRET.' });
-  if (req.headers[SECRET_HEADER] !== config.secret) return res.status(403).json({ message: 'Unauthorized' });
+  if (!sameSecret(req.headers[SECRET_HEADER], config.secret)) return res.status(403).json({ message: 'Unauthorized' });
 
   let body;
   try {
