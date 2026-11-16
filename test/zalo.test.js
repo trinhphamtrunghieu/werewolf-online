@@ -91,10 +91,13 @@ test('Zalo: a room webhook must be https on a public host, except when running l
   assert.equal(checkWebhookUrl('HTTPS://Bot.VN/h'), 'https://bot.vn/h');
   for (const bad of ['http://bot.vn/h', 'https://localhost/h', 'https://a.localhost/h', 'https://db.internal/h', 'https://printer.local/',
     'https://127.0.0.1/', 'https://10.1.2.3/', 'https://192.168.1.1/', 'https://172.16.0.1/', 'https://172.31.9.9/',
-    'https://169.254.169.254/latest', 'https://0.0.0.0/', 'https://[::1]/', 'https://user:pw@bot.vn/', 'ftp://bot.vn/', 'not a url', undefined]) {
+    'https://169.254.169.254/latest', 'https://0.0.0.0/', 'https://[::1]/', 'https://user:pw@bot.vn/', 'ftp://bot.vn/', 'not a url', undefined, '', '   ', 42]) {
     assert.equal(checkWebhookUrl(bad), null, String(bad));
   }
   assert.equal(checkWebhookUrl('https://172.32.0.1/'), 'https://172.32.0.1/');
+  // A bare host means https.
+  assert.equal(checkWebhookUrl(' webhook.site/abc '), 'https://webhook.site/abc');
+  assert.equal(checkWebhookUrl('localhost:4000/h'), null);
   assert.equal(checkWebhookUrl('http://127.0.0.1:4000/hook', { local: true }), 'http://127.0.0.1:4000/hook');
   assert.equal(checkWebhookUrl('https://localhost/h', { local: true }), 'https://localhost/h');
   assert.equal(checkWebhookUrl('ftp://bot.vn/', { local: true }), null);
@@ -477,6 +480,75 @@ test('Zalo: rooms opened from different chats at once each report to their own w
       ['https://bot.vn/mA2', a2, 'chat-A', 'mA2', 1],
       ['https://bot.vn/mA', a, 'chat-A', 'mA', 1]
     ]);
+  });
+});
+
+test('API create: a webhook_url and no name opens an empty room that reports to it', async () => {
+  await withEnv({}, async (calls) => {
+    const res = await call(roomHandler, 'POST', {
+      body: { action: 'create', webhook_url: 'http://127.0.0.1:4000/hook', game: 'spyfall', debug: false },
+      headers: { host: 'localhost:3000' }
+    });
+    assert.equal(res.statusCode, 200);
+    const { code } = res.body;
+    assert.deepEqual(res.body, { code, url: `http://localhost:3000/?room=${code}`, webhook_url: 'http://127.0.0.1:4000/hook' });
+    const state = (await getStore().load(code)).state;
+    assert.equal(state.hostId, null);
+    assert.equal(state.players.length, 0);
+    assert.equal(state.gameId, 'spyfall');
+    assert.equal(state.debug, false);
+    assert.deepEqual(state.zalo, { chatId: null, messageId: null, from: null, webhookUrl: 'http://127.0.0.1:4000/hook', appUrl: 'http://localhost:3000' });
+
+    // The first to join hosts the room; a finished game goes to the webhook.
+    const seats = [];
+    for (const name of ['Lan', 'Minh', 'An']) seats.push((await call(roomHandler, 'POST', { body: { action: 'join', code, name } })).body);
+    assert.equal(seats[0].view.hostId, seats[0].playerId);
+    const act = (p, type, payload) => call(roomHandler, 'POST', { body: { action: 'act', code, pid: p.playerId, token: p.token, type, payload } });
+    await act(seats[0], 'start', {});
+    const s = (await getStore().load(code)).state;
+    await act(seats.find(p => p.playerId === s.play.spy), 'guess', { location: s.play.location });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'http://127.0.0.1:4000/hook');
+    const ev = calls[0].body;
+    assert.equal(ev.event_name, 'room.game_over');
+    assert.equal(ev.chat_id, null);
+    assert.equal(ev.message_id, null);
+    assert.equal(ev.created_by, null);
+    assert.equal(ev.game_no, 1);
+    assert.equal(ev.winner, 'spy');
+    assert.deepEqual(ev.room, { code, game: 'spyfall', url: `http://localhost:3000/?room=${code}` });
+  });
+});
+
+test('API create: a webhook_url with a name makes that player the host; a bare host means https', async () => {
+  await withEnv({ APP_URL: 'https://masoi.vn' }, async () => {
+    process.env.VERCEL = '1'; // after the in-memory store is set up
+    const res = await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan', webhook_url: 'webhook.site/abc' } });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.webhook_url, 'https://webhook.site/abc');
+    assert.equal(res.body.url, `https://masoi.vn/?room=${res.body.code}`);
+    assert.equal(res.body.view.hostId, res.body.playerId);
+    assert.ok(res.body.token);
+    const state = (await getStore().load(res.body.code)).state;
+    assert.equal(state.zalo.webhookUrl, 'https://webhook.site/abc');
+    assert.equal(state.gameId, 'werewolf');
+    // On Vercel: no plain http, nothing on this machine.
+    for (const bad of ['http://bot.vn/h', 'https://127.0.0.1/h', 'ftp://bot.vn']) {
+      const no = await call(roomHandler, 'POST', { body: { action: 'create', webhook_url: bad } });
+      assert.equal(no.statusCode, 400);
+      assert.match(no.body.error, /Webhook URL không hợp lệ/);
+    }
+  });
+});
+
+test('API create: without a webhook or a name, a name is still needed', async () => {
+  await withEnv({}, async () => {
+    const res = await call(roomHandler, 'POST', { body: { action: 'create', game: 'werewolf' } });
+    assert.equal(res.statusCode, 400);
+    const plain = await call(roomHandler, 'POST', { body: { action: 'create', name: 'Lan', webhook_url: '' } });
+    assert.equal(plain.statusCode, 200);
+    assert.equal(plain.body.webhook_url, null);
+    assert.equal((await getStore().load(plain.body.code)).state.zalo, undefined);
   });
 });
 

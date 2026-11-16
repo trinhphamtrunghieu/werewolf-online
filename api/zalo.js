@@ -9,17 +9,9 @@
 import { createRoom, secureRandom } from '../lib/engine.js';
 import { getStore, createRoomRecord, StoreError } from '../lib/store.js';
 import {
-  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, SECRET_HEADER
+  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, siteUrl, SECRET_HEADER
 } from '../lib/zalo.js';
 import { newCode, readBody } from './room.js';
-
-function siteUrl(req, config) {
-  if (config.appUrl) return config.appUrl;
-  const h = req.headers;
-  const host = h['x-forwarded-host'] || h.host || 'localhost:3000';
-  const proto = h['x-forwarded-proto'] || (/^(localhost|127\.)/.test(host) ? 'http' : 'https');
-  return `${proto}://${host}`;
-}
 
 async function openRoom(store, gameId, zalo) {
   const now = Date.now();
