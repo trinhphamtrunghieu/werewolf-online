@@ -117,7 +117,7 @@ Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi ph
 - Mỗi máy chỉ gọi API khi có thay đổi (ping Realtime), khi hết giờ một bước, và kiểm tra định kỳ mỗi 15 giây. Đo thực tế: khoảng 8 lần/phút với người chơi, 12 lần/phút với chủ phòng. Ván 10 người trong 1 giờ tốn khoảng 5–7 nghìn lượt gọi Vercel Function.
 - Supabase không tính phí theo số truy vấn. Gói Free giới hạn số kết nối Realtime đồng thời và số tin nhắn mỗi tháng (mỗi thay đổi trong phòng là 1 tin nhắn gửi tới mỗi máy), dư sức cho chơi giữa bạn bè.
 - Project Supabase gói Free sẽ **tạm dừng nếu 7 ngày không có hoạt động**. Khi đó vào Supabase Dashboard bấm Restore.
-- Phòng không hoạt động quá 30 phút (không còn máy nào kết nối) sẽ bị coi là đã đóng và tự bị xoá.
+- Phòng không hoạt động quá 30 phút (không còn máy nào kết nối) sẽ bị coi là đã đóng và tự bị xoá. Riêng phòng do bot/API tạo sẵn mà chưa ai vào thì được giữ 24 giờ.
 
 ## Máy chủ phòng
 
@@ -163,7 +163,7 @@ Thu các câu trong `voice-lines.js`, lưu thành `public/audio/<key>_<biến th
 
 Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc (tài liệu: [Zalo Bot webhook](https://docs.zaloplatforms.com/docs/BOT/webhook)).
 
-**Tạo phòng từ Zalo:** nhắn cho bot `>createRoom wolf` (hoặc `spyfall`, `undercover`, `avalon`; không ghi tên trò thì là Ma Sói). Server tạo sẵn một phòng trống và bot trả lời link phòng trong cuộc trò chuyện. Người vào phòng đầu tiên thành chủ phòng (và là người chơi). Phòng không có ai vào sau 30 phút thì tự xoá như mọi phòng khác.
+**Tạo phòng từ Zalo:** nhắn cho bot `>createRoom wolf` (hoặc `spyfall`, `undercover`, `avalon`; không ghi tên trò thì là Ma Sói). Server tạo sẵn một phòng trống và bot trả lời link phòng trong cuộc trò chuyện. Người vào phòng đầu tiên thành chủ phòng (và là người chơi). Phòng chưa có ai vào được giữ **24 giờ** (chỉ tốn một dòng trong Postgres: không máy nào hỏi server, không ai nghe kênh Realtime); khi người đầu tiên vào thì phòng theo luật 30 phút như mọi phòng khác.
 
 **Webhook nhận kết quả của từng phòng:** ghi URL ngay sau lệnh, ví dụ `>createRoom wolf https://bot.example.com/hook?game=123`. Bot gửi cập nhật tới `/api/zalo` thì cũng có thể đặt URL vào trường `webhook_url` ở gốc body JSON; URL ghi trong tin nhắn được ưu tiên. Mỗi phòng nhớ webhook của mình, nên mỗi phòng có thể báo về một nơi khác nhau. URL phải là `https` trên một máy công khai (không nhận `localhost`, IP nội bộ, URL có user/mật khẩu); URL sai thì bot báo lỗi và không tạo phòng. Khi chạy `npm run dev`, nhận cả `http` và `localhost` để thử. Phòng không có webhook riêng thì dùng `ZALO_EVENT_URL`, nếu có.
 
