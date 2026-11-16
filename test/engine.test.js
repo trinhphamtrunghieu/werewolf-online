@@ -4,7 +4,7 @@ import {
   createRoom, joinRoom, applyAction, tick, viewFor, checkWin, isWinner, sideOf, authenticate, cleanName, GameError, resolveHostVote
 } from '../lib/engine.js';
 import { ROLES, computeBalancedRoles, balanceRoles, validateRoleCounts, totalRoles, balanceScore, emptyRoleCounts as emptyCounts, MAX_PLAYERS } from '../public/shared/roles.js';
-import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests } from '../lib/store.js';
+import { mutateRoom, createRoomRecord, setStoreForTests, getStore, _supabaseStoreForTests, EMPTY_ROOM_HOLD_MS } from '../lib/store.js';
 
 function seeded(seed = 42) {
   return () => {
@@ -614,6 +614,30 @@ test('rooms nobody has touched for 30 minutes are gone', async () => {
   await createRoomRecord(mem, 'IDLE2', state);
   globalThis.__masoiRooms.get('IDLE2').updatedAt = Date.now() - 31 * 60 * 1000;
   assert.equal(await mem.load('IDLE2'), null);
+});
+
+test('a room waiting for its first player is kept for a day, then the 30-minute rule again', async () => {
+  const fake = fakeSupabase();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = fake.fetch;
+  try {
+    const store = _supabaseStoreForTests('https://demo.supabase.co/', 'service-key');
+    const { state } = createRoom({ code: 'WAIT1', now: 0, hostless: true });
+    assert.equal(state.waitingForPlayers, true);
+    await createRoomRecord(store, 'WAIT1', state);
+    const ahead = Date.parse(fake.rows.get('WAIT1').updated_at) - Date.now();
+    assert.ok(Math.abs(ahead - (EMPTY_ROOM_HOLD_MS - 30 * 60 * 1000)) < 5000, 'saved as touched 23.5 hours from now');
+    // The cleanup query leaves it alone.
+    await store.cleanup();
+    assert.ok(fake.rows.has('WAIT1'));
+    // Someone joins: saved with the real time from then on.
+    joinRoom(state, 'Lan', 0);
+    assert.equal(state.waitingForPlayers, false);
+    await store.cas('WAIT1', 1, state, 2);
+    assert.ok(Math.abs(Date.parse(fake.rows.get('WAIT1').updated_at) - Date.now()) < 5000);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test('bots finish games that use every role', () => {

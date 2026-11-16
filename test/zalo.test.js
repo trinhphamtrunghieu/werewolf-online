@@ -586,6 +586,33 @@ test('Zalo: secrets are compared exactly', () => {
   assert.equal(sameSecret('', ''), false);
 });
 
+test('API create: an empty room waits a day for its first player', async () => {
+  await withEnv({ ROOM_API_SECRET: 's' }, async () => {
+    const realNow = Date.now;
+    const open = async () => (await call(roomHandler, 'POST', {
+      body: { action: 'create', webhook_url: 'https://bot.vn/h' }, headers: { 'x-bot-api-secret-token': 's' }
+    })).body.code;
+    const at = (hours) => { Date.now = () => realNow() + hours * 3600 * 1000; };
+    try {
+      const early = await open();
+      const late = await open();
+      at(23.9);
+      const lan = await call(roomHandler, 'POST', { body: { action: 'join', code: early, name: 'Lan' } });
+      assert.equal(lan.statusCode, 200);
+      assert.equal(lan.body.view.hostId, lan.body.playerId);
+      at(24.1);
+      const gone = await call(roomHandler, 'POST', { body: { action: 'join', code: late, name: 'Lan' } });
+      assert.equal(gone.statusCode, 400);
+      // Once someone has come in, the usual 30 minutes apply.
+      assert.ok(await getStore().load(early));
+      at(23.9 + 0.55);
+      assert.equal(await getStore().load(early), null);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+});
+
 test('API create: without a webhook or a name, a name is still needed', async () => {
   await withEnv({}, async () => {
     const res = await call(roomHandler, 'POST', { body: { action: 'create', game: 'werewolf' } });
