@@ -21,7 +21,7 @@ function setup(roles, { config = {}, rng = seeded(), extras = [] } = {}) {
   const { state: s, player: host } = createRoom({ code: 'TEST1', hostName: 'Chủ', now, rng });
   for (let i = 1; i < roles.length; i++) joinRoom(s, `P${i + 1}`, now, rng);
   // Most tests start straight at night; the swap tests turn it back on.
-  applyAction(s, host.id, 'config', { swapEnabled: false, ...config }, now, rng);
+  applyAction(s, host.id, 'config', { swapEnabled: false, autoPick: false, ...config }, now, rng);
   const counts = {};
   [...roles, ...extras].forEach(r => { counts[r] = (counts[r] || 0) + 1; });
   for (const [roleId, n] of Object.entries(counts)) {

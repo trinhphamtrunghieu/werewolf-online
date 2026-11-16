@@ -942,6 +942,7 @@ function deckPanel(count, host) {
     </div>
     <div class="balance-track" role="img" aria-label="Điểm cân bằng ${score}: ${balanceLabel(score)}"><span style="left:${pos}%"></span></div>
     <p class="balance-legend"><span>← Sói</span><strong>${balanceLabel(score)[0].toUpperCase() + balanceLabel(score).slice(1)} (${score > 0 ? '+' : ''}${score})</strong><span>Dân →</span></p>
+    ${view.config.autoPick ? `<p class="deck-note">${AUTO_PICK_NOTE}</p>` : ''}
     ${view.config.autoLovers ? '<p class="deck-note">💘 Không có lá Thần Tình Yêu: quản trò tự ghép một cặp Tình Nhân trước đêm đầu.</p>' : ''}
     ${view.config.artifacts ? '<p class="deck-note">🗝️ Có Artifact: mỗi người nhận thêm 1 lá Artifact úp.</p>' : ''}
     <ul class="deck-mini">
@@ -963,6 +964,7 @@ function setupRules() {
     ${row('hostPlays', 'Tôi cũng nhận bài và chơi', 'Bỏ chọn nếu bạn chỉ làm quản trò. Khi đó bạn thấy được mọi vai trò.')}
     ${row('swapEnabled', 'Cho phép trao đổi vai', 'Sau khi chia bài, ai không thích vai của mình có thể bấm “Trao đổi vai”; hết giờ các lá được chia lại ngẫu nhiên, ẩn danh.')}
     ${row('revealRoleOnDeath', 'Lật bài người chết', 'Cả làng thấy vai trò của người vừa bị loại.')}
+    ${row('autoPick', '⏱️ Hết giờ thì chọn ngẫu nhiên', 'Ban đêm, vai phải chọn người (Sói, Tiên Tri, Bảo Vệ, Thám Tử, Thổi Sáo, Thần Tình Yêu…) mà hết giờ chưa chọn thì quản trò chọn ngẫu nhiên giúp. Năng lực dùng 1 lần (Phù Thuỷ, Mục Sư…) thì coi như bỏ qua. Mọi người được báo trước khi chia bài.')}
     ${row('autoLovers', 'Quản trò tự ghép đôi', 'Không dùng lá Thần Tình Yêu: lúc xem lá bài trước đêm đầu (sau khi trao đổi vai), game chọn ngẫu nhiên 2 người làm Tình Nhân. Hai người thấy nhau trên lá bài.')}
     ${row('artifacts', '🗝️ Chơi với Artifact', 'Luật mở rộng Ultimate Werewolf: Artifacts. Đầu ván mỗi người được chia 1 lá Artifact úp, lật ra dùng trong lúc thảo luận ban ngày. Xem luật trong “Luật chơi”. Nên dùng khi cả bàn đã quen Ma Sói.')}
     ${c.artifacts ? row('artifactsHomebrew', '🛠️ Thêm lá Artifact tự chế', 'Kiếm Công Lý, Lọ Độc, Cung Bạc, Găng Tay Kẻ Trộm, Gương Phá Phép: không có trong bộ gốc, giúp khắc chế các lá phòng thủ.') : ''}
@@ -1541,6 +1543,9 @@ function seat(p, opts = {}) {
 
 const alivePlayers = () => view.players.filter(p => p.inGame && p.alive);
 
+// Told to everyone in the lobby and again while they look at their card.
+const AUTO_PICK_NOTE = '⏱️ Ban đêm, nếu hết giờ mà bạn chưa chọn người, quản trò sẽ chọn ngẫu nhiên giúp bạn.';
+
 // ---------- Artifacts ----------
 // What everyone can see on a seat: the Artifacts turned face up, and
 // today's Cudgel and Heart (everyone has to keep to them). The other
@@ -1782,6 +1787,7 @@ function stage() {
       <div class="panel stack reveal-panel">
         <h2>Xem lá bài của bạn</h2>
         <p class="lead">Trò chơi sẽ bắt đầu sau ${fmtSeconds(view.config.revealTime)}. Che màn hình khỏi người bên cạnh.</p>
+        ${view.config.autoPick && m.inGame ? `<p class="small muted">${AUTO_PICK_NOTE}</p>` : ''}
         ${view.config.autoLovers && m.inGame ? '<p class="small muted">💘 Quản trò đã ghép một cặp Tình Nhân: nếu là bạn, tên và vai người yêu ghi trên lá bài.</p>' : ''}
         ${m.inGame
           ? '<button class="btn btn-primary btn-block card-button reveal-card" data-act="card"><span><span aria-hidden="true">🂠</span> Xem lá bài của tôi</span></button>'
