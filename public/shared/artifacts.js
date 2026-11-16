@@ -172,7 +172,7 @@ export const ARTIFACTS = {
   },
   shield: {
     name: 'Khiên Vệ Sĩ', en: 'The Shield of the Bodyguard', icon: '🔰', once: false, dawn: true, guard: true,
-    desc: 'Mỗi sáng (từ sáng hôm sau ngày lật), chọn 1 người khác nhau: người đó không thể bị loại đêm hôm đó.'
+    desc: 'Mỗi sáng (từ sáng hôm sau ngày lật), chọn 1 người khác (không phải bạn): người đó không thể bị loại đêm hôm đó. Không chọn một người hai lần.'
   },
   skimmer: {
     name: 'Mũ Kẻ Bị Nguyền', en: 'The Skimmer of the Cursed', icon: '🎩', once: false,

@@ -1630,8 +1630,18 @@ function artDawn(d) {
     heart: 'Chọn 1 người không được bỏ phiếu hôm nay.',
     shield: 'Chọn 1 người không thể bị loại đêm nay.'
   }[d.kind];
-  return `<div class="stack"><h3>☀️ ${esc(artLabel(d.id))}</h3><p class="lead">${lead}</p>
-    ${pickGrid('artDawn', { pool: view.players.filter(p => d.options.includes(p.id)) }).replace(/data-act="artDawn"/g, `data-act="artDawn" data-uid="${d.uid}"`)}</div>`;
+  // Everyone else still alive is shown; the ones this card may not pick
+  // again (already chosen on an earlier day, or already held the Amulet)
+  // are greyed out with the reason, so nobody wonders why they cannot tap.
+  const pool = alivePlayers().filter(p => p.id !== view.me.id);
+  const blocked = pool.filter(p => !d.options.includes(p.id)).map(p => p.id);
+  const why = d.kind === 'amulet' ? 'Đã giữ Bùa' : 'Đã chọn trước đó';
+  const subs = Object.fromEntries(blocked.map(id => [id, why]));
+  const rule = blocked.length
+    ? `<p class="muted small">${d.kind === 'amulet' ? 'Không trao lại cho người đã từng giữ Bùa.' : 'Mỗi người chỉ được chọn 1 lần trong cả ván.'}</p>`
+    : '';
+  return `<div class="stack"><h3>☀️ ${esc(artLabel(d.id))}</h3><p class="lead">${lead}</p>${rule}
+    ${pickGrid('artDawn', { pool, disabled: blocked, subs }).replace(/data-act="artDawn"/g, `data-act="artDawn" data-uid="${d.uid}"`)}</div>`;
 }
 
 // The label on the Artifact card in the hand. The same for every player
