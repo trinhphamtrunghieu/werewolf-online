@@ -1195,6 +1195,40 @@ test('a silent host phone is replaced by a majority vote, with no new secrets', 
   assert.equal(viewFor(s, host.id, later, 3).me.isHost, false, 'the old host is a normal player when back');
 });
 
+test('the host hands the room to another player, by day or in the lobby, never at night', () => {
+  // In the lobby, a host who only narrates: the new host plays, the old one too.
+  let now = 0;
+  const { state: r, player: h } = createRoom({ code: 'GIVE1', hostName: 'Chủ', now });
+  const a = joinRoom(r, 'An', now);
+  const bot = joinRoom(r, 'Máy', now, undefined, { isBot: true });
+  applyAction(r, h.id, 'config', { hostPlays: false }, now);
+  assert.throws(() => applyAction(r, a.id, 'giveHost', { id: a.id }, now), /Chỉ Chủ phòng/);
+  assert.throws(() => applyAction(r, h.id, 'giveHost', { id: h.id }, now), /đang kết nối/);
+  assert.throws(() => applyAction(r, h.id, 'giveHost', { id: bot.id }, now), /đang kết nối/);
+  assert.throws(() => applyAction(r, h.id, 'giveHost', { id: 'nobody' }, now), /đang kết nối/);
+  assert.throws(() => applyAction(r, h.id, 'giveHost', { id: a.id }, now + 60000), /đang kết nối/, 'An has closed the room');
+  applyAction(r, h.id, 'giveHost', { id: a.id }, now);
+  assert.equal(r.hostId, a.id);
+  assert.equal(r.config.hostPlays, true);
+  assert.ok(h.seat, 'the old host now has a seat at the table');
+  assert.equal(viewFor(r, a.id, now, 1).me.isHost, true);
+  assert.equal(viewFor(r, h.id, now, 1).me.isHost, false);
+  assert.throws(() => applyAction(r, h.id, 'start', {}, now), /Chỉ Chủ phòng/);
+
+  // Mid-game: not at night; by day the new host gets no secrets.
+  const { s, P, clock, untilPhase } = setup(['villager', 'werewolf', 'seer', 'villager', 'villager']);
+  P.forEach(p => { p.lastSeen = clock.now; });
+  assert.equal(s.phase, 'NIGHT');
+  assert.throws(() => applyAction(s, P[0].id, 'giveHost', { id: P[2].id }, clock.now), /trời sáng/);
+  untilPhase('DISCUSSION');
+  P.forEach(p => { p.lastSeen = clock.now; });
+  applyAction(s, P[0].id, 'giveHost', { id: P[2].id }, clock.now);
+  assert.equal(s.hostId, P[2].id);
+  assert.match(s.game.log.at(-1), new RegExp(`${P[0].name} nhường chủ phòng cho ${P[2].name}`));
+  const v = viewFor(s, P[2].id, clock.now, 2);
+  assert.deepEqual(v.players.filter(p => p.role).map(p => p.id), [P[2].id], 'still only sees their own card');
+});
+
 test('when the host leaves the lobby, the next player hosts and also plays', () => {
   let now = 0;
   const { state: s, player: host } = createRoom({ code: 'LEAVE', hostName: 'Host', now });
