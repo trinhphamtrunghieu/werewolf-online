@@ -1,14 +1,15 @@
 // Zalo Bot webhook (see lib/zalo.js). Point the bot at it with setWebhook:
 //   url: https://<your-site>/api/zalo   secret_token: <ZALO_WEBHOOK_SECRET>
 //
-// A text message ">createRoom wolf" opens an empty Ma Sói room; the bot
-// replies in the chat with its link, and the first person to join becomes
-// the host. Other messages are ignored.
+// A text message ">createRoom wolf [webhook URL]" opens an empty Ma Sói room;
+// the bot replies in the chat with its link, and the first person to join
+// becomes the host. The webhook (in the message, or a "webhook_url" field of
+// the update) gets the results when a game there ends. Other messages are ignored.
 
 import { createRoom, secureRandom } from '../lib/engine.js';
 import { getStore, createRoomRecord, StoreError } from '../lib/store.js';
 import {
-  parseCommand, zaloConfig, sendMessage, createdMessage, roomUrl, SECRET_HEADER
+  parseCommand, checkWebhookUrl, zaloConfig, sendMessage, createdMessage, roomUrl, SECRET_HEADER
 } from '../lib/zalo.js';
 import { newCode, readBody } from './room.js';
 
@@ -65,17 +66,25 @@ export default async function handler(req, res) {
     await reply(command.error);
     return res.status(200).json({ message: 'Unknown game' });
   }
+  // A webhook in the message wins over one in the update's fields.
+  const rawHook = command.webhookUrl || body.webhook_url;
+  const webhookUrl = rawHook ? checkWebhookUrl(rawHook, { local: !process.env.VERCEL }) : null;
+  if (rawHook && !webhookUrl) {
+    await reply('Webhook URL không hợp lệ: cần một địa chỉ https công khai.');
+    return res.status(200).json({ message: 'Invalid webhook URL' });
+  }
   try {
     const base = siteUrl(req, config);
     const code = await openRoom(getStore(), command.gameId, {
       chatId,
       messageId: msg.message_id || null,
+      webhookUrl,
       from: { id: msg.from?.id || null, display_name: msg.from?.display_name || null },
       appUrl: base
     });
     const url = roomUrl(base, code);
     await reply(createdMessage(command.gameId, url, code));
-    return res.status(200).json({ message: 'Success', code, url });
+    return res.status(200).json({ message: 'Success', code, url, webhook_url: webhookUrl });
   } catch (err) {
     console.error(err);
     await reply('Không tạo được phòng, hãy thử lại sau.');

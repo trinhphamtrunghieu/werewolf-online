@@ -165,7 +165,9 @@ Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc
 
 **Tạo phòng từ Zalo:** nhắn cho bot `>createRoom wolf` (hoặc `spyfall`, `undercover`, `avalon`; không ghi tên trò thì là Ma Sói). Server tạo sẵn một phòng trống và bot trả lời link phòng trong cuộc trò chuyện. Người vào phòng đầu tiên thành chủ phòng (và là người chơi). Phòng không có ai vào sau 30 phút thì tự xoá như mọi phòng khác.
 
-**Báo kết quả:** mỗi khi một ván trong phòng do bot tạo kết thúc, server gửi `POST` tới `ZALO_EVENT_URL` (webhook của bot), header `X-Bot-Api-Secret-Token`, body JSON:
+**Webhook nhận kết quả của từng phòng:** ghi URL ngay sau lệnh, ví dụ `>createRoom wolf https://bot.example.com/hook?game=123`. Bot gửi cập nhật tới `/api/zalo` thì cũng có thể đặt URL vào trường `webhook_url` ở gốc body JSON; URL ghi trong tin nhắn được ưu tiên. Mỗi phòng nhớ webhook của mình, nên mỗi phòng có thể báo về một nơi khác nhau. URL phải là `https` trên một máy công khai (không nhận `localhost`, IP nội bộ, URL có user/mật khẩu); URL sai thì bot báo lỗi và không tạo phòng. Khi chạy `npm run dev`, nhận cả `http` và `localhost` để thử. Phòng không có webhook riêng thì dùng `ZALO_EVENT_URL`, nếu có.
+
+**Báo kết quả:** mỗi khi một ván trong phòng do bot tạo kết thúc, server gửi `POST` tới webhook của phòng (hoặc `ZALO_EVENT_URL`), header `X-Bot-Api-Secret-Token`, body JSON:
 
 ```json
 {
@@ -193,7 +195,7 @@ Các trường nội dung (`log`, `roles`, `roles_image`) là base64 của chu�
 1. Thêm biến môi trường trên Vercel:
    - `ZALO_WEBHOOK_SECRET`: chuỗi bí mật 8–256 ký tự (bắt buộc; thiếu thì `/api/zalo` trả 503).
    - `ZALO_BOT_TOKEN`: token của bot, để trả lời link phòng trong chat.
-   - `ZALO_EVENT_URL`: nơi nhận sự kiện kết thúc ván (bỏ trống thì không gửi).
+   - `ZALO_EVENT_URL` (tuỳ chọn): nơi nhận sự kiện của các phòng không có webhook riêng (bỏ trống thì phòng đó không gửi).
    - `ZALO_EVENT_SECRET` (tuỳ chọn): gửi kèm sự kiện, mặc định bằng `ZALO_WEBHOOK_SECRET`.
    - `APP_URL` (tuỳ chọn): địa chỉ trang, ví dụ `https://masoi.vercel.app`; mặc định lấy theo địa chỉ webhook được gọi.
 2. Đăng ký webhook với Zalo:
@@ -217,7 +219,7 @@ npm run coverage # test + đo coverage; báo lỗi nếu lib/, api/, public/shar
 
 ```
 api/room.js              Vercel Function: tạo/vào phòng, nhận hành động, trả trạng thái
-api/zalo.js              Webhook Zalo Bot: lệnh >createRoom
+api/zalo.js              Webhook Zalo Bot: lệnh >createRoom [game] [webhook URL]
 lib/engine.js            Luật chơi (hàm thuần, có test)
 lib/zalo.js              Zalo Bot: đọc lệnh, trả lời chat, sự kiện kết thúc ván + ảnh chia vai
 lib/store.js             Supabase (PostgREST + Realtime broadcast), compare-and-set; RAM khi chạy local
