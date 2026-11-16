@@ -86,7 +86,7 @@ export const ARTIFACTS = {
   diary: {
     name: 'Nhật Ký Kẻ Mất Ngủ', en: 'The Diary of the Insomniac', icon: '📔', once: true,
     secret: 'kết quả chỉ mình bạn biết.',
-    desc: 'Quản trò bí mật cho bạn biết đêm qua có người ngồi cạnh bạn (bên trái hoặc phải) thức dậy hay không, nhưng không nói là ai.'
+    desc: 'Quản trò bí mật cho bạn biết đêm qua có người ngồi cạnh bạn (bên trái hoặc phải) thức dậy hay không, nhưng không nói là ai. Người ngồi cạnh là người gần bạn nhất còn sống lúc đêm qua bắt đầu: người chết từ trước được bỏ qua, người chết trong đêm qua vẫn tính.'
   },
   emerald: {
     name: 'Ngọc Lục Bảo Ghen Tị', en: 'The Emerald of Jealousy', icon: '🟢', gem: true, once: true,

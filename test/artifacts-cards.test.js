@@ -109,6 +109,37 @@ test('Diary: no neighbour awake', () => {
   assert.match(notes(g.s, g.P[0]), /KHÔNG có người ngồi cạnh/);
 });
 
+test('Diary: a neighbour who died last night still sat beside you; the dead from before do not', () => {
+  // P1 (the Seer) wakes, then is bitten: still last night's neighbour.
+  const g = setup(['villager', 'seer', 'villager', 'werewolf', 'villager', 'villager'], ['diary']);
+  g.untilNightRole('werewolf');
+  g.act(g.P[3], 'night', { target: g.P[1].id });
+  g.untilPhase('DISCUSSION');
+  assert.equal(g.P[1].alive, false);
+  g.reveal(g.P[0]);
+  assert.match(notes(g.s, g.P[0]), new RegExp(`CÓ người ngồi cạnh bạn \\(${g.P[5].name}, ${g.P[1].name}\\)`));
+  // The next night the dead Seer is no longer at the table: P2 sits beside P0.
+  const h = setup(['villager', 'seer', 'villager', 'werewolf', 'villager', 'villager'], [null, null, 'diary']);
+  h.untilNightRole('werewolf');
+  h.act(h.P[3], 'night', { target: h.P[1].id });
+  h.untilPhase('VOTE');
+  h.untilNightRole('werewolf');
+  h.act(h.P[3], 'night', { noKill: true });
+  h.untilPhase('DISCUSSION');
+  h.reveal(h.P[2]);
+  assert.match(notes(h.s, h.P[2]), new RegExp(`\\(${h.P[0].name}, ${h.P[3].name}\\)`));
+});
+
+test('Diary: a game saved before the seats were kept counts the living', () => {
+  const g = setup(['villager', 'werewolf', 'villager', 'villager', 'villager', 'villager'], ['diary']);
+  g.untilNightRole('werewolf');
+  g.act(g.P[1], 'night', { noKill: true });
+  g.untilPhase('DISCUSSION');
+  delete g.s.game.art.seated;
+  g.reveal(g.P[0]);
+  assert.match(notes(g.s, g.P[0]), /CÓ người ngồi cạnh/);
+});
+
 test('Blood of the Diseased: the pack eats the infected and goes hungry the next night', () => {
   const { s, P, act, untilPhase, untilNightRole, reveal } = setup(V6, [null, 'blood']);
   untilPhase('DISCUSSION');
