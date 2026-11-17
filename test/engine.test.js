@@ -2040,16 +2040,35 @@ test('UW: the Seer sees the Người Lai Sói, the Tay Sai and the Pháp Sư H�
   assert.equal(read('cursed'), 'village', 'the Sói Nguyền is a villager until bitten');
 });
 
-test('UW: the Tay Sai knows the wolves, is not a wolf for the count, and wins with them', () => {
+test('UW: the Tay Sai knows the wolves, counts with the wolf side, and wins with them', () => {
   const g = setup(['minion', 'werewolf', 'villager', 'villager', 'villager']);
   const v = viewFor(g.s, g.P[0].id, 0, 1);
   assert.deepEqual(v.me.wolves, [g.P[1].id]);
   assert.equal(v.players[1].role, 'werewolf');
   assert.ok(!viewFor(g.s, g.P[1].id, 0, 1).me.wolves.includes(g.P[0].id), 'the pack does not know the minion');
-  g.P[2].alive = false; g.P[3].alive = false;
-  // 1 wolf vs minion + villager: not yet parity (the minion is not a wolf).
+  // 1 wolf + minion vs 3 villagers: not yet.
   assert.equal(checkWin(g.s), null);
-  g.P[4].alive = false;
+  g.P[2].alive = false;
+  // 1 wolf + minion vs 2 villagers: the wolf side has the numbers.
+  assert.deepEqual(checkWin(g.s), { winner: 'werewolf', reason: 'Phe Sói (1 Sói, 1 Tay Sai) đã bằng hoặc nhiều hơn số người còn lại (2).' });
+});
+
+test('UW: the Tay Sai alone does not win, and the village wins without killing it', () => {
+  const g = setup(['minion', 'werewolf', 'villager', 'villager', 'villager']);
+  g.P[1].alive = false;
+  g.P[2].alive = false; g.P[3].alive = false;
+  // No wolf left: the village wins, even 1 Tay Sai vs 1 villager.
+  assert.equal(checkWin(g.s).winner, 'village');
+});
+
+test('UW: a Tay Sai in love with a villager does not count with the wolf side', () => {
+  const g = setup(['minion', 'werewolf', 'villager', 'villager', 'villager']);
+  g.s.game.lovers = [g.P[0].id, g.P[2].id];
+  g.P[3].alive = false;
+  // 1 wolf vs the couple and a villager: the couple is its own side.
+  assert.equal(checkWin(g.s), null);
+  // A Tay Sai in love with a wolf is still on the wolf side.
+  g.s.game.lovers = [g.P[0].id, g.P[1].id];
   assert.equal(checkWin(g.s).winner, 'werewolf');
 });
 

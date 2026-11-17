@@ -427,7 +427,7 @@ export const ROLES = {
   minion: {
     id: 'minion', points: -6, name: 'Tay Sai', team: 'werewolf', icon: '🦹', color: '#e88f8f',
     short: 'Phe Sói, biết ai là Sói nhưng không thức dậy cùng.',
-    description: 'Bạn thuộc phe Sói: tên các con Sói hiện trên lá bài của bạn, nhưng Sói không biết bạn và bạn không thức dậy ban đêm. Tiên Tri soi bạn thấy không phải Dân. Phe Sói thắng thì bạn thắng.',
+    description: 'Bạn thuộc phe Sói: tên các con Sói hiện trên lá bài của bạn, nhưng Sói không biết bạn và bạn không thức dậy ban đêm. Tiên Tri soi bạn thấy không phải Dân. Bạn được tính vào số người của phe Sói khi xét thắng thua (nhưng hết Sói thì phe Dân thắng). Phe Sói thắng thì bạn thắng.',
     art: glyph('🦹')
   },
   hoodlum: {
