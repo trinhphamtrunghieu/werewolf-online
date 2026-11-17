@@ -202,6 +202,8 @@ test('Diamond of Denial takes a face-up card back; with none to take it does not
   assert.deepEqual(cards(s, P[1]), []);
   assert.equal(s.game.art.shield, null);
   assert.ok(s.game.art.deck.includes('shield'));
+  // The card it took is remembered for the end-of-game report.
+  assert.deepEqual(s.game.art.gone[P[1].id], [{ id: 'shield', revealed: true }]);
   reveal(P[2]);
   assert.match(feedText(s), /không đủ người để chọn/);
 });

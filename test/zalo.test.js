@@ -318,6 +318,36 @@ test('Zalo: the cards at the end of a Ma Sói game, with the couple', () => {
   assert.ok(cardsAtEnd(s).every(c => c.lover === null));
 });
 
+test('Zalo: every Artifact card each player held, kept or not', () => {
+  const s = wolfRoom();
+  const named = (n) => s.players.find(p => p.name === n).id;
+  s.game.art = {
+    hands: {
+      [named('Lan')]: [{ uid: 1, id: 'amulet', revealed: true, day: 1 }, { uid: 2, id: 'claw', revealed: false, day: null }],
+      [named('Minh')]: []
+    },
+    gone: {
+      [named('Minh')]: [{ id: 'citrine', revealed: false }],
+      [named('Lan')]: [{ id: 'amber', revealed: true }]
+    }
+  };
+  const cards = cardsAtEnd(s);
+  assert.deepEqual(cards[0].artifacts, [
+    { name: 'Bùa Hộ Mệnh', icon: '🧿', revealed: true, kept: true },
+    { name: 'Vuốt Ma Sói', icon: '🐾', revealed: false, kept: true },
+    { name: 'Hổ Phách Bình Minh', icon: '🟡', revealed: true, kept: false }
+  ]);
+  // Died with it face down: back to the deck, still reported.
+  assert.deepEqual(cards[1].artifacts, [{ name: 'Thạch Anh Vàng May Mắn', icon: '🟠', revealed: false, kept: false }]);
+  // Never dealt one.
+  assert.deepEqual(cards[2].artifacts, []);
+  // A game from before cards were remembered: only the hands.
+  delete s.game.art.gone;
+  assert.equal(cardsAtEnd(s)[0].artifacts.length, 2);
+  const roles = JSON.parse(fromB64(gameOverEvent(s, 1).roles));
+  assert.deepEqual(roles[0].artifacts, cardsAtEnd(s)[0].artifacts);
+});
+
 test('Zalo: a third-side role', () => {
   const s = wolfRoom();
   s.players[0].role = 'fool';
@@ -383,8 +413,8 @@ test('Zalo: the end-of-game event carries the log and the cards (with the couple
   assert.equal(fromB64(ev.log), 'Ván chơi bắt đầu với 5 người.\n\n🌙 Đêm 1 buông xuống.\n🐺 Bầy Sói cắn Chi\n' +
     '☀️ Sáng ngày 1, đã chết: Chi.\n\n🌙 Đêm 2 buông xuống.\n🏆 PHE MA SÓI CHIẾN THẮNG!');
   const roles = JSON.parse(fromB64(ev.roles));
-  assert.deepEqual(roles[0], { seat: 1, name: 'Lan', role: 'Ma Sói', icon: '🐺', team: 'Phe Ma Sói', alive: true, lover: { seat: 3, name: 'An' } });
-  assert.deepEqual(roles[1], { seat: 2, name: 'Minh', role: 'Tiên Tri', icon: '🔮', team: 'Phe Dân Làng', alive: false, lover: null });
+  assert.deepEqual(roles[0], { seat: 1, name: 'Lan', role: 'Ma Sói', icon: '🐺', team: 'Phe Ma Sói', alive: true, lover: { seat: 3, name: 'An' }, artifacts: [] });
+  assert.deepEqual(roles[1], { seat: 2, name: 'Minh', role: 'Tiên Tri', icon: '🔮', team: 'Phe Dân Làng', alive: false, lover: null, artifacts: [] });
   // No picture any more.
   assert.equal('roles_image' in ev, false);
   assert.equal('roles_image_mime' in ev, false);
@@ -458,6 +488,8 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
     assert.equal(ev.game_no, 1);
     assert.equal(ev.winner, 'spy');
     assert.equal(JSON.parse(fromB64(ev.roles))[0].lover, null);
+    // Games other than Ma Sói have no Artifacts.
+    assert.ok(JSON.parse(fromB64(ev.roles)).every(r => r.artifacts.length === 0));
     // Each card carries its emoji: the spy's, or a villager's.
     assert.ok(JSON.parse(fromB64(ev.roles)).every(r => ['🕵️', '🧑'].includes(r.icon)));
     // Later requests in the finished game do not report again.
