@@ -192,13 +192,13 @@ Trả về `{"code":"ABCDE","url":"https://<trang>/?room=ABCDE","webhook_url":"h
   "winner": "werewolf",
   "encoding": "base64",
   "log": "<base64: nhật ký ván chơi, mỗi dòng một sự kiện, một dòng trống giữa các ngày>",
-  "roles": "<base64: JSON [{ seat, name, role, team, alive, lover }]>"
+  "roles": "<base64: JSON [{ seat, name, role, icon, team, alive, lover }]>"
 }
 ```
 
 **Biết kết quả của phòng nào:** mỗi phòng tự lưu chat đã tạo ra nó, nên nhiều chat tạo phòng cùng lúc không lẫn nhau. `chat_id` là nơi gửi kết quả, `room.code` là phòng (đúng mã bot đã trả lời trong chat), `message_id` là tin nhắn `>createRoom` đã tạo phòng (một chat tạo nhiều phòng thì phân biệt bằng trường này hoặc `room.code`), `game_no` là ván thứ mấy của phòng đó (phòng chơi nhiều ván thì mỗi ván một sự kiện).
 
-Các trường nội dung (`log`, `roles`) là base64 của chuỗi UTF-8. Trong `log`, mỗi đêm (trừ đêm đầu) có một dòng trống đứng trước, để các ngày tách nhau. Trong `roles`, `lover` là người kia trong cặp Tình Nhân (`{ "seat": 3, "name": "An" }`), `null` nếu người đó không ở trong cặp đôi (trò khác Ma Sói luôn `null`). Gửi lỗi thì chỉ ghi log, không ảnh hưởng ván chơi.
+Các trường nội dung (`log`, `roles`) là base64 của chuỗi UTF-8. Trong `log`, mỗi đêm (trừ đêm đầu) có một dòng trống đứng trước, để các ngày tách nhau. Trong `roles`, `icon` là emoji của vai (🐺, 🔮…, như trên lá bài trong game), `lover` là người kia trong cặp Tình Nhân (`{ "seat": 3, "name": "An" }`), `null` nếu người đó không ở trong cặp đôi (trò khác Ma Sói luôn `null`). Gửi lỗi thì chỉ ghi log, không ảnh hưởng ván chơi.
 
 **Cài đặt:**
 1. Thêm biến môi trường trên Vercel:
