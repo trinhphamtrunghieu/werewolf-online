@@ -191,16 +191,14 @@ Trả về `{"code":"ABCDE","url":"https://<trang>/?room=ABCDE","webhook_url":"h
   "ended_at": 1763280000000,
   "winner": "werewolf",
   "encoding": "base64",
-  "log": "<base64: nhật ký ván chơi, mỗi dòng một sự kiện>",
-  "roles": "<base64: JSON [{ seat, name, role, team, alive }]>",
-  "roles_image": "<base64: ảnh chia vai>",
-  "roles_image_mime": "image/svg+xml"
+  "log": "<base64: nhật ký ván chơi, mỗi dòng một sự kiện, một dòng trống giữa các ngày>",
+  "roles": "<base64: JSON [{ seat, name, role, team, alive, lover }]>"
 }
 ```
 
 **Biết kết quả của phòng nào:** mỗi phòng tự lưu chat đã tạo ra nó, nên nhiều chat tạo phòng cùng lúc không lẫn nhau. `chat_id` là nơi gửi kết quả, `room.code` là phòng (đúng mã bot đã trả lời trong chat), `message_id` là tin nhắn `>createRoom` đã tạo phòng (một chat tạo nhiều phòng thì phân biệt bằng trường này hoặc `room.code`), `game_no` là ván thứ mấy của phòng đó (phòng chơi nhiều ván thì mỗi ván một sự kiện).
 
-Các trường nội dung (`log`, `roles`, `roles_image`) là base64 của chuỗi UTF-8. Ảnh chia vai là SVG (ai cầm vai gì, màu theo phe, người đã chết bị làm mờ); `sendPhoto` của Zalo nhận link ảnh, nên bot cần đổi sang PNG hoặc tải lên rồi gửi link. Gửi lỗi thì chỉ ghi log, không ảnh hưởng ván chơi.
+Các trường nội dung (`log`, `roles`) là base64 của chuỗi UTF-8. Trong `log`, mỗi đêm (trừ đêm đầu) có một dòng trống đứng trước, để các ngày tách nhau. Trong `roles`, `lover` là người kia trong cặp Tình Nhân (`{ "seat": 3, "name": "An" }`), `null` nếu người đó không ở trong cặp đôi (trò khác Ma Sói luôn `null`). Gửi lỗi thì chỉ ghi log, không ảnh hưởng ván chơi.
 
 **Cài đặt:**
 1. Thêm biến môi trường trên Vercel:
@@ -233,7 +231,7 @@ npm run coverage # test + đo coverage; báo lỗi nếu lib/, api/, public/shar
 api/room.js              Vercel Function: tạo/vào phòng, nhận hành động, trả trạng thái
 api/zalo.js              Webhook Zalo Bot: lệnh >createRoom [game] [webhook URL]
 lib/engine.js            Luật chơi (hàm thuần, có test)
-lib/zalo.js              Zalo Bot: đọc lệnh, trả lời chat, sự kiện kết thúc ván + ảnh chia vai
+lib/zalo.js              Zalo Bot: đọc lệnh, trả lời chat, sự kiện kết thúc ván (nhật ký, vai, cặp đôi)
 lib/store.js             Supabase (PostgREST + Realtime broadcast), compare-and-set; RAM khi chạy local
 public/js/realtime.js    Nghe kênh Realtime của phòng (SSE giả lập khi chạy local)
 supabase/schema.sql      Bảng rooms + RLS

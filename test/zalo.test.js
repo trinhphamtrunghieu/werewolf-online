@@ -7,7 +7,7 @@ import roomHandler from '../api/room.js';
 import { getStore, setStoreForTests, _supabaseStoreForTests } from '../lib/store.js';
 import { createRoom, joinRoom, applyAction } from '../lib/engine.js';
 import {
-  parseCommand, checkWebhookUrl, sameSecret, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, cardsSvg,
+  parseCommand, checkWebhookUrl, sameSecret, zaloConfig, sendMessage, createdMessage, roomUrl, toBase64, cardsAtEnd, eventLog,
   gameOverEvent, notifyGameOver, underRoomLimit, ROOM_LIMIT_MESSAGE, outcome, ZALO_API
 } from '../lib/zalo.js';
 import { LOCATIONS } from '../public/shared/spyfall.js';
@@ -287,7 +287,6 @@ function wolfRoom() {
   const { state: s } = createRoom({ code: 'WOLF1', now, hostless: true });
   const names = ['Lan', 'Minh', 'An', 'Bình', 'Chi'];
   names.forEach(n => joinRoom(s, n, now));
-  s.players[2].name = 'An <3'; // the picture escapes what it draws
   const roles = ['werewolf', 'seer', 'villager', 'piper', 'witch'];
   s.players.forEach((p, i) => { p.inGame = true; p.role = roles[i]; });
   s.players[1].alive = false;
@@ -295,41 +294,45 @@ function wolfRoom() {
   s.phase = 'GAME_OVER';
   s.game.winner = 'werewolf';
   s.game.winReason = 'Số Sói (1) đã bằng hoặc nhiều hơn số người còn lại (1).';
-  s.game.log = ['🌙 Đêm 1 buông xuống.', '🏆 PHE MA SÓI CHIẾN THẮNG!'];
+  const named = (n) => s.players.find(p => p.name === n).id;
+  s.game.lovers = [named('Lan'), named('An')]; // Ma Sói and Dân Làng
+  s.game.log = ['Ván chơi bắt đầu với 5 người.', '🌙 Đêm 1 buông xuống.', '🐺 Bầy Sói cắn Chi',
+    '☀️ Sáng ngày 1, đã chết: Chi.', '🌙 Đêm 2 buông xuống.', '🏆 PHE MA SÓI CHIẾN THẮNG!'];
   s.zalo = { chatId: 'chat-1', messageId: 'm1', games: 2, from: { id: 'u1', display_name: 'Ted' }, appUrl: 'https://masoi.vn' };
   return s;
 }
 
-test('Zalo: the cards at the end of a Ma Sói game, and their picture', () => {
+test('Zalo: the cards at the end of a Ma Sói game, with the couple', () => {
   const s = wolfRoom();
   const cards = cardsAtEnd(s);
-  assert.deepEqual(cards.map(c => [c.seat, c.name, c.role, c.team, c.alive]), [
-    [1, 'Lan', 'Ma Sói', 'werewolf', true],
-    [2, 'Minh', 'Tiên Tri', 'village', false],
-    [3, 'An <3', 'Dân Làng', 'village', true],
-    [4, 'Bình', 'Người Thổi Sáo', 'third', true],
-    [5, 'Chi', 'Phù Thủy', 'village', true]
+  assert.deepEqual(cards.map(c => [c.seat, c.name, c.role, c.team, c.alive, c.lover]), [
+    [1, 'Lan', 'Ma Sói', 'werewolf', true, { seat: 3, name: 'An' }],
+    [2, 'Minh', 'Tiên Tri', 'village', false, null],
+    [3, 'An', 'Dân Làng', 'village', true, { seat: 1, name: 'Lan' }],
+    [4, 'Bình', 'Người Thổi Sáo', 'third', true, null],
+    [5, 'Chi', 'Phù Thủy', 'village', true, null]
   ]);
   assert.equal(cards[0].teamLabel, 'Phe Ma Sói');
-  const svg = cardsSvg(s);
-  assert.match(svg, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
-  assert.match(svg, /🐺 Ma Sói · Phòng WOLF1/);
-  assert.match(svg, /An &lt;3/);
-  assert.match(svg, /Minh ✝/);
-  assert.match(svg, /opacity="0.55"/);
-  assert.equal((svg.match(/<g transform/g) || []).length, 5);
+  // No couple: nobody has a lover.
+  s.game.lovers = [];
+  assert.ok(cardsAtEnd(s).every(c => c.lover === null));
 });
 
-test('Zalo: a third-side role, and cards that do not fit', () => {
+test('Zalo: a third-side role', () => {
   const s = wolfRoom();
   s.players[0].role = 'fool';
   const fool = cardsAtEnd(s).find(c => c.role === 'Kẻ Cuồng Loạn');
   assert.equal(fool.team, 'third');
   assert.ok(fool.teamLabel);
-  // Long names and roles are cut to fit their card; a card without an icon still draws.
-  const svg = cardsSvg({ ...s, game: {} }, [{ seat: null, name: 'N'.repeat(40), role: 'R'.repeat(40), team: 'third', alive: true }]);
-  assert.match(svg, /N{21}…/);
-  assert.match(svg, /R{29}…/);
+});
+
+test('Zalo: the log for the bot has a blank line between days', () => {
+  assert.equal(eventLog(['Bắt đầu.', '🌙 Đêm 1 buông xuống.', 'a', '☀️ Sáng ngày 1', '🌙 Đêm 2 buông xuống.', 'b']),
+    'Bắt đầu.\n\n🌙 Đêm 1 buông xuống.\na\n☀️ Sáng ngày 1\n\n🌙 Đêm 2 buông xuống.\nb');
+  // The first line never gets one; games without nights are unchanged.
+  assert.equal(eventLog(['🌙 Đêm 1 buông xuống.', 'a']), '🌙 Đêm 1 buông xuống.\na');
+  assert.equal(eventLog(['🕵️ Ván bắt đầu.', '🏆 Thắng!']), '🕵️ Ván bắt đầu.\n🏆 Thắng!');
+  assert.equal(eventLog([]), '');
 });
 
 test('Zalo: the cards for Avalon, Spyfall and Undercover', () => {
@@ -342,6 +345,7 @@ test('Zalo: the cards for Avalon, Spyfall and Undercover', () => {
     return s;
   };
   const av = base('avalon', ([a, b, c]) => ({ roles: { [a]: 'merlin', [b]: 'assassin', [c]: 'servant' } }));
+  assert.ok(cardsAtEnd(av).every(c => c.lover === null));
   assert.deepEqual(cardsAtEnd(av).map(c => [c.role, c.team, c.teamLabel]), [
     ['Merlin', 'good', 'Phe Thiện'], ['Sát Thủ', 'evil', 'Phe Ác'], ['Hiệp sĩ trung thành', 'good', 'Phe Thiện']
   ]);
@@ -362,7 +366,7 @@ test('Zalo: the outcome comes from Ma Sói or from the other games', () => {
   assert.deepEqual(outcome({}), { winner: null, reason: '' });
 });
 
-test('Zalo: the end-of-game event carries the log, cards and picture in base64', () => {
+test('Zalo: the end-of-game event carries the log and the cards (with the couple) in base64', () => {
   const s = wolfRoom();
   const ev = gameOverEvent(s, 5000);
   assert.equal(ev.event_name, 'room.game_over');
@@ -376,10 +380,14 @@ test('Zalo: the end-of-game event carries the log, cards and picture in base64',
   assert.equal(ev.ended_at, 5000);
   assert.equal(ev.winner, 'werewolf');
   assert.equal(ev.encoding, 'base64');
-  assert.equal(fromB64(ev.log), '🌙 Đêm 1 buông xuống.\n🏆 PHE MA SÓI CHIẾN THẮNG!');
-  assert.deepEqual(JSON.parse(fromB64(ev.roles))[1], { seat: 2, name: 'Minh', role: 'Tiên Tri', team: 'Phe Dân Làng', alive: false });
-  assert.equal(fromB64(ev.roles_image), cardsSvg(s));
-  assert.equal(ev.roles_image_mime, 'image/svg+xml');
+  assert.equal(fromB64(ev.log), 'Ván chơi bắt đầu với 5 người.\n\n🌙 Đêm 1 buông xuống.\n🐺 Bầy Sói cắn Chi\n' +
+    '☀️ Sáng ngày 1, đã chết: Chi.\n\n🌙 Đêm 2 buông xuống.\n🏆 PHE MA SÓI CHIẾN THẮNG!');
+  const roles = JSON.parse(fromB64(ev.roles));
+  assert.deepEqual(roles[0], { seat: 1, name: 'Lan', role: 'Ma Sói', team: 'Phe Ma Sói', alive: true, lover: { seat: 3, name: 'An' } });
+  assert.deepEqual(roles[1], { seat: 2, name: 'Minh', role: 'Tiên Tri', team: 'Phe Dân Làng', alive: false, lover: null });
+  // No picture any more.
+  assert.equal('roles_image' in ev, false);
+  assert.equal('roles_image_mime' in ev, false);
   // Without a site address, a game record or a winner.
   s.zalo = { chatId: 'chat-1', from: null, appUrl: '' };
   const bare = gameOverEvent({ ...s, game: undefined, players: [] }, 1);
@@ -449,7 +457,7 @@ test('Zalo: a game ending in a bot room posts the event once', async () => {
     assert.equal(ev.message_id, 'm1');
     assert.equal(ev.game_no, 1);
     assert.equal(ev.winner, 'spy');
-    assert.match(fromB64(ev.roles_image), /đoán đúng địa điểm/);
+    assert.equal(JSON.parse(fromB64(ev.roles))[0].lover, null);
     // Later requests in the finished game do not report again.
     await call(roomHandler, 'GET', { query: { code, pid: host.playerId, token: host.token } });
     await act(host, 'restart', {});
