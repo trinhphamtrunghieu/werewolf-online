@@ -97,7 +97,7 @@ Bỏ phiếu công khai: mọi người thấy ai bầu ai, và ai chọn treo c
 
 Ban ngày: công bố người chết → thảo luận → bỏ phiếu nghi phạm → biện hộ → phán quyết treo cổ/tha → đêm tiếp theo.
 
-**Điều kiện thắng:** Phe Dân thắng khi hết Sói và Người Thổi Sáo (nếu có) đã chết. Phe Sói thắng khi số Sói bằng hoặc nhiều hơn số người còn lại. Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên. Cặp đôi khác phe thắng khi họ là 2 người cuối cùng còn sống.
+**Điều kiện thắng:** Phe Dân thắng khi hết Sói và Người Thổi Sáo (nếu có) đã chết. Phe Sói thắng khi số Sói cộng số Tay Sai còn sống bằng hoặc nhiều hơn số người còn lại (Tay Sai được tính vào phe Sói, nhưng không phải Sói: hết Sói là phe Dân thắng, dù Tay Sai còn sống; Tay Sai đang yêu một người khác phe thì tính theo cặp đôi). Người Thổi Sáo thắng khi mọi người còn sống đều đã bị thôi miên. Cặp đôi khác phe thắng khi họ là 2 người cuối cùng còn sống.
 
 ## Deploy lên Vercel + Supabase
 
