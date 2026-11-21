@@ -4,5 +4,6 @@
 import { spyfallUI } from './spyfall.js';
 import { undercoverUI } from './undercover.js';
 import { avalonUI } from './avalon.js';
+import { splendorUI } from './splendor.js';
 
-export const GAME_UI = { spyfall: spyfallUI, undercover: undercoverUI, avalon: avalonUI };
+export const GAME_UI = { spyfall: spyfallUI, undercover: undercoverUI, avalon: avalonUI, splendor: splendorUI };
