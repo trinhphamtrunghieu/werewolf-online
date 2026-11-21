@@ -536,7 +536,7 @@ function onTransitions(prev, next) {
   }
   lastTaskKey = taskKey;
 
-  if (prev && prev.phase === 'LOBBY' && next.phase !== 'LOBBY' && !['MORNING', 'REVEAL'].includes(next.phase) && next.me?.inGame) {
+  if (prev && prev.phase === 'LOBBY' && next.phase !== 'LOBBY' && !['MORNING', 'REVEAL'].includes(next.phase) && next.me?.inGame && next.gameId !== 'splendor') {
     // (The same words with or without Artifact cards: a glance must not tell.)
     toast(next.me.art ? 'Ván chơi bắt đầu. Bấm “Vai trò” để xem vai.' : 'Ván chơi bắt đầu. Bấm “Lá bài của tôi” để xem vai trò.');
   }
@@ -2625,7 +2625,8 @@ document.addEventListener('click', async (e) => {
 // Lobby settings: show values live while dragging, send when released.
 document.addEventListener('input', (e) => {
   const gkey = e.target.dataset?.gameConfig;
-  if (gkey) document.getElementById(`gval-${gkey}`).textContent = fmtSeconds(Number(e.target.value));
+  // Most game settings are times; `data-plain` ones are counts (Splendor's points).
+  if (gkey) document.getElementById(`gval-${gkey}`).textContent = 'plain' in e.target.dataset ? e.target.value : fmtSeconds(Number(e.target.value));
   const key = e.target.dataset?.config;
   if (key && e.target.type === 'range') {
     document.getElementById(`val-${key}`).textContent = fmtSeconds(Number(e.target.value));

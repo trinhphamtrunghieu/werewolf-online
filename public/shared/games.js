@@ -41,6 +41,16 @@ export const GAMES_INFO = [
     time: '30 phút',
     blurb: 'Hiệp sĩ đi làm nhiệm vụ, kẻ phản bội lẫn trong đội. Bỏ phiếu bí mật.',
     ready: true
+  },
+  {
+    id: 'splendor',
+    name: 'Splendor',
+    icon: '💎',
+    min: 2,
+    max: 4,
+    time: '30 phút',
+    blurb: 'Thương nhân đá quý: gom đá, mua mỏ, mời quý tộc. Ai đạt 15 điểm trước mở vòng cuối.',
+    ready: true
   }
 ];
 

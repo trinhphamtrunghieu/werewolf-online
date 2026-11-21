@@ -8,6 +8,7 @@ Trò chơi nhóm ngồi chung bàn, mỗi người một điện thoại. Tạo 
 | 🕵️ **Ai là gián điệp** (Spyfall) | 3–12 | có |
 | 🗝️ **Ai là nội gián** (Undercover) | 4–12 | có |
 | 🛡️ **Avalon** | 5–10 | có |
+| 💎 **Splendor** | 2–4 | có |
 
 **Thêm một trò chơi**: luật chạy trong một module ở `lib/games/` (xem `lib/games/index.js` cho các hàm cần có), thông tin chung ở `public/shared/games.js`, giao diện ở `public/js/games/`. Phòng, người chơi, chủ phòng, người chơi máy, đồng hồ và bảng xếp hạng (riêng cho từng trò) dùng chung trong `lib/engine.js`.
 
@@ -22,6 +23,12 @@ Mỗi người một từ khoá (254 cặp từ, 13 chủ đề); 1 nội gián 
 ### Avalon
 
 5–10 người, số Thiện/Ác và cỡ đội từng nhiệm vụ theo luật gốc. Merlin và Sát Thủ luôn có; tuỳ chọn Percival và Morgana, Mordred, Oberon (khi phe Ác đủ chỗ). Đội trưởng xoay vòng chọn đội, cả bàn duyệt (phiếu giấu đến khi đủ rồi lật cùng lúc), 5 đội bị bác liên tiếp là phe Ác thắng. Đội chọn Thành công/Thất bại bí mật (phe Thiện chỉ được Thành công; nhiệm vụ 4 cần 2 lá Thất bại từ 7 người). 3 nhiệm vụ thất bại: phe Ác thắng; 3 thành công: Sát Thủ đoán Merlin. Tuỳ chọn **Tiên Nữ Hồ** (Lady of the Lake): sau nhiệm vụ 2, 3, 4, người giữ thẻ soi phe của một người chưa từng giữ thẻ (chỉ họ thấy kết quả) rồi trao thẻ cho người đó.
+
+### Splendor
+
+Đưa từ repo [Splendor](https://github.com/trinhphamtrunghieu/Splendor) vào bàn chơi: luật nằm ở `public/shared/splendor.js` (máy chủ chạy ván, điện thoại dùng để biết thẻ nào mua được), module phòng và người chơi máy ở `lib/games/splendor.js`, giao diện ở `public/js/games/splendor.js` và `public/css/splendor.css`. 2–4 người, đủ 90 thẻ và 10 quý tộc, số đá theo số người. Mỗi lượt: lấy 3 viên khác màu, 2 viên cùng màu (chồng còn ≥ 4), giữ 1 thẻ (trên bàn hoặc úp từ chồng, kèm 1 vàng), hoặc mua thẻ. Quý tộc tự đến khi đủ chiết khấu (nhiều người thì chọn), quá 10 viên thì trả lại. Đạt 15 điểm (chủ phòng chỉnh 10–21) mở vòng cuối; bằng điểm thì ít thẻ hơn thắng. Mỗi lượt có giờ (30–300 giây, mặc định 90): hết giờ, hoặc chủ phòng bấm bỏ qua, thì máy đi thay. Thẻ giữ úp từ chồng chỉ chủ của nó thấy. Bảng xếp hạng chia theo Người / Máy.
+
+Chân dung quý tộc (`public/img/splendor/nobles/`) là tranh thế kỷ 16 thuộc phạm vi công cộng, lấy từ Wikimedia Commons (danh sách nguồn ở `ATTRIBUTION.md` của repo Splendor). Hình đá quý là SVG vẽ tay (`public/js/games/splendor-art.js`). Không dùng hình ảnh của bản thương mại.
 
 ## Ma Sói
 
@@ -163,7 +170,7 @@ Thu các câu trong `voice-lines.js`, lưu thành `public/audio/<key>_<biến th
 
 Bot Zalo tạo phòng giúp nhóm chat và báo kết quả khi ván kết thúc (tài liệu: [Zalo Bot webhook](https://docs.zaloplatforms.com/docs/BOT/webhook)).
 
-**Tạo phòng từ Zalo:** nhắn cho bot `>createRoom wolf` (hoặc `spyfall`, `undercover`, `avalon`; không ghi tên trò thì là Ma Sói). Server tạo sẵn một phòng trống và bot trả lời link phòng trong cuộc trò chuyện. Người vào phòng đầu tiên thành chủ phòng (và là người chơi). Phòng chưa có ai vào được giữ **24 giờ** (chỉ tốn một dòng trong Postgres: không máy nào hỏi server, không ai nghe kênh Realtime); khi người đầu tiên vào thì phòng theo luật 30 phút như mọi phòng khác.
+**Tạo phòng từ Zalo:** nhắn cho bot `>createRoom wolf` (hoặc `spyfall`, `undercover`, `avalon`, `splendor`; không ghi tên trò thì là Ma Sói). Server tạo sẵn một phòng trống và bot trả lời link phòng trong cuộc trò chuyện. Người vào phòng đầu tiên thành chủ phòng (và là người chơi). Phòng chưa có ai vào được giữ **24 giờ** (chỉ tốn một dòng trong Postgres: không máy nào hỏi server, không ai nghe kênh Realtime); khi người đầu tiên vào thì phòng theo luật 30 phút như mọi phòng khác.
 
 **Webhook nhận kết quả của từng phòng:** ghi URL ngay sau lệnh, ví dụ `>createRoom wolf https://bot.example.com/hook?game=123`. Bot gửi cập nhật tới `/api/zalo` thì cũng có thể đặt URL vào trường `webhook_url` ở gốc body JSON; URL ghi trong tin nhắn được ưu tiên. Mỗi phòng nhớ webhook của mình, nên mỗi phòng có thể báo về một nơi khác nhau. URL phải là `https` trên một máy công khai (không nhận `localhost`, IP nội bộ, URL có user/mật khẩu); URL sai thì bot báo lỗi và không tạo phòng. Khi chạy `npm run dev`, nhận cả `http` và `localhost` để thử. Phòng không có webhook riêng thì dùng `ZALO_EVENT_URL`, nếu có.
 

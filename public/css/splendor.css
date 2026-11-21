@@ -1,0 +1,186 @@
+/* Splendor: the board (nobles, three rows of cards, the gem bank) and each
+   player's gems. Mobile first: a row is a deck and four cards, side by side. */
+
+:root {
+  --spl-white: #e9eef5;
+  --spl-blue: #3f7fd6;
+  --spl-green: #2aa96f;
+  --spl-red: #d63a3f;
+  --spl-black: #3a3d4a;
+  --spl-gold: #e8b93f;
+}
+
+.spl-gem { width: 1em; height: 1em; display: inline-block; vertical-align: middle; flex: none; }
+.spl-gem.big { width: 34px; height: 34px; }
+
+.spl-tray { margin-top: 12px; }
+.spl-tray.mine { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass-faint) inset; }
+.spl-tray .row .btn { flex: 1 1 auto; }
+.spl-chosen { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.spl-chosen .spl-card { width: 74px; flex: none; }
+
+.spl-board { display: grid; gap: 6px; }
+.spl-nobles { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.spl-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+
+/* A development card. */
+.spl-card {
+  position: relative;
+  aspect-ratio: 5 / 7;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  padding: 3px 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  text-align: left;
+  color: #1b1712;
+  background: #efe6d2;
+  font: inherit;
+  min-width: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+button.spl-card { cursor: pointer; }
+button.spl-card:disabled { cursor: default; }
+.spl-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 30%;
+  background: rgba(255, 255, 255, 0.55);
+}
+.spl-card.white { background: linear-gradient(160deg, #fbfdff, #cfd9e6); }
+.spl-card.blue { background: linear-gradient(160deg, #9cc4f4, #3a6fba); }
+.spl-card.green { background: linear-gradient(160deg, #9fe0bf, #2a8a5c); }
+.spl-card.red { background: linear-gradient(160deg, #f4a5a5, #b8343a); }
+.spl-card.black { background: linear-gradient(160deg, #8c8f9e, #34363f); }
+.spl-card .top { position: relative; display: flex; justify-content: space-between; align-items: flex-start; }
+.spl-card .pts { font-family: var(--display); font-weight: 800; font-size: 1.25rem; line-height: 1; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 0 1px #000; }
+.spl-card .bonus { width: 18px; height: 18px; }
+.spl-card .art { position: absolute; inset: 28% 18% 30% 18%; opacity: 0.35; display: flex; align-items: center; justify-content: center; }
+.spl-card .art .spl-gem { width: 100%; height: 100%; }
+.spl-cost { position: relative; display: flex; flex-wrap: wrap-reverse; align-content: flex-start; gap: 2px; }
+.spl-card.can { outline: 2px solid var(--village); outline-offset: 1px; }
+.spl-card.sel { outline: 3px solid var(--brass-hi); outline-offset: 1px; transform: translateY(-2px); }
+.spl-card.empty { background: rgba(0, 0, 0, 0.18); border-style: dashed; border-color: var(--line); box-shadow: none; }
+.spl-card.empty::before { display: none; }
+.spl-card.back {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text);
+  border-color: var(--brass-line);
+}
+.spl-card.back::before { display: none; }
+.spl-card.back.t1 { background: linear-gradient(160deg, #3c6b4c, #1f3b2a); }
+.spl-card.back.t2 { background: linear-gradient(160deg, #8b7330, #4c3d13); }
+.spl-card.back.t3 { background: linear-gradient(160deg, #3d5d93, #1e2f52); }
+.spl-card.back .back-tier { font-size: 1.1rem; letter-spacing: 2px; color: var(--brass-hi); }
+.spl-card.back:disabled { opacity: 1; }
+
+/* A cost pip: a disc in the gem's colour with the number on it. */
+.pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+.pip.sq { border-radius: 3px; width: 15px; height: 17px; font-size: 0.68rem; }
+.pip.white { background: var(--spl-white); color: #1b1712; text-shadow: none; }
+.pip.blue { background: var(--spl-blue); }
+.pip.green { background: var(--spl-green); }
+.pip.red { background: var(--spl-red); }
+.pip.black { background: var(--spl-black); }
+
+/* A noble tile: the portrait, 3 points, and the cards it asks for. */
+.spl-noble {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--brass-line);
+  background: var(--face-3);
+  padding: 0;
+  flex: none;
+}
+button.spl-noble { cursor: pointer; width: 76px; height: 76px; border: 2px solid var(--brass); }
+.spl-noble img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.spl-noble .pts { position: absolute; top: 2px; right: 4px; font-family: var(--display); font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+.spl-noble .req { position: absolute; left: 2px; bottom: 2px; display: flex; flex-direction: column; gap: 1px; }
+.spl-nobles.small .spl-noble { width: 44px; height: 44px; }
+.spl-nobles.small .pip.sq { width: 12px; height: 13px; font-size: 0.6rem; }
+
+/* The bank: six stacks of tokens. */
+.spl-bank { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+.spl-token {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  min-height: 60px;
+}
+.spl-token:disabled { cursor: default; opacity: 0.7; }
+.spl-token.sel { border-color: var(--brass-hi); background: rgba(201, 162, 78, 0.18); }
+.spl-token .count { font-weight: 700; font-size: 0.95rem; line-height: 1; }
+.spl-token .badge {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  background: var(--brass);
+  color: var(--brass-ink);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Players. */
+.spl-players { display: grid; gap: 10px; margin-top: 12px; }
+.spl-player.turn { border-color: var(--brass); }
+.spl-player h3 { font-size: 1.05rem; }
+.spl-points strong { font-family: var(--display); font-size: 1.4rem; color: var(--brass-hi); }
+.spl-holdings { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin: 8px 0 4px; }
+.spl-holdings .hold {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.spl-holdings .spl-gem { width: 22px; height: 22px; }
+.spl-holdings .tok { font-weight: 700; line-height: 1.2; }
+.spl-holdings .bon {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  min-width: 16px;
+  padding: 0 3px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  background: var(--face-3);
+  border: 1px solid var(--brass-faint);
+}
+.spl-reserved { display: grid; grid-template-columns: repeat(3, minmax(0, 74px)); gap: 6px; margin-top: 6px; }
+
+.spl-mine .card-top { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--soft); }

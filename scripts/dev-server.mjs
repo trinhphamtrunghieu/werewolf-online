@@ -20,6 +20,7 @@ const types = {
   '.mp3': 'audio/mpeg',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
   '.webmanifest': 'application/manifest+json'
 };
 
